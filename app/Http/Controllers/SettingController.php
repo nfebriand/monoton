@@ -1,0 +1,64 @@
+<?php
+namespace App\Http\Controllers;
+
+use App\Models\AppSetting;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+class SettingController extends Controller
+{
+    public function index()
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $settings = AppSetting::allKeyed();
+        return view('setting.index', compact('settings'));
+    }
+
+    public function update(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+
+        $request->validate([
+            'satuan_kerja'   => 'nullable|string|max:255',
+            'kepala_stasiun' => 'nullable|string|max:255',
+            'kepala_bidang'  => 'nullable|string|max:255',
+            'koordinator'    => 'nullable|string|max:255',
+            'tema_warna'     => 'nullable|string|max:7',
+            'logo'           => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'update_log'     => 'nullable|string',
+        ]);
+
+        $keys = ['satuan_kerja','kepala_stasiun','kepala_bidang','koordinator','tema_warna','update_log'];
+        foreach ($keys as $key) {
+            if ($request->has($key)) {
+                AppSetting::set($key, $request->input($key));
+            }
+        }
+
+        // Upload logo
+        if ($request->hasFile('logo')) {
+            $old = AppSetting::get('logo_path');
+            if ($old) Storage::disk('public')->delete($old);
+            $path = $request->file('logo')->store('settings','public');
+            AppSetting::set('logo_path', $path);
+        }
+
+        return back()->with('success','Pengaturan berhasil disimpan.');
+    }
+
+    public function updateKredit(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $request->validate([
+            'kredit_pembuat'  => 'required|string|max:100',
+            'kredit_wa'       => 'required|string|max:20',
+            'kredit_telegram' => 'required|string|max:50',
+            'kredit_dana'     => 'required|string|max:20',
+        ]);
+        AppSetting::set('kredit_pembuat',  $request->kredit_pembuat);
+        AppSetting::set('kredit_wa',       $request->kredit_wa);
+        AppSetting::set('kredit_telegram', $request->kredit_telegram);
+        AppSetting::set('kredit_dana',     $request->kredit_dana);
+        return back()->with('success','Kredit berhasil diperbarui.');
+    }
+}

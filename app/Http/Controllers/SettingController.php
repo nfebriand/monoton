@@ -2,6 +2,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppSetting;
+use App\Models\Pemancar;
+use App\Models\OperasionalLog;
+use App\Models\Eviden;
+use App\Models\JadwalShift;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -28,14 +32,12 @@ class SettingController extends Controller
             'update_log'     => 'nullable|string',
         ]);
 
-        $keys = ['satuan_kerja','kepala_stasiun','kepala_bidang','koordinator','tema_warna','update_log'];
-        foreach ($keys as $key) {
+        foreach (['satuan_kerja','kepala_stasiun','kepala_bidang','koordinator','tema_warna','update_log'] as $key) {
             if ($request->has($key)) {
                 AppSetting::set($key, $request->input($key));
             }
         }
 
-        // Upload logo
         if ($request->hasFile('logo')) {
             $old = AppSetting::get('logo_path');
             if ($old) Storage::disk('public')->delete($old);
@@ -53,12 +55,10 @@ class SettingController extends Controller
             'kredit_pembuat'  => 'required|string|max:100',
             'kredit_wa'       => 'required|string|max:20',
             'kredit_telegram' => 'required|string|max:50',
-            'kredit_dana'     => 'required|string|max:20',
         ]);
         AppSetting::set('kredit_pembuat',  $request->kredit_pembuat);
         AppSetting::set('kredit_wa',       $request->kredit_wa);
         AppSetting::set('kredit_telegram', $request->kredit_telegram);
-        AppSetting::set('kredit_dana',     $request->kredit_dana);
         return back()->with('success','Kredit berhasil diperbarui.');
     }
 }

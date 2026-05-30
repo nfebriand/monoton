@@ -50,7 +50,7 @@
                 <div class="input-group">
                     <input type="number" name="kelembaban" class="form-control mono"
                            step="0.1" min="0" max="100"
-                           value="{{ old('kelembaban', $kelembabanTerakhir) }}" >
+                           value="{{ old('kelembaban', $kelembabanTerakhir) }}">
                     <span class="input-group-text">%</span>
                 </div>
             </div>
@@ -112,7 +112,7 @@
                         <i class="bi bi-geo-alt me-1"></i>{{ $pemancar->lokasi }}
                     </span>
                     @endif
-                    <span class="mono text-muted" style="font-size:.72rem">{{ number_format($maxPower,0) }} W</span>
+                    <span class="mono text-muted" style="font-size:.72rem">{{ number_format($maxPower,0) }} W maks</span>
                 </div>
                 <span class="badge flex-shrink-0 {{ $sudah?'bg-success':'bg-warning text-dark' }}">
                     <i class="bi bi-{{ $sudah?'check-circle':'exclamation-circle' }} me-1"></i>
@@ -129,6 +129,7 @@
                 <div class="row g-2 mb-3">
                     <div class="col-4">
                         <label class="form-label">Final PA
+                            <span class="text-danger" style="font-size:.65rem">(maks {{ number_format($maxPower,0) }}W)</span>
                         </label>
                         <div class="input-group input-group-sm">
                             <input type="number" name="pemancar[{{ $idx }}][output_final_pa]"
@@ -198,7 +199,7 @@
                 {{-- Keterangan --}}
                 <textarea name="pemancar[{{ $idx }}][keterangan]"
                           class="form-control form-control-sm" rows="2"
-                ></textarea>
+                          ></textarea>
             </div>
         </div>
         @if(!$loop->last)<div style="height:1px;background:#edf2f7"></div>@endif

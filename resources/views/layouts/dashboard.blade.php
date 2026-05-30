@@ -83,8 +83,9 @@
                                     <div class="mono" style="font-size:.78rem">{{ $lastLog->dicatat_pada->format('d/m H:i') }}</div>
                                     <small class="text-muted">{{ $lastLog->user->name }}</small>
                                 @else
-                                    <span class="text-muted">–</span>
-                                @endif
+									<div class="mono" style="font-size:.78rem">{{ $lastLog->dicatat_pada->format('d/m H:i') }}</div>
+                                    <small class="text-muted">{{ $lastLog->user->name }}</small>
+								@endif
                             </td>
                             <td>
                                 @if($lastLog && $lastLog->vswr_final)

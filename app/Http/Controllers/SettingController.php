@@ -6,6 +6,7 @@ use App\Models\Pemancar;
 use App\Models\OperasionalLog;
 use App\Models\Eviden;
 use App\Models\JadwalShift;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -29,10 +30,9 @@ class SettingController extends Controller
             'koordinator'    => 'nullable|string|max:255',
             'tema_warna'     => 'nullable|string|max:7',
             'logo'           => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
-            'update_log'     => 'nullable|string',
         ]);
 
-        foreach (['satuan_kerja','kepala_stasiun','kepala_bidang','koordinator','tema_warna','update_log'] as $key) {
+        foreach (['satuan_kerja','kepala_stasiun','kepala_bidang','koordinator','tema_warna'] as $key) {
             if ($request->has($key)) {
                 AppSetting::set($key, $request->input($key));
             }
@@ -46,6 +46,26 @@ class SettingController extends Controller
         }
 
         return back()->with('success','Pengaturan berhasil disimpan.');
+    }
+
+    /**
+     * Simpan catatan update baru dengan auto-increment versi
+     */
+    public function addUpdateLog(Request $request)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+
+        $request->validate([
+            'catatan_update'  => 'required|string|max:2000',
+            'tipe_increment'  => 'required|in:patch,minor,major',
+        ]);
+
+        $newVersion = AppSetting::addUpdateLog(
+            $request->catatan_update,
+            $request->tipe_increment
+        );
+
+        return back()->with('success',"Update log berhasil ditambahkan. Versi baru: v{$newVersion}");
     }
 
     public function updateKredit(Request $request)

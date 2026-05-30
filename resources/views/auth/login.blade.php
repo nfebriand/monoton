@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — RadioOps</title>
+    <title>Login — MonOTOn</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
@@ -111,8 +111,8 @@
     <div class="login-logo">
         <div class="logo-icon"><i class="bi bi-broadcast"></i></div>
         <div class="logo-text">
-            <h1>RadioOps</h1>
-            <p>SISTEM MANAJEMEN PEMANCAR</p>
+            <h1>MonOTOn</h1>
+            <p>Monitoring Operasional Transmisi Online</p>
         </div>
     </div>
 
@@ -151,14 +151,14 @@
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-envelope text-muted"></i></span>
                 <input type="email" name="email" class="form-control" value="{{ old('email') }}"
-                       placeholder="operator@radioops.id" required autofocus>
+                       required autofocus>
             </div>
         </div>
         <div class="mb-4">
             <label class="form-label">Password</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-lock text-muted"></i></span>
-                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                <input type="password" name="password" class="form-control"  required>
             </div>
         </div>
         <button type="submit" class="btn-login">

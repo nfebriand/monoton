@@ -1,10 +1,10 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\OperasionalLog;
 use App\Models\Pemancar;
 use App\Models\User;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -12,7 +12,7 @@ class LaporanController extends Controller
 {
     public function index()
     {
-        $pemancars   = Pemancar::where('is_active', true)->orderBy('nama_stasiun')->get();
+        $pemancars   = Pemancar::where('is_active',true)->orderBy('nama_stasiun')->get();
         $operators   = User::where('role','operator')->where('is_active',true)->orderBy('name')->get();
         $semuaLokasi = Pemancar::whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
         return view('laporan.index', compact('pemancars','operators','semuaLokasi'));
@@ -21,13 +21,14 @@ class LaporanController extends Controller
     public function generate(Request $request)
     {
         $validated = $request->validate([
-            'tanggal_dari'   => 'required|date',
-            'tanggal_sampai' => 'required|date|after_or_equal:tanggal_dari',
-            'pemancar_id'    => 'nullable|exists:pemancars,id',
-            'lokasi'         => 'nullable|string',
-            'user_id'        => 'nullable|exists:users,id',
-            'format'         => 'required|in:pdf,view',
-            'pengelola'      => 'nullable|string|max:100',
+            'tanggal_dari'        => 'required|date',
+            'tanggal_sampai'      => 'required|date|after_or_equal:tanggal_dari',
+            'pemancar_id'         => 'nullable|exists:pemancars,id',
+            'lokasi'              => 'nullable|string',
+            'user_id'             => 'nullable|exists:users,id',
+            'format'              => 'required|in:pdf,view',
+            'generated_by_custom' => 'nullable|string|max:100',
+            'pengelola'           => 'nullable|string|max:100',
         ]);
 
         $query = OperasionalLog::with(['pemancar','user','jadwalShift'])
@@ -43,18 +44,19 @@ class LaporanController extends Controller
             $query->whereIn('pemancar_id',$ids);
         }
 
-        $logs = $query->get();
+        $logs    = $query->get();
+        $settings = AppSetting::allKeyed();
 
         $summary = [
-            'total_pencatatan'   => $logs->count(),
-            'rata_output_final'  => $logs->whereNotNull('output_final_pa')->avg('output_final_pa'),
-            'rata_vswr_final'    => $logs->whereNotNull('vswr_final')->avg('vswr_final'),
-            'max_vswr_final'     => $logs->max('vswr_final'),
-            'rata_suhu_ruangan'  => $logs->whereNotNull('suhu_ruangan')->avg('suhu_ruangan'),
-            'rata_kelembaban'    => $logs->whereNotNull('kelembaban')->avg('kelembaban'),
-            'pemancar_filter'    => !empty($validated['pemancar_id']) ? Pemancar::find($validated['pemancar_id']) : null,
-            'operator_filter'    => !empty($validated['user_id'])     ? User::find($validated['user_id']) : null,
-            'lokasi_filter'      => $validated['lokasi'] ?? null,
+            'total_pencatatan'  => $logs->count(),
+            'rata_output_final' => $logs->whereNotNull('output_final_pa')->avg('output_final_pa'),
+            'rata_vswr_final'   => $logs->whereNotNull('vswr_final')->avg('vswr_final'),
+            'max_vswr_final'    => $logs->max('vswr_final'),
+            'rata_suhu_ruangan' => $logs->whereNotNull('suhu_ruangan')->avg('suhu_ruangan'),
+            'rata_kelembaban'   => $logs->whereNotNull('kelembaban')->avg('kelembaban'),
+            'pemancar_filter'   => !empty($validated['pemancar_id']) ? Pemancar::find($validated['pemancar_id']) : null,
+            'operator_filter'   => !empty($validated['user_id'])     ? User::find($validated['user_id'])     : null,
+            'lokasi_filter'     => $validated['lokasi'] ?? null,
         ];
 
         $data = [
@@ -63,8 +65,9 @@ class LaporanController extends Controller
             'tanggal_dari'   => $validated['tanggal_dari'],
             'tanggal_sampai' => $validated['tanggal_sampai'],
             'generated_at'   => now()->format('d/m/Y H:i'),
-            'generated_by'   => auth()->user()->name,
-            'pengelola'      => $validated['pengelola'] ?? '',
+            'generated_by'   => $validated['generated_by_custom'] ?? auth()->user()->name,
+            'pengelola'      => $validated['pengelola'] ?? ($settings['koordinator'] ?? ''),
+            'satkerName'     => $settings['satuan_kerja'] ?? '',
         ];
 
         if ($validated['format'] === 'pdf') {
@@ -72,7 +75,6 @@ class LaporanController extends Controller
                 'laporan-operasional-'.$validated['tanggal_dari'].'-sd-'.$validated['tanggal_sampai'].'.pdf',
                 'landscape');
         }
-
         return view('laporan.view', $data);
     }
 
@@ -125,9 +127,8 @@ class LaporanController extends Controller
         $tahun      = (int)$request->get('tahun', now()->year);
         $pemancarId = $request->get('pemancar_id');
         $lokasi     = $request->get('lokasi');
-        $pengelola  = $request->get('pengelola','');
 
-        $query = OperasionalLog::with(['pemancar','user'])
+        $query = OperasionalLog::with(['pemancar','user','jadwalShift'])
             ->whereYear('dicatat_pada',$tahun)
             ->whereMonth('dicatat_pada',$bulan)
             ->orderBy('dicatat_pada');
@@ -141,9 +142,19 @@ class LaporanController extends Controller
         $logs       = $query->get();
         $pemancar   = $pemancarId ? Pemancar::find($pemancarId) : null;
         $bulanLabel = Carbon::create($tahun,$bulan,1)->translatedFormat('F Y');
+        $settings   = AppSetting::allKeyed();
+
+        // Operator aktif yang sedang login
+        $currentUser    = auth()->user();
+        $operatorNama   = $currentUser->name;
+        $operatorNip    = $currentUser->nip ?? '';
+        $koordinatorName = $settings['koordinator'] ?? '';
+        $satkerName      = $settings['satuan_kerja'] ?? '';
 
         return $this->generatePdf('laporan.suhu-pdf',
-            compact('logs','pemancar','bulanLabel','bulan','tahun','lokasi','pengelola'),
+            compact('logs','pemancar','bulanLabel','bulan','tahun',
+                    'lokasi','operatorNama','operatorNip',
+                    'koordinatorName','satkerName'),
             "laporan-suhu-{$bulan}-{$tahun}.pdf",'portrait');
     }
 

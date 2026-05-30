@@ -15,7 +15,6 @@ Route::post('/login', [LoginController::class,'login'])->name('login.post');
 Route::post('/logout',[LoginController::class,'logout'])->name('logout');
 
 Route::middleware(['auth'])->group(function(){
-
     Route::get('/',         [DashboardController::class,'index'])->name('dashboard');
     Route::get('/dashboard',[DashboardController::class,'index']);
 
@@ -38,14 +37,15 @@ Route::middleware(['auth'])->group(function(){
     Route::put('/operasional/{operasional}',      [OperasionalController::class,'update'])->name('operasional.update');
     Route::delete('/operasional/{operasional}',   [OperasionalController::class,'destroy'])->name('operasional.destroy');
 
-    // Eviden
+    // Eviden — static routes SEBELUM parameter
     Route::get('/eviden',        [EvidenController::class,'index'])->name('eviden.index');
     Route::get('/eviden/create', [EvidenController::class,'create'])->name('eviden.create');
     Route::post('/eviden',       [EvidenController::class,'store'])->name('eviden.store');
-    Route::get('/eviden/{eviden}',      [EvidenController::class,'show'])->name('eviden.show');
-    Route::get('/eviden/{eviden}/edit', [EvidenController::class,'edit'])->name('eviden.edit');
-    Route::put('/eviden/{eviden}',      [EvidenController::class,'update'])->name('eviden.update');
-    Route::delete('/eviden/{eviden}',   [EvidenController::class,'destroy'])->name('eviden.destroy');
+    Route::get('/eviden/{eviden}/cetak',  [EvidenController::class,'cetak'])->name('eviden.cetak');
+    Route::get('/eviden/{eviden}',        [EvidenController::class,'show'])->name('eviden.show');
+    Route::get('/eviden/{eviden}/edit',   [EvidenController::class,'edit'])->name('eviden.edit');
+    Route::put('/eviden/{eviden}',        [EvidenController::class,'update'])->name('eviden.update');
+    Route::delete('/eviden/{eviden}',     [EvidenController::class,'destroy'])->name('eviden.destroy');
 
     // Laporan
     Route::get('/laporan',           [LaporanController::class,'index'])->name('laporan.index');
@@ -55,13 +55,11 @@ Route::middleware(['auth'])->group(function(){
 
     // Admin only
     Route::middleware(['App\Http\Middleware\AdminOnly'])->group(function(){
-        // Jadwal
-        Route::get('/jadwal',             [JadwalController::class,'index'])->name('jadwal.index');
-        Route::post('/jadwal',            [JadwalController::class,'store'])->name('jadwal.store');
-        Route::post('/jadwal/bulanan',    [JadwalController::class,'storeBulanan'])->name('jadwal.bulanan');
-        Route::delete('/jadwal/{jadwal}', [JadwalController::class,'destroy'])->name('jadwal.destroy');
+        Route::get('/jadwal',          [JadwalController::class,'index'])->name('jadwal.index');
+        Route::post('/jadwal',         [JadwalController::class,'store'])->name('jadwal.store');
+        Route::post('/jadwal/bulanan', [JadwalController::class,'storeBulanan'])->name('jadwal.bulanan');
+        Route::delete('/jadwal/{jadwal}',[JadwalController::class,'destroy'])->name('jadwal.destroy');
 
-        // Users
         Route::get('/users',             [UserController::class,'index'])->name('users.index');
         Route::get('/users/create',      [UserController::class,'create'])->name('users.create');
         Route::post('/users',            [UserController::class,'store'])->name('users.store');
@@ -69,9 +67,9 @@ Route::middleware(['auth'])->group(function(){
         Route::put('/users/{user}',      [UserController::class,'update'])->name('users.update');
         Route::delete('/users/{user}',   [UserController::class,'destroy'])->name('users.destroy');
 
-        // Setting
-        Route::get('/setting',           [SettingController::class,'index'])->name('setting.index');
-        Route::post('/setting',          [SettingController::class,'update'])->name('setting.update');
-        Route::post('/setting/kredit',   [SettingController::class,'updateKredit'])->name('setting.kredit');
+        Route::get('/setting',             [SettingController::class,'index'])->name('setting.index');
+        Route::post('/setting',            [SettingController::class,'update'])->name('setting.update');
+        Route::post('/setting/update-log', [SettingController::class,'addUpdateLog'])->name('setting.update-log');
+        Route::post('/setting/kredit',     [SettingController::class,'updateKredit'])->name('setting.kredit');
     });
 });

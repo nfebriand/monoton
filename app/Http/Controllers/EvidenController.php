@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Eviden;
 use App\Models\EvidenFoto;
 use App\Models\User;
+use App\Models\AppSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,12 +19,12 @@ class EvidenController extends Controller
         if ($request->filled('tanggal_sampai')) $query->where('tanggal','<=',$request->tanggal_sampai);
         if ($request->filled('user_id'))        $query->where('user_id',$request->user_id);
 
-        // Operator hanya lihat evidennya sendiri
         if (auth()->user()->isOperator()) {
-            $query->where(function($q){
-                $q->where('user_id',auth()->id())
-                  ->orWhereHas('operators',fn($q2)=>$q2->where('users.id',auth()->id()));
-            });
+            $uid = auth()->id();
+            $query->where(fn($q) =>
+                $q->where('user_id',$uid)
+                  ->orWhereHas('operators',fn($q2)=>$q2->where('users.id',$uid))
+            );
         }
 
         $evidens   = $query->paginate(12)->withQueryString();
@@ -40,39 +41,34 @@ class EvidenController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'judul'        => 'required|string|max:255',
-            'deskripsi'    => 'nullable|string',
-            'tanggal'      => 'required|date',
-            'jam_mulai'    => 'required|date_format:H:i',
-            'jam_selesai'  => 'required|date_format:H:i',
-            'lokasi'       => 'nullable|string|max:255',
-            'supervisi'    => 'nullable|string|max:255',
-            'operator_ids' => 'nullable|array',
-            'operator_ids.*'=>'exists:users,id',
-            'fotos'        => 'nullable|array',
-            'fotos.*'      => 'image|mimes:jpeg,png,jpg,webp|max:8192',
+            'judul'         => 'required|string|max:255',
+            'deskripsi'     => 'nullable|string',
+            'tanggal'       => 'required|date',
+            'jam_mulai'     => 'required|date_format:H:i',
+            'jam_selesai'   => 'required|date_format:H:i',
+            'lokasi'        => 'nullable|string|max:255',
+            'supervisi'     => 'nullable|string|max:255',
+            'operator_ids'  => 'nullable|array',
+            'operator_ids.*'=> 'exists:users,id',
+            'fotos'         => 'nullable|array',
+            'fotos.*'       => 'image|mimes:jpeg,png,jpg,webp|max:8192',
             'foto_keterangan'=>'nullable|array',
         ]);
 
-        $eviden = Eviden::create(array_merge(
-            $validated,
-            ['user_id'=>auth()->id()]
-        ));
+        $eviden = Eviden::create(array_merge($validated,['user_id'=>auth()->id()]));
 
-        // Attach operators
         if (!empty($validated['operator_ids'])) {
             $eviden->operators()->sync($validated['operator_ids']);
         }
 
-        // Upload foto
         if ($request->hasFile('fotos')) {
             foreach ($request->file('fotos') as $idx => $foto) {
                 $path = $foto->store('eviden','public');
                 EvidenFoto::create([
-                    'eviden_id'  =>$eviden->id,
-                    'path'       =>$path,
-                    'keterangan' =>$request->input("foto_keterangan.{$idx}"),
-                    'urutan'     =>$idx,
+                    'eviden_id' =>$eviden->id,
+                    'path'      =>$path,
+                    'keterangan'=>$request->input("foto_keterangan.{$idx}"),
+                    'urutan'    =>$idx,
                 ]);
             }
         }
@@ -100,35 +96,33 @@ class EvidenController extends Controller
         if (!auth()->user()->isAdmin() && auth()->id() !== $eviden->user_id) abort(403);
 
         $validated = $request->validate([
-            'judul'        => 'required|string|max:255',
-            'deskripsi'    => 'nullable|string',
-            'tanggal'      => 'required|date',
-            'jam_mulai'    => 'required|date_format:H:i',
-            'jam_selesai'  => 'required|date_format:H:i',
-            'lokasi'       => 'nullable|string|max:255',
-            'supervisi'    => 'nullable|string|max:255',
-            'operator_ids' => 'nullable|array',
-            'operator_ids.*'=>'exists:users,id',
+            'judul'         => 'required|string|max:255',
+            'deskripsi'     => 'nullable|string',
+            'tanggal'       => 'required|date',
+            'jam_mulai'     => 'required|date_format:H:i',
+            'jam_selesai'   => 'required|date_format:H:i',
+            'lokasi'        => 'nullable|string|max:255',
+            'supervisi'     => 'nullable|string|max:255',
+            'operator_ids'  => 'nullable|array',
+            'operator_ids.*'=> 'exists:users,id',
         ]);
 
         $eviden->update($validated);
         $eviden->operators()->sync($validated['operator_ids'] ?? []);
 
-        // Upload foto baru
         if ($request->hasFile('fotos')) {
             $last = $eviden->fotos()->max('urutan') ?? -1;
             foreach ($request->file('fotos') as $idx => $foto) {
                 $path = $foto->store('eviden','public');
                 EvidenFoto::create([
-                    'eviden_id'  =>$eviden->id,
-                    'path'       =>$path,
-                    'keterangan' =>$request->input("foto_keterangan_baru.{$idx}"),
-                    'urutan'     =>$last+$idx+1,
+                    'eviden_id' =>$eviden->id,
+                    'path'      =>$path,
+                    'keterangan'=>$request->input("foto_keterangan_baru.{$idx}"),
+                    'urutan'    =>$last+$idx+1,
                 ]);
             }
         }
 
-        // Hapus foto
         if ($request->has('hapus_foto')) {
             foreach ($request->hapus_foto as $fotoId) {
                 $foto = EvidenFoto::where('eviden_id',$eviden->id)->find($fotoId);
@@ -136,7 +130,8 @@ class EvidenController extends Controller
             }
         }
 
-        return redirect()->route('eviden.show',$eviden)->with('success','Eviden berhasil diperbarui.');
+        return redirect()->route('eviden.show',$eviden)
+            ->with('success','Eviden berhasil diperbarui.');
     }
 
     public function destroy(Eviden $eviden)
@@ -145,5 +140,36 @@ class EvidenController extends Controller
         foreach ($eviden->fotos as $f) Storage::disk('public')->delete($f->path);
         $eviden->delete();
         return redirect()->route('eviden.index')->with('success','Eviden berhasil dihapus.');
+    }
+
+    /**
+     * Cetak laporan eviden sebagai PDF
+     */
+    public function cetak(Eviden $eviden)
+    {
+        $eviden->load(['user','operators','fotos']);
+        $settings        = AppSetting::allKeyed();
+        $satkerName      = $settings['satuan_kerja'] ?? '';
+        $koordinatorName = $settings['koordinator']  ?? '';
+        $appVersion      = $settings['app_version']  ?? '1.0.0';
+
+        $html = view('eviden.pdf', compact(
+            'eviden','satkerName','koordinatorName','appVersion'
+        ))->render();
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html,'UTF-8');
+        $dompdf->setPaper('A4','portrait');
+        $dompdf->set_option('isRemoteEnabled', true);   // perlu untuk foto
+        $dompdf->set_option('isHtml5ParserEnabled', true);
+        $dompdf->set_option('defaultFont','dejavu sans');
+        $dompdf->set_option('isFontSubsettingEnabled', true);
+        $dompdf->render();
+
+        $filename = 'eviden-'.str_replace(' ','-',strtolower($eviden->judul)).'-'.$eviden->tanggal->format('Ymd').'.pdf';
+        return response($dompdf->output(),200,[
+            'Content-Type'        => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
     }
 }

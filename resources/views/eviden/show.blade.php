@@ -8,8 +8,12 @@
         <i class="bi bi-arrow-left"></i> Kembali
     </a>
     <span class="fw-bold text-truncate">{{ $eviden->judul }}</span>
-    @if(auth()->user()->isAdmin() || auth()->id()===$eviden->user_id)
-    <div class="d-flex gap-2 ms-auto">
+    <div class="d-flex gap-2 ms-auto flex-wrap">
+        {{-- Tombol Cetak --}}
+        <a href="{{ route('eviden.cetak', $eviden) }}" class="btn btn-sm btn-danger" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Cetak PDF
+        </a>
+        @if(auth()->user()->isAdmin() || auth()->id()===$eviden->user_id)
         <a href="{{ route('eviden.edit',$eviden) }}" class="btn btn-sm btn-outline-warning">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
@@ -20,8 +24,8 @@
                 <i class="bi bi-trash me-1"></i>Hapus
             </button>
         </form>
+        @endif
     </div>
-    @endif
 </div>
 
 <div class="row g-3">
@@ -61,7 +65,8 @@
                 </div>
                 @if($eviden->deskripsi)
                 <div class="p-3 rounded" style="background:#f8fafc;border:1px solid #eee;
-                     font-size:.88rem;line-height:1.65;white-space:pre-line">{{ $eviden->deskripsi }}</div>
+                     border-left:4px solid var(--primary);font-size:.88rem;
+                     line-height:1.65;white-space:pre-line">{{ $eviden->deskripsi }}</div>
                 @endif
             </div>
         </div>
@@ -69,9 +74,9 @@
         {{-- Foto Dokumentasi --}}
         @if($eviden->fotos->isNotEmpty())
         <div class="card">
-            <div class="card-header">
-                <i class="bi bi-images me-2"></i>Foto Dokumentasi ({{ $eviden->fotos->count() }})
-                <small class="text-muted fw-normal ms-1">— klik foto untuk preview besar</small>
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-images me-2"></i>Foto Dokumentasi ({{ $eviden->fotos->count() }})</span>
+                <small class="text-muted fw-normal">klik foto untuk preview besar</small>
             </div>
             <div class="card-body">
                 {{-- Foto Utama --}}
@@ -87,9 +92,9 @@
                          data-src="{{ $eviden->fotos->first()->url }}">
                 </div>
 
-                {{-- Grid Thumbnail --}}
+                {{-- Thumbnails --}}
                 @if($eviden->fotos->count() > 1)
-                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:.5rem">
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:.5rem">
                     @foreach($eviden->fotos as $i => $foto)
                     <div style="aspect-ratio:1;border-radius:7px;overflow:hidden;
                          border:2px solid {{ $i===0?'var(--primary)':'#dfe6e9' }};
@@ -101,13 +106,12 @@
                              style="width:100%;height:100%;object-fit:cover;display:block">
                         @if($foto->keterangan)
                         <div style="position:absolute;bottom:0;left:0;right:0;
-                             background:rgba(0,0,0,.6);color:#fff;font-size:.6rem;
-                             padding:.2rem .3rem;text-align:center;
+                             background:rgba(0,0,0,.6);color:#fff;font-size:.58rem;
+                             padding:.18rem .3rem;text-align:center;
                              white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                             {{ $foto->keterangan }}
                         </div>
                         @endif
-                        {{-- Nomor foto --}}
                         <div style="position:absolute;top:3px;left:4px;background:rgba(0,0,0,.55);
                              color:#fff;font-size:.58rem;border-radius:3px;padding:.05rem .3rem">
                             {{ $i+1 }}
@@ -117,7 +121,6 @@
                 </div>
                 @endif
 
-                {{-- Keterangan foto aktif --}}
                 <div id="keteranganFoto" class="text-muted text-center mt-2"
                      style="font-size:.78rem;min-height:1.2rem">
                     {{ $eviden->fotos->first()->keterangan }}
@@ -129,6 +132,19 @@
 
     {{-- Kanan: Personil --}}
     <div class="col-12 col-lg-4">
+
+        {{-- Cetak Cepat --}}
+        <div class="card mb-3" style="border-color:var(--danger)">
+            <div class="card-body py-2 text-center">
+                <a href="{{ route('eviden.cetak',$eviden) }}" target="_blank"
+                   class="btn btn-danger w-100">
+                    <i class="bi bi-file-earmark-pdf me-2"></i>Cetak Laporan PDF
+                </a>
+                <div class="text-muted mt-1" style="font-size:.72rem">
+                    Termasuk foto dokumentasi, operator terlibat & tanda tangan
+                </div>
+            </div>
+        </div>
 
         {{-- Dibuat Oleh --}}
         <div class="card mb-3">
@@ -202,16 +218,11 @@ let activeThumb = 0;
 const totalFotos = {{ $eviden->fotos->count() }};
 
 function gantiEvidenFoto(src, caption, idx){
-    // Update foto utama
     const img = document.getElementById('evidenFotoUtama');
     img.src = src;
     img.dataset.src = src;
     img.dataset.caption = caption;
-
-    // Update keterangan
     document.getElementById('keteranganFoto').textContent = caption || '';
-
-    // Update border thumbnail
     if(activeThumb !== undefined){
         const prev = document.getElementById('thumb-'+activeThumb);
         if(prev) prev.style.borderColor = '#dfe6e9';
@@ -219,20 +230,18 @@ function gantiEvidenFoto(src, caption, idx){
     const curr = document.getElementById('thumb-'+idx);
     if(curr) curr.style.borderColor = 'var(--primary)';
     activeThumb = idx;
-
-    // Langsung buka lightbox
     bukaLightbox(src, caption||'');
 }
 
-// Keyboard navigation di lightbox
-document.addEventListener('keydown', function(e){
+document.addEventListener('keydown',function(e){
     const modal = document.getElementById('globalLightbox');
-    if(!modal.classList.contains('show')) return;
-    if(e.key === 'ArrowRight') navigateFoto(1);
-    if(e.key === 'ArrowLeft')  navigateFoto(-1);
+    if(!modal || !modal.classList.contains('show')) return;
+    if(e.key==='ArrowRight') navigateFoto(1);
+    if(e.key==='ArrowLeft')  navigateFoto(-1);
 });
 
 function navigateFoto(dir){
+    if(totalFotos <= 1) return;
     const next = (activeThumb + dir + totalFotos) % totalFotos;
     const thumb = document.getElementById('thumb-'+next);
     if(thumb) thumb.click();

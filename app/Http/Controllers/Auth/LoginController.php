@@ -1,10 +1,12 @@
 <?php
-
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\JadwalShift;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class LoginController extends Controller
 {
@@ -20,70 +22,93 @@ class LoginController extends Controller
             'password' => 'required',
         ]);
 
-        if (!auth()->attempt($credentials, $request->boolean('remember'))) {
+        if (!Auth::attempt($credentials)) {
             return back()->withErrors(['email' => 'Email atau password salah.'])->withInput();
         }
 
-        $user = auth()->user();
+        $user = Auth::user();
 
-        if (!$user->is_active) {
-            auth()->logout();
-            return back()->withErrors(['email' => 'Akun Anda telah dinonaktifkan. Hubungi administrator.']);
+        // Admin: selalu boleh masuk
+        if ($user->isAdmin()) {
+            $request->session()->regenerate();
+            return redirect()->intended('/');
         }
 
-        // Validasi shift untuk operator
-        if ($user->isOperator()) {
-            $today   = now()->toDateString();
-            $nowTime = now()->format('H:i');
+        // Operator: cek jadwal shift dengan toleransi 30 menit
+        $shiftAktif = $this->cariShiftAktif($user);
 
-            $jadwal = JadwalShift::where('user_id', $user->id)
-                ->where('tanggal', $today)
-                ->where('jam_mulai', '<=', $nowTime)
-                ->where('jam_selesai', '>', $nowTime)
-                ->first();
+        if (!$shiftAktif) {
+            Auth::logout();
 
-            if (!$jadwal) {
-                // Cek apakah ada jadwal hari ini tapi di luar jam shift
-                $adaJadwalHariIni = JadwalShift::where('user_id', $user->id)
-                    ->where('tanggal', $today)
-                    ->exists();
-
-                auth()->logout();
-
-                if ($adaJadwalHariIni) {
-                    // Tampilkan info shift berikutnya
-                    $shiftBerikutnya = JadwalShift::where('user_id', $user->id)
-                        ->where('tanggal', $today)
-                        ->where('jam_mulai', '>', $nowTime)
-                        ->orderBy('jam_mulai')
-                        ->first();
-
-                    $msg = 'Bukan jam shift Anda saat ini.';
-                    if ($shiftBerikutnya) {
-                        $msg .= " Shift Anda berikutnya dimulai pukul {$shiftBerikutnya->jam_mulai}.";
-                    }
-                    return back()->withErrors(['shift' => $msg])->withInput();
-                }
-
-                return back()->withErrors([
-                    'shift' => 'Anda tidak memiliki jadwal shift hari ini. Hubungi administrator.'
-                ])->withInput();
+            // Tampilkan info shift berikutnya
+            $shiftBerikutnya = $this->shiftBerikutnya($user);
+            $pesanTambahan   = '';
+            if ($shiftBerikutnya) {
+                $sd = JadwalShift::getShiftData(
+                    $shiftBerikutnya->skema ?? 'default',
+                    $shiftBerikutnya->shift
+                );
+                $label = $sd['label'] ?? 'Shift '.$shiftBerikutnya->shift;
+                $tgl   = Carbon::parse($shiftBerikutnya->tanggal)->translatedFormat('d F Y');
+                $pesanTambahan = " Jadwal berikutnya: {$label} ({$shiftBerikutnya->jam_mulai}–{$shiftBerikutnya->jam_selesai}) pada {$tgl}.";
             }
 
-            // Simpan info shift aktif ke session
-            session([
-                'shift_aktif_id' => $jadwal->id,
-                'shift_aktif_no' => $jadwal->shift,
-            ]);
+            return back()->withErrors([
+                'email' => 'Tidak ada jadwal shift aktif saat ini. '.
+                           'Login diizinkan 30 menit sebelum dan sesudah jadwal dinas.'.$pesanTambahan
+            ])->withInput();
         }
 
         $request->session()->regenerate();
-        return redirect()->intended(route('dashboard'));
+        $request->session()->put('shift_aktif_id',    $shiftAktif->id);
+        $request->session()->put('shift_aktif_no',    $shiftAktif->shift);
+        $request->session()->put('shift_aktif_label', $shiftAktif->shift_label);
+        $request->session()->put('shift_aktif_skema', $shiftAktif->skema ?? 'default');
+
+        return redirect()->intended('/');
+    }
+
+    /**
+     * Cari shift aktif dengan toleransi 30 menit
+     */
+    private function cariShiftAktif(User $user): ?JadwalShift
+    {
+        $toleransi = 30; // menit
+
+        // Cek kemarin, hari ini, besok (crossing midnight tolerance)
+        $tanggals = [
+            now()->subDay()->toDateString(),
+            now()->toDateString(),
+            now()->addDay()->toDateString(),
+        ];
+
+        $jadwals = JadwalShift::where('user_id', $user->id)
+            ->whereIn('tanggal', $tanggals)
+            ->get();
+
+        foreach ($jadwals as $jadwal) {
+            if ($jadwal->isAktifSekarang($toleransi)) {
+                return $jadwal;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Cari shift berikutnya (untuk info di pesan error)
+     */
+    private function shiftBerikutnya(User $user): ?JadwalShift
+    {
+        return JadwalShift::where('user_id', $user->id)
+            ->where('tanggal', '>=', now()->toDateString())
+            ->orderBy('tanggal')->orderBy('jam_mulai')
+            ->first();
     }
 
     public function logout(Request $request)
     {
-        auth()->logout();
+        Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect()->route('login');

@@ -1,0 +1,86 @@
+{
+    "name": "MonOTOn - Monitoring Operasional Transmisi Online",
+    "short_name": "MonOTOn",
+    "description": "Aplikasi monitoring operasional transmisi online untuk operator pemancar radio",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#030d1a",
+    "theme_color": "#0a3d62",
+    "lang": "id",
+    "categories": ["productivity", "utilities"],
+    "icons": [
+        {
+            "src": "/pwa/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa/icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa/icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa/icon-144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa/icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa/icon-384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/pwa/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Catat Log",
+            "short_name": "Catat",
+            "description": "Catat log operasional pemancar",
+            "url": "/operasional/create",
+            "icons": [{"src": "/pwa/icon-96.png", "sizes": "96x96"}]
+        },
+        {
+            "name": "Dashboard",
+            "short_name": "Dashboard",
+            "description": "Lihat dashboard monitoring",
+            "url": "/dashboard",
+            "icons": [{"src": "/pwa/icon-96.png", "sizes": "96x96"}]
+        },
+        {
+            "name": "Riwayat Log",
+            "short_name": "Riwayat",
+            "description": "Lihat riwayat log operasional",
+            "url": "/operasional",
+            "icons": [{"src": "/pwa/icon-96.png", "sizes": "96x96"}]
+        }
+    ]
+}

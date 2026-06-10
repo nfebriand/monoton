@@ -74,9 +74,9 @@
                 <label class="form-label">Logo Aplikasi</label>
                 <div class="d-flex align-items-center gap-3 mb-2">
                     @if(!empty($settings['logo_path']))
-                    <img src="{{ asset('storage/'.$settings['logo_path']) }}"
+                    <img src="{{ asset('uploads/'.$settings['logo_path']) }}"
                          style="height:44px;object-fit:contain;border-radius:6px;border:1px solid #dfe6e9;cursor:zoom-in"
-                         onclick="bukaLightbox('{{ asset('storage/'.$settings['logo_path']) }}','Logo')">
+                         onclick="bukaLightbox('{{ asset('uploads/'.$settings['logo_path']) }}','Logo')">
                     @else
                     <div style="width:44px;height:44px;background:#f0f4f8;border-radius:8px;
                          display:flex;align-items:center;justify-content:center;border:1px dashed #ccc">

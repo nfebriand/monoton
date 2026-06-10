@@ -172,7 +172,7 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
     @foreach($row as $foto)
     @php
         // Konversi path ke base64 untuk DomPDF (lebih reliable daripada URL)
-        $fotoPath = storage_path('app/public/' . $foto->path);
+        $fotoPath = storage_path('uploads/' . $foto->path);
         $fotoBase64 = '';
         if (file_exists($fotoPath)) {
             $ext = strtolower(pathinfo($fotoPath, PATHINFO_EXTENSION));

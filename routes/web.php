@@ -10,24 +10,35 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\EvidenController;
 use App\Http\Controllers\SettingController;
 
+// ── Auth ──
 Route::get('/login',  [LoginController::class,'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class,'login'])->name('login.post');
 Route::post('/logout',[LoginController::class,'logout'])->name('logout');
 
+// ── PWA Offline ──
+Route::get('/offline', fn() => view('offline'))->name('offline');
+
 Route::middleware(['auth'])->group(function(){
+
+    // ── Dashboard ──
     Route::get('/',         [DashboardController::class,'index'])->name('dashboard');
     Route::get('/dashboard',[DashboardController::class,'index']);
 
-    // Pemancar
+    // ── Pemancar ──
     Route::get('/pemancar',        [PemancarController::class,'index'])->name('pemancar.index');
-    Route::get('/pemancar/create', [PemancarController::class,'create'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.create');
-    Route::post('/pemancar',       [PemancarController::class,'store'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.store');
+    Route::get('/pemancar/create', [PemancarController::class,'create'])
+        ->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.create');
+    Route::post('/pemancar',       [PemancarController::class,'store'])
+        ->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.store');
     Route::get('/pemancar/{pemancar}',      [PemancarController::class,'show'])->name('pemancar.show');
-    Route::get('/pemancar/{pemancar}/edit', [PemancarController::class,'edit'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.edit');
-    Route::put('/pemancar/{pemancar}',      [PemancarController::class,'update'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.update');
-    Route::delete('/pemancar/{pemancar}',   [PemancarController::class,'destroy'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.destroy');
+    Route::get('/pemancar/{pemancar}/edit', [PemancarController::class,'edit'])
+        ->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.edit');
+    Route::put('/pemancar/{pemancar}',      [PemancarController::class,'update'])
+        ->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.update');
+    Route::delete('/pemancar/{pemancar}',   [PemancarController::class,'destroy'])
+        ->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.destroy');
 
-    // Operasional
+    // ── Operasional ──
     Route::get('/operasional',             [OperasionalController::class,'index'])->name('operasional.index');
     Route::get('/operasional/create',      [OperasionalController::class,'create'])->name('operasional.create');
     Route::post('/operasional',            [OperasionalController::class,'store'])->name('operasional.store');
@@ -37,29 +48,42 @@ Route::middleware(['auth'])->group(function(){
     Route::put('/operasional/{operasional}',      [OperasionalController::class,'update'])->name('operasional.update');
     Route::delete('/operasional/{operasional}',   [OperasionalController::class,'destroy'])->name('operasional.destroy');
 
-    // Eviden — static routes SEBELUM parameter
+    // ── Eviden (static routes SEBELUM parameter) ──
     Route::get('/eviden',        [EvidenController::class,'index'])->name('eviden.index');
     Route::get('/eviden/create', [EvidenController::class,'create'])->name('eviden.create');
     Route::post('/eviden',       [EvidenController::class,'store'])->name('eviden.store');
-    Route::get('/eviden/{eviden}/cetak',  [EvidenController::class,'cetak'])->name('eviden.cetak');
-    Route::get('/eviden/{eviden}',        [EvidenController::class,'show'])->name('eviden.show');
-    Route::get('/eviden/{eviden}/edit',   [EvidenController::class,'edit'])->name('eviden.edit');
-    Route::put('/eviden/{eviden}',        [EvidenController::class,'update'])->name('eviden.update');
-    Route::delete('/eviden/{eviden}',     [EvidenController::class,'destroy'])->name('eviden.destroy');
+    Route::get('/eviden/{eviden}/cetak', [EvidenController::class,'cetak'])->name('eviden.cetak');
+    Route::get('/eviden/{eviden}',       [EvidenController::class,'show'])->name('eviden.show');
+    Route::get('/eviden/{eviden}/edit',  [EvidenController::class,'edit'])->name('eviden.edit');
+    Route::put('/eviden/{eviden}',       [EvidenController::class,'update'])->name('eviden.update');
+    Route::delete('/eviden/{eviden}',    [EvidenController::class,'destroy'])->name('eviden.destroy');
 
-    // Laporan
+    // ── Laporan ──
     Route::get('/laporan',           [LaporanController::class,'index'])->name('laporan.index');
     Route::post('/laporan/generate', [LaporanController::class,'generate'])->name('laporan.generate');
     Route::get('/laporan/suhu',      [LaporanController::class,'suhuBulanan'])->name('laporan.suhu');
     Route::get('/laporan/suhu/pdf',  [LaporanController::class,'suhuPdf'])->name('laporan.suhu.pdf');
 
-    // Admin only
-    Route::middleware(['App\Http\Middleware\AdminOnly'])->group(function(){
-        Route::get('/jadwal',          [JadwalController::class,'index'])->name('jadwal.index');
-        Route::post('/jadwal',         [JadwalController::class,'store'])->name('jadwal.store');
-        Route::post('/jadwal/bulanan', [JadwalController::class,'storeBulanan'])->name('jadwal.bulanan');
-        Route::delete('/jadwal/{jadwal}',[JadwalController::class,'destroy'])->name('jadwal.destroy');
+    // ── Sync Manager ──
+    Route::get('/sync', fn() => view('sync.index'))->name('sync.index');
 
+    // ── API Sync (untuk offline queue) ──
+    Route::prefix('api/sync')->group(function(){
+        Route::get('/status',  [\App\Http\Controllers\Api\SyncController::class,'status'])->name('api.sync.status');
+        Route::post('/log',    [\App\Http\Controllers\Api\SyncController::class,'syncLog'])->name('api.sync.log');
+        Route::post('/eviden', [\App\Http\Controllers\Api\SyncController::class,'syncEviden'])->name('api.sync.eviden');
+    });
+
+    // ── Admin Only ──
+    Route::middleware(['App\Http\Middleware\AdminOnly'])->group(function(){
+
+        // Jadwal
+        Route::get('/jadwal',             [JadwalController::class,'index'])->name('jadwal.index');
+        Route::post('/jadwal',            [JadwalController::class,'store'])->name('jadwal.store');
+        Route::post('/jadwal/bulanan',    [JadwalController::class,'storeBulanan'])->name('jadwal.bulanan');
+        Route::delete('/jadwal/{jadwal}', [JadwalController::class,'destroy'])->name('jadwal.destroy');
+
+        // Users
         Route::get('/users',             [UserController::class,'index'])->name('users.index');
         Route::get('/users/create',      [UserController::class,'create'])->name('users.create');
         Route::post('/users',            [UserController::class,'store'])->name('users.store');
@@ -67,6 +91,7 @@ Route::middleware(['auth'])->group(function(){
         Route::put('/users/{user}',      [UserController::class,'update'])->name('users.update');
         Route::delete('/users/{user}',   [UserController::class,'destroy'])->name('users.destroy');
 
+        // Setting
         Route::get('/setting',             [SettingController::class,'index'])->name('setting.index');
         Route::post('/setting',            [SettingController::class,'update'])->name('setting.update');
         Route::post('/setting/update-log', [SettingController::class,'addUpdateLog'])->name('setting.update-log');

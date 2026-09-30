@@ -226,7 +226,7 @@ class StudioPerangkatController extends Controller
             if (!is_dir($dir)) @mkdir($dir, 0775, true);
         }
         $opt = new \Dompdf\Options();
-        $opt->setIsRemoteEnabled(true);
+        $opt->setIsRemoteEnabled(false); // dimatikan: cegah SSRF via fetch remote di dompdf
         $opt->setIsHtml5ParserEnabled(true);
         $opt->setDefaultFont('dejavu sans');
         $opt->setFontDir($fontDir);

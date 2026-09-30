@@ -164,9 +164,15 @@ class EvidenController extends Controller
             'operator_ids.*' => 'exists:users,id',
         ]);
 
+        // Admin Divisi tidak boleh memindahkan eviden keluar dari divisinya sendiri
+        // (authorizeEviden di atas hanya mengecek divisi LAMA sebelum update).
+        $user = auth()->user();
+        if ($user->isAdminDivisi() && $validated['divisi'] !== $user->divisi) {
+            return back()->withErrors(['divisi' => 'Anda tidak dapat memindahkan eviden ke divisi lain.'])->withInput();
+        }
+
         $eviden->update($validated);
         $eviden->operators()->sync($validated['operator_ids'] ?? []);
-
         if ($request->hasFile('fotos')) {
             $last  = $eviden->fotos()->max('urutan') ?? -1;
             $fotos = is_array($request->file('fotos'))
@@ -353,7 +359,7 @@ class EvidenController extends Controller
             if (!is_dir($dir)) @mkdir($dir, 0775, true);
         }
         $opt = new \Dompdf\Options();
-        $opt->setIsRemoteEnabled(true);
+        $opt->setIsRemoteEnabled(false); // dimatikan: cegah SSRF via fetch remote di dompdf
         $opt->setIsHtml5ParserEnabled(true);
         $opt->setDefaultFont('dejavu sans');
         $opt->setFontDir($fontDir);

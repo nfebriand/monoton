@@ -20,7 +20,7 @@ class LaporanController extends Controller
             if (!is_dir($dir)) @mkdir($dir, 0775, true);
         }
         $options = new \Dompdf\Options();
-        $options->setIsRemoteEnabled(true);
+        $options->setIsRemoteEnabled(false); // dimatikan: cegah SSRF via fetch remote di dompdf
         $options->setIsHtml5ParserEnabled(true);
         $options->setDefaultFont('dejavu sans');
         $options->setFontDir($fontDir);

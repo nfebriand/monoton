@@ -7,131 +7,132 @@ use Carbon\Carbon;
 class JadwalShift extends Model
 {
     protected $fillable = [
-        'user_id','tanggal','shift','jam_mulai','jam_selesai',
-        'skema','catatan',
+        'user_id','tanggal','shift','skema','jam_mulai','jam_selesai','catatan',
     ];
 
     protected $casts = ['tanggal' => 'date'];
 
-    /**
-     * Skema shift per lokasi dinas
-     * skema: 'gedung_air' | 'sukarame' | 'bakauheni' | 'default'
-     */
-    public const SKEMA = [
-
-        // Gedung Air — 3 shift 24 jam
-        'gedung_air' => [
-            'label' => 'Gedung Air (3 Shift 24 Jam)',
-            'shifts' => [
-                1 => ['label' => 'Shift 1', 'mulai' => '00:15', 'selesai' => '07:45'],
-                2 => ['label' => 'Shift 2', 'mulai' => '07:45', 'selesai' => '15:45'],
-                3 => ['label' => 'Shift 3', 'mulai' => '15:45', 'selesai' => '23:45'],
-            ],
-        ],
-
-        // Sukarame — 3 shift (pagi, malam, maintenance)
-        'sukarame' => [
-            'label' => 'Sukarame (Pagi/Malam/Maintenance)',
-            'shifts' => [
-                1 => ['label' => 'Pagi',        'mulai' => '09:00', 'selesai' => '16:30'],
-                2 => ['label' => 'Malam',       'mulai' => '15:30', 'selesai' => '23:00'],
-                3 => ['label' => 'Maintenance', 'mulai' => '08:30', 'selesai' => '16:00'],
-            ],
-        ],
-
-        // Bakauheni — 2 shift
-        'bakauheni' => [
-            'label' => 'Bakauheni (Pagi/Sore)',
-            'shifts' => [
-                1 => ['label' => 'Pagi', 'mulai' => '04:30', 'selesai' => '12:00'],
-                2 => ['label' => 'Sore', 'mulai' => '16:15', 'selesai' => '23:45'],
-            ],
-        ],
-
-        // Default / Way Kanan / Relay (sama dengan Gedung Air)
-        'default' => [
-            'label' => 'Default (3 Shift 24 Jam)',
-            'shifts' => [
-                1 => ['label' => 'Shift 1', 'mulai' => '00:15', 'selesai' => '07:45'],
-                2 => ['label' => 'Shift 2', 'mulai' => '07:45', 'selesai' => '15:45'],
-                3 => ['label' => 'Shift 3', 'mulai' => '15:45', 'selesai' => '23:45'],
-            ],
-        ],
-    ];
-
-    // Alias SHIFTS untuk kompatibilitas kode lama
-    public const SHIFTS = self::SKEMA['gedung_air']['shifts'];
+    // ── Skema Shift per Divisi ──────────────────────────────────────────
 
     /**
-     * Mapping lokasi dinas → skema
+     * Skema Transmisi (default/lama — berdasarkan lokasi)
+     * Shift 1/2/3 dengan jam berbeda per lokasi
      */
-    public const LOKASI_SKEMA = [
-        'Gedung Air'        => 'gedung_air',
-        'Sukarame'          => 'sukarame',
-        'Bakauheni'         => 'bakauheni',
-        'Way Kanan'         => 'default',
-        'Relay'             => 'default',
-        'Simpang Pematang'  => 'default',
+    public const SKEMA_TRANSMISI = [
+        1 => ['label'=>'Shift 1','mulai'=>'06:00','selesai'=>'14:00'],
+        2 => ['label'=>'Shift 2','mulai'=>'14:00','selesai'=>'22:00'],
+        3 => ['label'=>'Shift 3','mulai'=>'22:00','selesai'=>'06:00'],
     ];
 
     /**
-     * Ambil skema berdasarkan lokasi dinas
+     * Skema Divisi Studio
      */
-    public static function getSkemaForLokasi(string $lokasi): string
+    public const SKEMA_STUDIO = [
+        1 => ['label'=>'Pagi',  'mulai'=>'04:45','selesai'=>'12:15'],
+        2 => ['label'=>'Siang', 'mulai'=>'08:30','selesai'=>'16:00'],
+        3 => ['label'=>'Sore',  'mulai'=>'11:30','selesai'=>'19:00'],
+        4 => ['label'=>'Malam', 'mulai'=>'16:15','selesai'=>'23:45'],
+        5 => ['label'=>'MCR',   'mulai'=>'08:30','selesai'=>'16:00'],
+    ];
+
+    /**
+     * Skema Divisi Sarana & Prasarana
+     */
+    public const SKEMA_SARANA = [
+        1 => ['label'=>'Shift 1','mulai'=>'03:00','selesai'=>'10:30'],
+        2 => ['label'=>'Shift 2','mulai'=>'08:30','selesai'=>'16:00'],
+        3 => ['label'=>'Shift 3','mulai'=>'16:00','selesai'=>'23:30'],
+    ];
+
+    /**
+     * Semua skema yang tersedia — untuk referensi UI
+     */
+    public const ALL_SKEMA = [
+        'transmisi' => self::SKEMA_TRANSMISI,
+        'studio'    => self::SKEMA_STUDIO,
+        'sarana'    => self::SKEMA_SARANA,
+    ];
+
+    // ── Helper Methods ──────────────────────────────────────────────────
+
+    /**
+     * Ambil skema berdasarkan divisi user.
+     * Fallback ke transmisi jika divisi tidak dikenal.
+     */
+    public static function getSkemaForDivisi(string $divisi): string
     {
-        return self::LOKASI_SKEMA[$lokasi] ?? 'default';
+        return match($divisi) {
+            'studio' => 'studio',
+            'sarana' => 'sarana',
+            default  => 'transmisi',
+        };
     }
 
     /**
-     * Ambil definisi shift untuk skema tertentu
+     * Backward compat: dulu pakai lokasi_dinas, sekarang pakai divisi.
+     * Tetap support lokasi untuk transmisi.
      */
-    public static function getShiftsForSkema(string $skema): array
+    public static function getSkemaForLokasi(string $lokasi = ''): string
     {
-        return self::SKEMA[$skema]['shifts'] ?? self::SKEMA['default']['shifts'];
+        return 'transmisi';
     }
 
     /**
-     * Ambil data shift tertentu
+     * Ambil data shift (label, jam_mulai, jam_selesai) berdasarkan skema & nomor shift.
      */
     public static function getShiftData(string $skema, int $shift): ?array
     {
-        return self::SKEMA[$skema]['shifts'][$shift] ?? null;
+        $data = match($skema) {
+            'studio' => self::SKEMA_STUDIO,
+            'sarana' => self::SKEMA_SARANA,
+            default  => self::SKEMA_TRANSMISI,
+        };
+        return $data[$shift] ?? null;
     }
 
     /**
-     * Apakah waktu sekarang masuk toleransi shift?
-     * Toleransi 30 menit sebelum mulai dan 30 menit setelah selesai
+     * Ambil semua shift untuk skema tertentu.
      */
-    public function isAktifSekarang(int $toleransiMenit = 30): bool
+    public static function getShiftsForSkema(string $skema): array
     {
-        $now      = Carbon::now();
-        $tanggal  = $this->tanggal->format('Y-m-d');
-        $mulai    = Carbon::parse("{$tanggal} {$this->jam_mulai}")->subMinutes($toleransiMenit);
-        $selesai  = Carbon::parse("{$tanggal} {$this->jam_selesai}")->addMinutes($toleransiMenit);
-
-        // Handle shift melewati tengah malam (misal shift 1: 00:15–07:45)
-        // atau shift malam yang mulai sore dan selesai dini hari
-        if ($selesai->lessThan($mulai)) {
-            $selesai->addDay();
-        }
-
-        return $now->between($mulai, $selesai);
+        return match($skema) {
+            'studio' => self::SKEMA_STUDIO,
+            'sarana' => self::SKEMA_SARANA,
+            default  => self::SKEMA_TRANSMISI,
+        };
     }
+
+    /**
+     * Label shift lengkap (misal: "Pagi (04:45–12:15)")
+     */
+    public function getShiftLabelAttribute(): string
+    {
+        $data = self::getShiftData($this->skema ?? 'transmisi', (int)$this->shift);
+        if (!$data) return "Shift {$this->shift}";
+        return "{$data['label']} ({$data['mulai']}–{$data['selesai']})";
+    }
+
+    /**
+     * Warna badge shift untuk UI
+     */
+    public function getShiftColorAttribute(): string
+    {
+        // Studio
+        $studioColors = [1=>'#f39c12',2=>'#27ae60',3=>'#8e44ad',4=>'#2c3e50',5=>'#2980b9'];
+        // Sarana & Transmisi
+        $defaultColors = [1=>'#2980b9',2=>'#27ae60',3=>'#2c3e50'];
+
+        $skema = $this->skema ?? 'transmisi';
+        $shift = (int)$this->shift;
+
+        if ($skema === 'studio') return $studioColors[$shift] ?? '#888';
+        return $defaultColors[$shift] ?? '#888';
+    }
+
+    // ── Relasi ──────────────────────────────────────────────────────────
 
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function operasionalLogs()
-    {
-        return $this->hasMany(OperasionalLog::class);
-    }
-
-    /** Label shift (Shift 1 / Pagi / dll) */
-    public function getShiftLabelAttribute(): string
-    {
-        $skema = $this->skema ?? 'default';
-        return self::SKEMA[$skema]['shifts'][$this->shift]['label'] ?? 'Shift '.$this->shift;
     }
 }

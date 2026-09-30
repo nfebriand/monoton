@@ -48,7 +48,6 @@
                 <div class="form-text">Tampil di kolom "Mengetahui" pada semua laporan PDF.</div>
             </div>
         </div>
-
         <h6 class="section-title mb-3">🎨 Tampilan</h6>
         <div class="row g-3 mb-4">
             <div class="col-md-5">
@@ -88,7 +87,134 @@
                 <div class="form-text">PNG, JPG, SVG. Maks 2MB. Rekomendasi 100×100px.</div>
             </div>
         </div>
+@php
+    $divisiList = [
+        'transmisi' => '📡 Koordinator Transmisi',
+        'studio'    => '🎙️ Koordinator Studio',
+        'sarana'    => '🛠️ Koordinator Sarana & Prasarana',
+    ];
+@endphp
 
+<h6 class="section-title mb-3 mt-4">🖋️ Profil Pejabat (Approver Laporan)</h6>
+<div class="form-text mb-3" style="font-size:.75rem">
+    Nama, jabatan, dan tanda tangan di sini akan otomatis muncul pada kolom
+    "Mengetahui" di laporan PDF — <strong>sesuai divisi laporan tersebut</strong>.
+    Laporan Operasional & Suhu memakai Koordinator Transmisi; laporan Eviden
+    memakai koordinator sesuai divisi kegiatan.
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach($divisiList as $kode => $label)
+    <div class="col-12 col-lg-4">
+        <div class="p-3 rounded h-100" style="background:#f8fafc;border:1px solid #eee">
+            <div class="fw-bold mb-2" style="font-size:.83rem;color:var(--primary)">
+                {{ $label }}
+            </div>
+
+            <div class="mb-2">
+                <label class="form-label">Nama Lengkap</label>
+                <input type="text" name="koordinator_{{ $kode }}_nama" class="form-control"
+                       value="{{ old('koordinator_'.$kode.'_nama',
+                            $settings['koordinator_'.$kode.'_nama']
+                            ?? ($kode==='transmisi' ? ($settings['koordinator'] ?? '') : '')) }}"
+                       placeholder="Nama koordinator {{ $kode }}">
+            </div>
+            <div class="mb-2">
+                <label class="form-label">NIP</label>
+                <input type="text" name="koordinator_{{ $kode }}_nip" class="form-control mono"
+                       value="{{ old('koordinator_'.$kode.'_nip', $settings['koordinator_'.$kode.'_nip'] ?? '') }}"
+                       placeholder="NIP (opsional)">
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Jabatan</label>
+                <input type="text" name="koordinator_{{ $kode }}_jabatan" class="form-control"
+                       value="{{ old('koordinator_'.$kode.'_jabatan', $settings['koordinator_'.$kode.'_jabatan'] ?? 'Koordinator '.ucfirst($kode)) }}"
+                       placeholder="Koordinator {{ ucfirst($kode) }}">
+            </div>
+
+            {{-- Tanda Tangan --}}
+            <label class="form-label">Tanda Tangan Digital</label>
+            <div class="d-flex align-items-center gap-2">
+                <div style="width:90px;height:50px;border:1px dashed #ccc;border-radius:6px;
+                     background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+                    @if(!empty($settings['koordinator_'.$kode.'_ttd']))
+                    <img src="{{ asset('uploads/'.$settings['koordinator_'.$kode.'_ttd']) }}" alt="TTD"
+                         style="max-width:100%;max-height:100%;object-fit:contain">
+                    @else
+                    <span class="text-muted" style="font-size:.6rem">Belum ada</span>
+                    @endif
+                </div>
+                <div class="flex-fill">
+                    <input type="file" name="koordinator_{{ $kode }}_ttd" class="form-control form-control-sm"
+                           accept="image/png,image/jpg,image/jpeg">
+                    @if(!empty($settings['koordinator_'.$kode.'_ttd']))
+                    <button type="submit" form="formHapusTtd_{{ $kode }}" class="btn btn-sm btn-outline-danger mt-1" style="font-size:.65rem;padding:.1rem .4rem">
+                        <i class="bi bi-trash me-1"></i>Hapus
+                    </button>
+                    @endif
+                </div>
+            </div>
+            <div class="form-text" style="font-size:.65rem">PNG transparan, maks 1MB.</div>
+        </div>
+    </div>
+    @endforeach
+</div>
+
+{{-- Kepala Bidang Teknik (lintas divisi) --}}
+<div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="p-3 rounded h-100" style="background:#fff8e6;border:1px solid #ffe9b3">
+            <div class="fw-bold mb-2" style="font-size:.85rem;color:#b8860b">
+                <i class="bi bi-person-badge-fill me-1"></i>Kepala Bidang Teknik
+                <span class="badge bg-secondary ms-1" style="font-size:.6rem">Lintas Divisi</span>
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-12">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" name="kabid_nama" class="form-control"
+                           value="{{ old('kabid_nama', $settings['kabid_nama'] ?? ($settings['kepala_bidang'] ?? '')) }}"
+                           placeholder="Nama Kepala Bidang Teknik">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">NIP</label>
+                    <input type="text" name="kabid_nip" class="form-control mono"
+                           value="{{ old('kabid_nip', $settings['kabid_nip'] ?? '') }}"
+                           placeholder="NIP (opsional)">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Jabatan</label>
+                    <input type="text" name="kabid_jabatan" class="form-control"
+                           value="{{ old('kabid_jabatan', $settings['kabid_jabatan'] ?? 'Kepala Bidang Teknik') }}"
+                           placeholder="Kepala Bidang Teknik">
+                </div>
+            </div>
+
+            <label class="form-label">Tanda Tangan Digital</label>
+            <div class="d-flex align-items-center gap-2">
+                <div style="width:90px;height:50px;border:1px dashed #ccc;border-radius:6px;
+                     background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+                    @if(!empty($settings['kabid_ttd']))
+                    <img src="{{ asset('uploads/'.$settings['kabid_ttd']) }}" alt="TTD Kabid"
+                         style="max-width:100%;max-height:100%;object-fit:contain">
+                    @else
+                    <span class="text-muted" style="font-size:.6rem">Belum ada</span>
+                    @endif
+                </div>
+                <div class="flex-fill">
+                    <input type="file" name="kabid_ttd" class="form-control form-control-sm"
+                           accept="image/png,image/jpg,image/jpeg">
+                    @if(!empty($settings['kabid_ttd']))
+                    <button type="submit" form="formHapusTtd_kabid" class="btn btn-sm btn-outline-danger mt-1" style="font-size:.65rem;padding:.1rem .4rem">
+                        <i class="bi bi-trash me-1"></i>Hapus
+                    </button>
+                    @endif
+                </div>
+            </div>
+            <div class="form-text" style="font-size:.65rem">PNG transparan, maks 1MB. Digunakan sebagai persetujuan tambahan (opsional) di laporan formal.</div>
+        </div>
+    </div>
+</div>
         <button type="submit" class="btn btn-primary-custom">
             <i class="bi bi-save me-1"></i>Simpan Pengaturan
         </button>
@@ -295,6 +421,18 @@
 
 </div>
 </div>
+{{-- Form tersembunyi hapus TTD --}}
+@foreach(['transmisi','studio','sarana'] as $kode)
+<form id="formHapusTtd_{{ $kode }}" action="{{ route('setting.remove-ttd') }}" method="POST" class="d-none">
+    @csrf
+    <input type="hidden" name="target" value="koordinator_{{ $kode }}_ttd">
+</form>
+@endforeach
+
+<form id="formHapusTtd_kabid" action="{{ route('setting.remove-ttd') }}" method="POST" class="d-none">
+    @csrf
+    <input type="hidden" name="target" value="kabid_ttd">
+</form>        
 @endsection
 
 @push('scripts')

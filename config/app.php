@@ -3,7 +3,7 @@
 return [
     'name'            => env('APP_NAME', 'MonOTOn'),
     'env'             => env('APP_ENV', 'local'),
-    'debug'           => (bool) env('APP_DEBUG', true),
+    'debug'           => (bool) env('APP_DEBUG', false),
     'url'             => env('APP_URL', 'http://localhost'),
     'asset_url'       => env('ASSET_URL'),
     'timezone'        => 'Asia/Jakarta',
@@ -41,9 +41,11 @@ return [
         App\Providers\AuthServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        Intervention\Image\ImageServiceProvider::class,
     ],
 
     'aliases' => Illuminate\Support\Facades\Facade::defaultAliases()->merge([
         // tambahkan aliases custom di sini jika perlu
+    	'Image' => Intervention\Image\Facades\Image::class,
     ])->toArray(),
 ];

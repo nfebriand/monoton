@@ -2,59 +2,113 @@
 namespace App\Http\Controllers;
 
 use App\Models\JadwalShift;
+use App\Models\SkemaShift;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class JadwalController extends Controller
 {
-    private function checkAdmin()
+    /**
+     * Cek akses: Super Admin ATAU Admin Divisi.
+     * Operator tidak boleh masuk sama sekali.
+     */
+    private function checkAccess(): void
     {
-        if (!auth()->user()->isAdmin()) abort(403, 'Hanya Administrator.');
+        if (!auth()->user()->hasAdminAccess()) {
+            abort(403, 'Hanya Administrator atau Admin Divisi.');
+        }
+    }
+
+    /**
+     * Ambil query personil yang boleh dijadwalkan oleh user yang login.
+     * Personil yang bisa dijadwalkan: Operator DAN Admin Divisi
+     * (Admin Divisi juga bertugas langsung di lapangan/dinas).
+     * - Super Admin   → semua personil semua divisi
+     * - Admin Divisi  → hanya personil divisinya sendiri (termasuk dirinya/admin divisi lain di divisi yang sama)
+     */
+    private function operatorQuery()
+    {
+        $user  = auth()->user();
+        $query = User::whereIn('role', [User::ROLE_OPERATOR, User::ROLE_ADMIN_DIVISI])
+            ->where('is_active', true)
+            ->orderBy('divisi')
+            ->orderBy('name');
+
+        if ($user->isAdminDivisi()) {
+            $query->where('divisi', $user->divisi);
+        }
+
+        return $query;
     }
 
     public function index(Request $request)
     {
-        $this->checkAdmin();
+        $this->checkAccess();
+
+        $user  = auth()->user();
         $bulan = (int)$request->get('bulan', now()->month);
         $tahun = (int)$request->get('tahun', now()->year);
 
-        $jadwals = JadwalShift::with('user')
+        $jadwalQuery = JadwalShift::with('user')
             ->whereYear('tanggal', $tahun)
             ->whereMonth('tanggal', $bulan)
-            ->orderBy('tanggal')->orderBy('shift')
-            ->get()
+            ->orderBy('tanggal')
+            ->orderBy('shift');
+
+        // Admin Divisi hanya melihat jadwal operator di divisinya
+        if ($user->isAdminDivisi()) {
+            $jadwalQuery->whereHas('user', fn($q) =>
+                $q->where('divisi', $user->divisi)
+            );
+        }
+
+        $jadwals = $jadwalQuery->get()
             ->groupBy(fn($j) => Carbon::parse($j->tanggal)->toDateString());
 
-        $operators    = User::where('role','operator')->where('is_active',true)->orderBy('name')->get();
-        $awalBulan    = Carbon::create($tahun, $bulan, 1);
-        $akhirBulan   = $awalBulan->copy()->endOfMonth();
+        $operators  = $this->operatorQuery()->get();
+        $awalBulan  = Carbon::create($tahun, $bulan, 1);
+        $akhirBulan = $awalBulan->copy()->endOfMonth();
+
         $hariKalender = collect();
         for ($d = $awalBulan->copy(); $d <= $akhirBulan; $d->addDay()) {
             $hariKalender->push($d->copy());
         }
 
+        // Baca skema dari DB (fallback ke konstanta jika DB kosong)
+        $skemaShift = SkemaShift::getAllForJs();
+
         return view('jadwal.index', compact(
-            'jadwals','operators','bulan','tahun','hariKalender'
+            'jadwals', 'operators', 'bulan', 'tahun', 'hariKalender', 'skemaShift'
         ));
     }
 
     public function store(Request $request)
     {
-        $this->checkAdmin();
+        $this->checkAccess();
+
         $v = $request->validate([
             'user_id' => 'required|exists:users,id',
             'tanggal' => 'required|date',
-            'shift'   => 'required|integer|min:1|max:3',
+            'shift'   => 'required|integer|min:1|max:5',
             'catatan' => 'nullable|string|max:500',
         ]);
 
-        $op    = User::findOrFail($v['user_id']);
-        $skema = JadwalShift::getSkemaForLokasi($op->lokasi_dinas ?? '');
-        $sd    = JadwalShift::getShiftData($skema, (int)$v['shift']);
-        if (!$sd) return back()->withErrors(['shift' => 'Shift tidak valid untuk lokasi ini.']);
+        // Pastikan Admin Divisi tidak bisa buat jadwal untuk operator lain divisi
+        $op = User::findOrFail($v['user_id']);
+        if (!auth()->user()->canManageDivisi($op->divisi)) {
+            abort(403, 'Anda hanya dapat mengatur jadwal untuk operator divisi Anda sendiri.');
+        }
 
-        if (JadwalShift::where('user_id',$v['user_id'])->where('tanggal',$v['tanggal'])->exists()) {
+        $skema     = JadwalShift::getSkemaForDivisi($op->divisi ?? 'transmisi');
+        $skemaData = SkemaShift::getShiftsForKode($skema);
+        $sd = $skemaData[(int)$v['shift']] ?? JadwalShift::getShiftData($skema, (int)$v['shift']);
+
+        if (!$sd) {
+            return back()->withErrors(['shift' => 'Shift tidak valid untuk lokasi ini.']);
+        }
+
+        if (JadwalShift::where('user_id', $v['user_id'])->where('tanggal', $v['tanggal'])->exists()) {
             return back()->withErrors(['shift' => 'Operator sudah memiliki jadwal pada tanggal tersebut.']);
         }
 
@@ -73,7 +127,8 @@ class JadwalController extends Controller
 
     public function storeBulanan(Request $request)
     {
-        $this->checkAdmin();
+        $this->checkAccess();
+
         $request->validate([
             'user_id'       => 'required|exists:users,id',
             'bulan_target'  => 'required|integer|between:1,12',
@@ -81,11 +136,17 @@ class JadwalController extends Controller
             'jadwal_harian' => 'required|array',
         ]);
 
+        // Admin Divisi tidak bisa buat jadwal untuk operator lain divisi
+        $op = User::findOrFail($request->user_id);
+        if (!auth()->user()->canManageDivisi($op->divisi)) {
+            abort(403, 'Anda hanya dapat mengatur jadwal untuk operator divisi Anda sendiri.');
+        }
+
         $userId = $request->user_id;
         $bulan  = $request->bulan_target;
         $tahun  = $request->tahun_target;
-        $op     = User::findOrFail($userId);
-        $skema  = JadwalShift::getSkemaForLokasi($op->lokasi_dinas ?? '');
+        $skema     = JadwalShift::getSkemaForDivisi($op->divisi ?? 'transmisi');
+        $skemaData = SkemaShift::getShiftsForKode($skema);
 
         $dibuat = $lewat = $hapus = 0;
 
@@ -93,14 +154,14 @@ class JadwalController extends Controller
             $date = Carbon::createFromFormat('Y-m-d', $tgl);
             if ($date->month != $bulan || $date->year != $tahun) continue;
 
-            $existing = JadwalShift::where('user_id',$userId)->where('tanggal',$tgl)->first();
+            $existing = JadwalShift::where('user_id', $userId)->where('tanggal', $tgl)->first();
 
             if (!$shift || $shift === 'skip') {
                 if ($existing) { $existing->delete(); $hapus++; }
                 continue;
             }
 
-            $sd = JadwalShift::getShiftData($skema, (int)$shift);
+            $sd = $skemaData[(int)$shift] ?? JadwalShift::getShiftData($skema, (int)$shift);
             if (!$sd) continue;
 
             if ($existing) {
@@ -130,7 +191,13 @@ class JadwalController extends Controller
 
     public function destroy(JadwalShift $jadwal)
     {
-        $this->checkAdmin();
+        $this->checkAccess();
+
+        // Admin Divisi tidak bisa hapus jadwal operator lain divisi
+        if (!auth()->user()->canManageDivisi($jadwal->user->divisi)) {
+            abort(403, 'Anda hanya dapat menghapus jadwal untuk operator divisi Anda sendiri.');
+        }
+
         $jadwal->delete();
         return back()->with('success', 'Jadwal dihapus.');
     }

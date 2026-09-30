@@ -54,5 +54,6 @@ class Kernel extends HttpKernel
         'verified'         => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin.only'       => \App\Http\Middleware\AdminOnly::class,
         'shift.login'      => \App\Http\Middleware\ShiftLoginMiddleware::class,
+        'sarana.or.admin' => \App\Http\Middleware\SaranaOrAdmin::class,
     ];
 }

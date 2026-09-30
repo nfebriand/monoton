@@ -5,13 +5,14 @@
 <title>Laporan Suhu — MonOTOn</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'DejaVu Sans',Arial,sans-serif;font-size:8.5pt;color:#1a1a1a;}
+@page { margin: 1cm; }
+body{font-family:'DejaVu Sans',Arial,sans-serif;font-size:8.5pt;color:#1a1a1a;margin:0;padding:0;}
 .kop{width:100%;border-bottom:3px solid #0a3d62;padding-bottom:8px;margin-bottom:10px;}
 .kop-tbl{width:100%;border-collapse:collapse;}
 .kop-logo{width:46px;height:46px;background:#0a3d62;border-radius:7px;text-align:center;line-height:46px;font-size:16pt;color:#00d2d3;}
 .kop-brand{padding-left:8px;vertical-align:middle;}
 .kop-brand h1{font-size:11pt;font-weight:bold;color:#0a3d62;}
-.kop-brand .sub{font-size:7pt;color:#555;margin-top:2px;}
+.kop-brand .sub{font-size:6.5pt;color:#555;margin-top:2px;}
 .kop-brand .satker{font-size:7.5pt;color:#0a3d62;font-weight:bold;margin-top:1px;}
 .kop-meta{text-align:right;vertical-align:middle;font-size:7pt;color:#555;}
 .kop-meta strong{color:#0a3d62;}
@@ -24,20 +25,20 @@ table.suhu thead tr{background:#0a3d62;color:#fff;}
 table.suhu th{padding:5px 6px;text-align:center;border:1px solid #0a3d62;font-size:7.5pt;}
 table.suhu td{padding:3.5px 6px;border:1px solid #e0e0e0;}
 table.suhu tr:nth-child(even) td{background:#f7fafc;}
-.tc{text-align:center;} .tl{text-align:left;}
-.ok{color:#10ac84;font-weight:bold;} .wrn{color:#e67e22;font-weight:bold;} .bad{color:#e74c3c;font-weight:bold;}
+.tc{text-align:center;}.tl{text-align:left;}
+.ok{color:#10ac84;font-weight:bold;}.wrn{color:#e67e22;font-weight:bold;}.bad{color:#e74c3c;font-weight:bold;}
 .ket{font-size:7pt;margin-bottom:12px;color:#555;}
 .ttd-tbl{width:100%;border-collapse:collapse;margin-top:16px;}
 .ttd-cell{width:33%;text-align:center;font-size:7.5pt;padding:0 8px;vertical-align:top;}
 .ttd-space{height:52px;}
+.ttd-sign{height:52px;display:flex;align-items:center;justify-content:center;}
+.ttd-sign img{max-height:48px;max-width:140px;object-fit:contain;}
 .ttd-line{border-top:1px solid #333;padding-top:3px;}
 .ttd-nip{font-size:6.5pt;color:#555;margin-top:2px;}
 .pg{text-align:right;font-size:6pt;color:#aaa;margin-top:8px;border-top:1px solid #eee;padding-top:4px;}
 </style>
 </head>
 <body>
-
-<!-- KOP -->
 <div class="kop">
 <table class="kop-tbl">
 <tr>
@@ -45,27 +46,19 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
     <td class="kop-brand">
         <h1>MonOTOn — Monitoring Operasional Transmisi Online</h1>
         <div class="sub">LAPORAN MONITORING SUHU & KELEMBABAN BULANAN</div>
-        @if(!empty($satkerName))
-        <div class="satker">{{ $satkerName }}</div>
-        @endif
+        @if(!empty($satkerName))<div class="satker">{{ $satkerName }}</div>@endif
     </td>
     <td class="kop-meta">
         <div>Periode: <strong>{{ $bulanLabel }}</strong></div>
-        @if(isset($pemancar) && $pemancar)
-        <div>Pemancar: <strong>{{ $pemancar->nama_stasiun }}</strong></div>
-        @else
-        <div>Pemancar: <strong>Semua Pemancar</strong></div>
-        @endif
-        @if(isset($lokasi) && $lokasi)
-        <div>Lokasi: <strong>{{ $lokasi }}</strong></div>
-        @endif
+        @if(isset($pemancar) && $pemancar)<div>Pemancar: <strong>{{ $pemancar->nama_stasiun }}</strong></div>
+        @else<div>Pemancar: <strong>Semua Pemancar</strong></div>@endif
+        @if(isset($lokasi) && $lokasi)<div>Lokasi: <strong>{{ $lokasi }}</strong></div>@endif
         <div>Dicetak: <strong>{{ now()->format('d/m/Y H:i') }}</strong></div>
     </td>
 </tr>
 </table>
 </div>
 
-<!-- STATISTIK -->
 @php
     $logSuhu  = $logs->whereNotNull('suhu_ruangan');
     $avgRuang = round($logSuhu->avg('suhu_ruangan'),1);
@@ -83,28 +76,18 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
 </tr>
 </table>
 
-<!-- TABEL DATA -->
 <table class="suhu">
 <thead>
 <tr>
-    <th style="width:28px">No</th>
-    <th style="width:85px">Tgl & Waktu</th>
-    <th>Pemancar</th>
-    <th style="width:55px">Lokasi</th>
-    <th>Operator</th>
-    <th style="width:40px">Shift</th>
-    <th style="width:65px">Suhu Ruang</th>
-    <th style="width:65px">Suhu Pmcr</th>
-    <th style="width:50px">RH (%)</th>
-    <th>Keterangan</th>
+    <th style="width:28px">No</th><th style="width:85px">Tgl & Waktu</th>
+    <th>Pemancar</th><th style="width:55px">Lokasi</th><th>Operator</th>
+    <th style="width:40px">Shift</th><th style="width:65px">Suhu Ruang</th>
+    <th style="width:65px">Suhu Pmcr</th><th style="width:55px">RH (%)</th><th>Keterangan</th>
 </tr>
 </thead>
 <tbody>
 @forelse($logs as $i => $log)
-@php
-    $sr=$log->suhu_ruangan;
-    $sc=$sr!==null?($sr>30?'bad':($sr>27?'wrn':'ok')):'';
-@endphp
+@php $sr=$log->suhu_ruangan; $sc=$sr!==null?($sr>30?'bad':($sr>27?'wrn':'ok')):''; @endphp
 <tr>
     <td class="tc">{{ $i+1 }}</td>
     <td class="tc" style="font-family:monospace;font-size:7.5pt">{{ $log->dicatat_pada->format('d/m/y H:i') }}</td>
@@ -118,48 +101,49 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
     <td class="tl" style="font-size:7pt">{{ \Illuminate\Support\Str::limit($log->keterangan,30) }}</td>
 </tr>
 @empty
-<tr><td colspan="10" class="tc" style="padding:12px;color:#aaa">Tidak ada data suhu pada periode ini</td></tr>
+<tr><td colspan="10" class="tc" style="padding:12px;color:#aaa">Tidak ada data</td></tr>
 @endforelse
 </tbody>
 </table>
 
-<div class="ket">
-    Keterangan warna suhu ruang:
+<div class="ket">Keterangan warna suhu ruang:
     <span class="ok">■ Normal (≤27°C)</span> &nbsp;
     <span class="wrn">■ Hangat (27–30°C)</span> &nbsp;
     <span class="bad">■ Panas (&gt;30°C)</span>
 </div>
 
-<!-- TANDA TANGAN -->
+{{-- ── TANDA TANGAN — Koordinator Transmisi ── --}}
+@php
+    $koordinator = $koordinator ?? \App\Models\AppSetting::getKoordinator('transmisi');
+    $ttdFile = !empty($koordinator['ttd_path']) ? public_path('uploads/'.$koordinator['ttd_path']) : null;
+@endphp
 <table class="ttd-tbl">
 <tr>
     <td class="ttd-cell">
         <div>Mengetahui,</div>
-        <div>Koordinator / Pengelola</div>
+        <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
+
+        @if($ttdFile && file_exists($ttdFile))
+        <div class="ttd-sign"><img src="{{ $koordinator['ttd_url'] }}" alt="TTD"></div>
+        @else
         <div class="ttd-space"></div>
-        <div class="ttd-line">
-            <strong>{{ !empty($koordinatorName) ? $koordinatorName : '( _________________________ )' }}</strong>
-        </div>
-        @if(!empty($koordinatorName))
-        <div class="ttd-nip">Koordinator Teknik</div>
+        @endif
+
+        <div class="ttd-line"><strong>{{ $koordinator['nama'] ?: '( _________________________ )' }}</strong></div>
+        @if(!empty($koordinator['nip']))
+        <div class="ttd-nip">NIP. {{ $koordinator['nip'] }}</div>
         @endif
     </td>
     <td class="ttd-cell"></td>
     <td class="ttd-cell">
         <div>{{ now()->translatedFormat('d F Y') }}</div>
         <div>Dibuat Oleh,</div>
-        <div>Operator Penanggung Jawab</div>
         <div class="ttd-space"></div>
-        <div class="ttd-line">
-            <strong>{{ $operatorNama }}</strong>
-        </div>
-        @if(!empty($operatorNip))
-        <div class="ttd-nip">NIP. {{ $operatorNip }}</div>
-        @endif
+        <div class="ttd-line"><strong>{{ $operatorNama }}</strong></div>
+        @if(!empty($operatorNip))<div class="ttd-nip">NIP. {{ $operatorNip }}</div>@endif
     </td>
 </tr>
 </table>
-
 <div class="pg">MonOTOn — Monitoring Operasional Transmisi Online | Laporan Suhu & Kelembaban | {{ $bulanLabel }}</div>
 </body>
 </html>

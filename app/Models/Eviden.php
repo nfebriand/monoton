@@ -6,7 +6,7 @@ class Eviden extends Model
 {
     protected $fillable = [
         'user_id','judul','deskripsi','tanggal',
-        'jam_mulai','jam_selesai','lokasi','supervisi',
+        'jam_mulai','jam_selesai','lokasi','divisi','supervisi',
     ];
 
     protected $casts = ['tanggal'=>'date'];

@@ -151,14 +151,14 @@
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-envelope text-muted"></i></span>
                 <input type="email" name="email" class="form-control" value="{{ old('email') }}"
-                       placeholder="operator@radioops.id" required autofocus>
+                       required autofocus>
             </div>
         </div>
         <div class="mb-4">
             <label class="form-label">Password</label>
             <div class="input-group">
                 <span class="input-group-text"><i class="bi bi-lock text-muted"></i></span>
-                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                <input type="password" name="password" class="form-control"  required>
             </div>
         </div>
         <button type="submit" class="btn-login">

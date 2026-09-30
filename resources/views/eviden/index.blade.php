@@ -43,6 +43,35 @@
     </div>
 </div>
 
+{{-- Toolbar bulk aksi --}}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div style="font-size:.8rem;color:var(--muted)">
+        Menampilkan <strong>{{ $evidens->total() }}</strong> eviden
+    </div>
+    <div class="d-flex gap-2">
+        {{-- Form tersembunyi untuk bulk cetak — ikut filter aktif --}}
+        <form action="{{ route('eviden.bulk-cetak') }}" method="GET" target="_blank" id="form-bulk-cetak">
+            @if(request('tanggal_dari'))
+            <input type="hidden" name="tanggal_dari" value="{{ request('tanggal_dari') }}">
+            @endif
+            @if(request('tanggal_sampai'))
+            <input type="hidden" name="tanggal_sampai" value="{{ request('tanggal_sampai') }}">
+            @endif
+            @if(request('user_id'))
+            <input type="hidden" name="user_id" value="{{ request('user_id') }}">
+            @endif
+            @if(request('divisi'))
+            <input type="hidden" name="divisi_filter" value="{{ request('divisi') }}">
+            @endif
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="konfirmasiBulkCetak()">
+                <i class="bi bi-file-earmark-pdf me-1"></i>
+                Cetak Semua PDF
+                <span class="badge bg-danger ms-1" style="font-size:.65rem">{{ $evidens->total() }}</span>
+            </button>
+        </form>
+    </div>
+</div>
+
 @if($evidens->isNotEmpty())
 <div class="row g-3">
     @foreach($evidens as $ev)
@@ -143,3 +172,30 @@
 </div>
 @endif
 @endsection
+
+@push('scripts')
+<script>
+function konfirmasiBulkCetak() {
+    const total = {{ $evidens->total() }};
+    if (total === 0) {
+        alert('Tidak ada eviden untuk dicetak.');
+        return;
+    }
+    if (total > 100) {
+        const lanjut = confirm(
+            'Akan mencetak ' + total + ' eviden.\n' +
+            'Maksimal 100 eviden per cetak.\n\n' +
+            '100 eviden pertama akan dicetak.\nLanjutkan?'
+        );
+        if (!lanjut) return;
+    } else {
+        const lanjut = confirm(
+            'Akan membuat 1 file PDF berisi ' + total + ' eviden.\n\n' +
+            'Proses ini mungkin membutuhkan beberapa detik.\nLanjutkan?'
+        );
+        if (!lanjut) return;
+    }
+    document.getElementById('form-bulk-cetak').submit();
+}
+</script>
+@endpush

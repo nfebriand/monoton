@@ -46,7 +46,7 @@
     <h1>Akses Ditolak</h1>
     <p>
         Anda tidak memiliki izin untuk mengakses halaman ini.<br>
-        Halaman ini hanya dapat diakses oleh <strong>Administrator</strong>.
+        Halaman ini hanya dapat diakses oleh <strong>Mas Admin Ganteng dan yang punya akses saja</strong>.
     </p>
     @if(isset($exception) && $exception->getMessage())
     <p style="font-size:.8rem;color:#b2bec3;margin-top:.5rem">{{ $exception->getMessage() }}</p>

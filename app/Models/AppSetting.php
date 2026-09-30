@@ -6,72 +6,113 @@ use Illuminate\Database\Eloquent\Model;
 class AppSetting extends Model
 {
     protected $fillable = ['key','value'];
+    public $timestamps = false;
 
     public static function get(string $key, $default = null)
     {
-        $s = static::where('key',$key)->first();
-        return $s ? $s->value : $default;
+        $row = self::where('key',$key)->first();
+        return $row ? $row->value : $default;
     }
 
     public static function set(string $key, $value): void
     {
-        static::updateOrCreate(['key'=>$key],['value'=>$value]);
+        self::updateOrCreate(['key'=>$key], ['value'=>$value]);
     }
 
     public static function allKeyed(): array
     {
-        return static::all()->pluck('value','key')->toArray();
+        return self::pluck('value','key')->toArray();
     }
 
     /**
-     * Tambah entri update log baru dengan nomor versi auto-increment
-     * Format: v1.0.0, v1.0.1, v1.1.0 dst
+     * Ambil profil koordinator untuk divisi tertentu.
+     * $divisi: 'transmisi' | 'studio' | 'sarana'
+     *
+     * Return: ['nama','nip','jabatan','ttd_path','ttd_url']
      */
-    public static function addUpdateLog(string $catatan, string $tipeIncrement = 'patch'): string
+    public static function getKoordinator(string $divisi): array
     {
-        $currentVersion = static::get('app_version','1.0.0');
-        $newVersion     = static::incrementVersion($currentVersion, $tipeIncrement);
+        $divisi = in_array($divisi, ['transmisi','studio','sarana']) ? $divisi : 'transmisi';
+        $s = self::allKeyed();
 
-        // Simpan versi baru
-        static::set('app_version', $newVersion);
+        $nama    = $s["koordinator_{$divisi}_nama"]    ?? '';
+        $nip     = $s["koordinator_{$divisi}_nip"]     ?? '';
+        $jabatan = $s["koordinator_{$divisi}_jabatan"] ?? 'Koordinator '.ucfirst($divisi);
+        $ttd     = $s["koordinator_{$divisi}_ttd"]     ?? '';
 
-        // Tambahkan entri baru ke riwayat
-        $existingLog = static::get('update_log','');
-        $tanggal     = now()->format('d/m/Y H:i');
-        $entry       = "v{$newVersion} [{$tanggal}]\n{$catatan}";
-        $newLog      = $entry . ($existingLog ? "\n\n" . $existingLog : '');
-        static::set('update_log', $newLog);
-
-        return $newVersion;
-    }
-
-    /**
-     * Increment versi: patch = x.x.+1, minor = x.+1.0, major = +1.0.0
-     */
-    public static function incrementVersion(string $version, string $type = 'patch'): string
-    {
-        $parts = explode('.', ltrim($version,'v'));
-        while (count($parts) < 3) $parts[] = '0';
-        [$major, $minor, $patch] = array_map('intval', $parts);
-
-        switch ($type) {
-            case 'major': $major++; $minor=0; $patch=0; break;
-            case 'minor': $minor++; $patch=0; break;
-            default:      $patch++; break;
+        // Fallback ke key lama 'koordinator' untuk divisi transmisi (backward compat)
+        if ($divisi === 'transmisi' && empty($nama)) {
+            $nama = $s['koordinator'] ?? '';
         }
-        return "{$major}.{$minor}.{$patch}";
+
+        return [
+            'nama'    => $nama,
+            'nip'     => $nip,
+            'jabatan' => $jabatan,
+            'ttd_path'=> $ttd,
+            'ttd_url' => $ttd ? asset('uploads/'.$ttd) : null,
+        ];
     }
 
     /**
-     * Validasi kredit
+     * Profil Kepala Bidang Teknik (lintas divisi)
+     */
+    public static function getKabid(): array
+    {
+        $s = self::allKeyed();
+        $nama    = $s['kabid_nama']    ?? ($s['kepala_bidang'] ?? '');
+        $nip     = $s['kabid_nip']     ?? '';
+        $jabatan = $s['kabid_jabatan'] ?? 'Kepala Bidang Teknik';
+        $ttd     = $s['kabid_ttd']     ?? '';
+
+        return [
+            'nama'    => $nama,
+            'nip'     => $nip,
+            'jabatan' => $jabatan,
+            'ttd_path'=> $ttd,
+            'ttd_url' => $ttd ? asset('uploads/'.$ttd) : null,
+        ];
+    }
+
+    /**
+     * Validasi kredit aplikasi tetap utuh
      */
     public static function kreditValid(): bool
     {
-        $pembuat  = static::get('kredit_pembuat','Nanda Febriandy');
-        $wa       = static::get('kredit_wa','082182778608');
-        $telegram = static::get('kredit_telegram','@nfebriand');
-        return $pembuat === 'Nanda Febriandy'
-            && $wa       === '082182778608'
-            && $telegram === '@nfebriand';
+        $kPembuat  = 'Nanda Febriandy';
+        $kWa       = '082182778608';
+        $kTelegram = '@nfebriand';
+        $s = self::allKeyed();
+        return ($s['kredit_pembuat'] ?? $kPembuat) === $kPembuat
+            && ($s['kredit_wa'] ?? $kWa) === $kWa
+            && ($s['kredit_telegram'] ?? $kTelegram) === $kTelegram;
+    }
+
+    public static function incrementVersion(string $version, string $tipe): string
+    {
+        $parts = array_map('intval', explode('.', $version));
+        while (count($parts) < 3) $parts[] = 0;
+        [$major,$minor,$patch] = $parts;
+
+        match($tipe) {
+            'major' => [$major++, $minor = 0, $patch = 0],
+            'minor' => [$minor++, $patch = 0],
+            default => $patch++,
+        };
+
+        return "{$major}.{$minor}.{$patch}";
+    }
+
+    public static function addUpdateLog(string $catatan, string $tipe = 'patch'): void
+    {
+        $current = self::get('app_version','1.0.0');
+        $new     = self::incrementVersion($current, $tipe);
+
+        $entry = "v{$new} [".now()->format('d/m/Y H:i')."]\n{$catatan}";
+        $existing = self::get('update_log','');
+        $combined = $existing ? $entry."\n\n".$existing : $entry;
+
+        self::set('app_version', $new);
+        self::set('update_log', $combined);
     }
 }

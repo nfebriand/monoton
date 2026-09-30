@@ -11,8 +11,46 @@
     // Warna per shift (lintas skema)
     $shiftColors = [1=>'#0a3d62',2=>'#10ac84',3=>'#ff9f43'];
     $skemaColors = [
-        'gedung_air'=>'#0a3d62','sukarame'=>'#7b1fa2','bakauheni'=>'#c62828','default'=>'#263238'
+        'gedung_air'=>'#0a3d62','sukarame'=>'#7b1fa2','bakauheni'=>'#c62828',
+        'transmisi'=>'#0a3d62','studio'=>'#2e86ab','sarana'=>'#e67e22','default'=>'#263238'
     ];
+
+    // Skema dari controller (sudah format {label, shifts} via SkemaShift::getAllForJs())
+    // Fallback jika controller belum update
+    $skemaLabelMap = ['transmisi'=>'Transmisi','studio'=>'Studio','sarana'=>'Sarana & Prasarana'];
+    if (isset($skemaShift) && is_array($skemaShift)) {
+        // Pastikan format sudah {label, shifts} — jika belum, wrap sekarang
+        $allSkema = [];
+        foreach ($skemaShift as $kode => $data) {
+            if (isset($data['shifts'])) {
+                $allSkema[$kode] = $data; // sudah benar
+            } else {
+                // data adalah array shift langsung — wrap
+                $allSkema[$kode] = [
+                    'label'  => $skemaLabelMap[$kode] ?? ucfirst($kode),
+                    'shifts' => $data,
+                ];
+            }
+        }
+    } else {
+        $allSkema = [
+            'transmisi' => ['label'=>'Transmisi',          'shifts'=>\App\Models\JadwalShift::SKEMA_TRANSMISI],
+            'studio'    => ['label'=>'Studio',             'shifts'=>\App\Models\JadwalShift::SKEMA_STUDIO],
+            'sarana'    => ['label'=>'Sarana & Prasarana', 'shifts'=>\App\Models\JadwalShift::SKEMA_SARANA],
+        ];
+    }
+
+    // Data jadwal existing untuk JS — disiapkan di sini (PHP murni)
+    // agar tidak ada closure multi-baris di dalam @json() pada blok @push('scripts')
+    $existingJadwalArr = [];
+    foreach ($jadwals->flatten() as $j) {
+        $tglKey = \Carbon\Carbon::parse($j->tanggal)->format('Y-m-d');
+        $existingJadwalArr[$tglKey] = [
+            'shift'   => $j->shift,
+            'user_id' => $j->user_id,
+            'skema'   => $j->skema ?? 'default',
+        ];
+    }
 @endphp
 
 <div class="row g-3">
@@ -60,13 +98,18 @@
             </div>
 
             {{-- Legend skema --}}
+            @php
+            $skemaLabel = [
+                'transmisi'=>'Transmisi','studio'=>'Studio','sarana'=>'Sarana',
+                'gedung_air'=>'Gedung Air','sukarame'=>'Sukarame','bakauheni'=>'Bakauheni',
+            ];
+            @endphp
             <div class="d-flex flex-wrap gap-3 mt-2 px-1" style="font-size:.68rem;color:#555">
                 @foreach($skemaColors as $sk => $clr)
-                @php $info = JadwalShift::SKEMA[$sk] ?? null; @endphp
-                @if($info)
+                @if(isset($skemaLabel[$sk]))
                 <div class="d-flex align-items-center gap-1">
                     <span style="width:10px;height:10px;border-radius:2px;background:{{ $clr }};display:inline-block"></span>
-                    <span>{{ $info['label'] }}</span>
+                    <span>{{ $skemaLabel[$sk] }}</span>
                 </div>
                 @endif
                 @endforeach
@@ -106,10 +149,15 @@
                         <td style="font-size:.8rem">
                             {{ \Carbon\Carbon::parse($j->tanggal)->translatedFormat('l') }}
                         </td>
-                        <td style="font-size:.85rem;font-weight:600">{{ $j->user->name }}</td>
+                        <td style="font-size:.85rem;font-weight:600">
+                            {{ $j->user->name }}
+                            @if($j->user->isAdminDivisi())
+                            <span class="badge bg-warning text-dark ms-1" style="font-size:.55rem">Admin Divisi</span>
+                            @endif
+                        </td>
                         <td>
                             <span class="badge" style="background:{{ $sc }};font-size:.62rem">
-                                {{ JadwalShift::SKEMA[$skemaJ]['label'] ?? $skemaJ }}
+                                {{ $allSkema[$skemaJ]['label'] ?? $skemaLabelMap[$skemaJ] ?? ucfirst($skemaJ) }}
                             </span>
                         </td>
                         <td>
@@ -173,8 +221,8 @@
                         @foreach($operators as $op)
                         <option value="{{ $op->id }}"
                                 data-lokasi="{{ $op->lokasi_dinas }}"
-                                data-skema="{{ \App\Models\JadwalShift::getSkemaForLokasi($op->lokasi_dinas??'') }}">
-                            {{ $op->name }}{{ $op->lokasi_dinas?' ('.$op->lokasi_dinas.')':'' }}
+                                data-skema="{{ match($op->divisi??'transmisi') { 'studio'=>'studio','sarana'=>'sarana',default=>'transmisi' } }}">
+                            {{ $op->name }}{{ $op->lokasi_dinas ? ' ('.$op->lokasi_dinas.')' : '' }}@if($op->isAdminDivisi()) (Admin Divisi)@endif
                         </option>
                         @endforeach
                     </select>
@@ -230,9 +278,9 @@
                             @foreach($operators as $op)
                             <option value="{{ $op->id }}"
                                     data-lokasi="{{ $op->lokasi_dinas }}"
-                                    data-skema="{{ \App\Models\JadwalShift::getSkemaForLokasi($op->lokasi_dinas??'') }}"
+                                    data-skema="{{ match($op->divisi??'transmisi') { 'studio'=>'studio','sarana'=>'sarana',default=>'transmisi' } }}"
                                     data-nama="{{ $op->name }}">
-                                {{ $op->name }}
+                                {{ $op->name }}@if($op->isAdminDivisi()) (Admin Divisi)@endif
                             </option>
                             @endforeach
                         </select>
@@ -311,28 +359,16 @@
 @push('scripts')
 <script>
 // Data skema dari server
-const SKEMA = @json(\App\Models\JadwalShift::SKEMA);
+const SKEMA = @json($allSkema);
 const SKEMA_COLORS = {
     gedung_air:'#0a3d62', sukarame:'#7b1fa2',
-    bakauheni:'#c62828', 'default':'#263238'
+    bakauheni:'#c62828', 'default':'#263238',
+    transmisi:'#0a3d62', studio:'#2e86ab', sarana:'#e67e22'
 };
-const SHIFT_COLORS = {1:'#0a3d62',2:'#10ac84',3:'#ff9f43'};
+const SHIFT_COLORS = {1:'#0a3d62',2:'#10ac84',3:'#ff9f43',4:'#8e44ad',5:'#2980b9'};
 
 // Data jadwal existing
-@php
-$existingJadwal = $jadwals->flatten()->mapWithKeys(function ($j) {
-    return [
-        \Carbon\Carbon::parse($j->tanggal)->format('Y-m-d') => [
-            'shift'   => $j->shift,
-            'user_id' => $j->user_id,
-            'skema'   => $j->skema ?? 'default',
-        ]
-    ];
-});
-@endphp
-
-const existingJadwal = @json($existingJadwal);
-
+const existingJadwal = @json($existingJadwalArr);
 
 // Tab switch
 function switchTab(tab){

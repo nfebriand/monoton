@@ -86,10 +86,10 @@
         <div class="row g-2">
             @foreach($studioLog->fotos as $foto)
             <div class="col-6 col-md-3">
-                <img src="{{ asset('storage/'.$foto->path) }}"
+                <img src="{{ $foto->thumb_url }}"
                      class="img-fluid rounded"
                      style="width:100%;height:120px;object-fit:cover;cursor:pointer"
-                     onclick="openLightbox('{{ asset('storage/'.$foto->path) }}')"
+                     onclick="openLightbox('{{ $foto->url }}')"
                      onerror="this.src='{{ asset('images/no-image.png') }}'">
                 @if($foto->keterangan)
                 <div style="font-size:.68rem;color:#666;margin-top:2px">{{ $foto->keterangan }}</div>

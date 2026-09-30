@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\StudioLog;
 use App\Models\StudioLogFoto;
 use App\Models\AppSetting;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -30,10 +31,11 @@ class StudioLogController extends Controller
         $fotos = is_array($request->file($field)) ? $request->file($field) : [$request->file($field)];
         foreach ($fotos as $idx => $foto) {
             if (!$foto || !$foto->isValid()) continue;
-            $path = $foto->store('studio/logbook', 'public');
+            $saved = ImageHelper::saveWithThumbnail($foto, 'studio/logbook');
             StudioLogFoto::create([
                 'studio_log_id' => $log->id,
-                'path'          => $path,
+                'path'          => $saved['original'],
+                'thumb_path'    => $saved['thumbnail'],
                 'keterangan'    => $request->input("foto_keterangan.{$idx}"),
                 'urutan'        => $startUrutan + $idx,
             ]);
@@ -166,7 +168,7 @@ class StudioLogController extends Controller
         if ($request->filled('hapus_foto')) {
             foreach ($request->hapus_foto as $fotoId) {
                 $f = StudioLogFoto::where('studio_log_id', $studioLog->id)->find($fotoId);
-                if ($f) { Storage::disk('public')->delete($f->path); $f->delete(); }
+                if ($f) { ImageHelper::deleteWithThumbnail($f->path); $f->delete(); }
             }
         }
 
@@ -181,7 +183,7 @@ class StudioLogController extends Controller
     {
         $this->checkAccess();
         if (!$this->canEdit($studioLog)) abort(403);
-        foreach ($studioLog->fotos as $f) Storage::disk('public')->delete($f->path);
+        foreach ($studioLog->fotos as $f) ImageHelper::deleteWithThumbnail($f->path);
         $studioLog->delete();
         return redirect()->route('studio.logbook.index')->with('success', 'Logbook berhasil dihapus.');
     }

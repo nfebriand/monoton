@@ -78,7 +78,7 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem" class="mb-3">
                     @foreach($sebelumF as $f)
                     <div style="aspect-ratio:1;border-radius:6px;overflow:hidden;border:2px solid var(--border)">
-                        <img src="{{ $f->url }}" onclick="bukaLightbox('{{ $f->url }}')" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in">
+                        <img src="{{ $f->thumb_url }}" onclick="bukaLightbox('{{ $f->url }}')" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in">
                     </div>
                     @endforeach
                 </div>
@@ -88,7 +88,7 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem">
                     @foreach($sesudahF as $f)
                     <div style="aspect-ratio:1;border-radius:6px;overflow:hidden;border:2px solid var(--border)">
-                        <img src="{{ $f->url }}" onclick="bukaLightbox('{{ $f->url }}')" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in">
+                        <img src="{{ $f->thumb_url }}" onclick="bukaLightbox('{{ $f->url }}')" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in">
                     </div>
                     @endforeach
                 </div>

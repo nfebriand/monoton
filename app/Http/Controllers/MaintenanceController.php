@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Aset;
 use App\Models\MaintenanceLog;
 use App\Models\MaintenanceFoto;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -100,14 +101,14 @@ class MaintenanceController extends Controller
 
         if ($request->hasFile('fotos_sebelum')) {
             foreach ($request->file('fotos_sebelum') as $foto) {
-                $path = $foto->store('maintenance','public');
-                MaintenanceFoto::create(['maintenance_log_id'=>$log->id,'path'=>$path,'tipe'=>'sebelum']);
+                $saved = ImageHelper::saveWithThumbnail($foto, 'maintenance');
+                MaintenanceFoto::create(['maintenance_log_id'=>$log->id,'path'=>$saved['original'],'thumb_path'=>$saved['thumbnail'],'tipe'=>'sebelum']);
             }
         }
         if ($request->hasFile('fotos_sesudah')) {
             foreach ($request->file('fotos_sesudah') as $foto) {
-                $path = $foto->store('maintenance','public');
-                MaintenanceFoto::create(['maintenance_log_id'=>$log->id,'path'=>$path,'tipe'=>'sesudah']);
+                $saved = ImageHelper::saveWithThumbnail($foto, 'maintenance');
+                MaintenanceFoto::create(['maintenance_log_id'=>$log->id,'path'=>$saved['original'],'thumb_path'=>$saved['thumbnail'],'tipe'=>'sesudah']);
             }
         }
 
@@ -124,7 +125,7 @@ class MaintenanceController extends Controller
     public function destroy(MaintenanceLog $maintenance)
     {
         if (!$this->canDelete()) abort(403, 'Hanya Admin Divisi Sarana yang dapat menghapus log maintenance.');
-        foreach ($maintenance->fotos as $f) Storage::disk('public')->delete($f->path);
+        foreach ($maintenance->fotos as $f) ImageHelper::deleteWithThumbnail($f->path);
         $maintenance->delete();
         return redirect()->route('maintenance.index')->with('success','Log maintenance berhasil dihapus.');
     }

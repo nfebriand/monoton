@@ -101,7 +101,7 @@
                          cursor:zoom-in;position:relative;transition:border-color .15s"
                          id="thumb-{{ $i }}"
                          onclick="gantiEvidenFoto('{{ $foto->url }}','{{ addslashes($foto->keterangan??'') }}',{{ $i }})">
-                        <img src="{{ $foto->url }}"
+                        <img src="{{ $foto->thumb_url }}"
                              onerror="this.parentElement.style.background='#eee'"
                              style="width:100%;height:100%;object-fit:cover;display:block">
                         @if($foto->keterangan)

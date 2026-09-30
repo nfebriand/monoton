@@ -81,7 +81,7 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.65rem">
                     @foreach($aset->fotos as $foto)
                     <div style="aspect-ratio:1;border-radius:8px;overflow:hidden;border:2px solid var(--border)">
-                        <img src="{{ $foto->url }}" onclick="bukaLightbox('{{ $foto->url }}')"
+                        <img src="{{ $foto->thumb_url }}" onclick="bukaLightbox('{{ $foto->url }}')"
                              style="width:100%;height:100%;object-fit:cover;cursor:zoom-in" onerror="this.parentElement.style.background='var(--bg)'">
                     </div>
                     @endforeach

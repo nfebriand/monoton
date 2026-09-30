@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\StudioPerangkat;
 use App\Models\StudioPerangkatFoto;
 use App\Models\AppSetting;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -58,10 +59,11 @@ class StudioPerangkatController extends Controller
         $fotos = is_array($request->file('fotos')) ? $request->file('fotos') : [$request->file('fotos')];
         foreach ($fotos as $idx => $foto) {
             if (!$foto || !$foto->isValid()) continue;
-            $path = $foto->store('studio/perangkat', 'public');
+            $saved = ImageHelper::saveWithThumbnail($foto, 'studio/perangkat');
             StudioPerangkatFoto::create([
                 'studio_perangkat_id' => $perangkat->id,
-                'path'                => $path,
+                'path'                => $saved['original'],
+                'thumb_path'          => $saved['thumbnail'],
                 'keterangan'          => $request->input("foto_keterangan.{$idx}"),
                 'urutan'              => $startUrutan + $idx,
             ]);
@@ -185,7 +187,7 @@ class StudioPerangkatController extends Controller
         if ($request->filled('hapus_foto')) {
             foreach ($request->hapus_foto as $fotoId) {
                 $f = StudioPerangkatFoto::where('studio_perangkat_id', $studioPerangkat->id)->find($fotoId);
-                if ($f) { Storage::disk('public')->delete($f->path); $f->delete(); }
+                if ($f) { ImageHelper::deleteWithThumbnail($f->path); $f->delete(); }
             }
         }
 
@@ -201,7 +203,7 @@ class StudioPerangkatController extends Controller
         if ($studioPerangkat->maintenances()->exists()) {
             return back()->withErrors(['perangkat' => 'Perangkat ini memiliki riwayat maintenance dan tidak dapat dihapus.']);
         }
-        foreach ($studioPerangkat->fotos as $f) Storage::disk('public')->delete($f->path);
+        foreach ($studioPerangkat->fotos as $f) ImageHelper::deleteWithThumbnail($f->path);
         $studioPerangkat->delete();
         return redirect()->route('studio.perangkat.index')->with('success', 'Perangkat berhasil dihapus.');
     }

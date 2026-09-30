@@ -59,6 +59,33 @@
 </div>
 
 <div class="col-12 col-lg-7">
+@if($studioPerangkat->fotos->isNotEmpty())
+<div class="card mb-3">
+    <div class="card-header"><i class="bi bi-images me-2"></i>Foto Perangkat</div>
+    <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem">
+            @foreach($studioPerangkat->fotos as $foto)
+            <div style="aspect-ratio:1;border-radius:7px;overflow:hidden;border:2px solid var(--border)">
+                <img src="{{ $foto->thumb_url }}" onclick="bukaLightboxPerangkat('{{ $foto->url }}')"
+                     style="width:100%;height:100%;object-fit:cover;cursor:zoom-in"
+                     onerror="this.parentElement.style.background='var(--bg)'">
+            </div>
+            @endforeach
+        </div>
+    </div>
+</div>
+<div id="perangkat-foto-lightbox" onclick="this.style.display='none'"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;
+            align-items:center;justify-content:center;cursor:zoom-out">
+    <img id="perangkat-lightbox-img" src="" style="max-width:95%;max-height:90vh;border-radius:8px">
+</div>
+<script>
+function bukaLightboxPerangkat(src) {
+    document.getElementById('perangkat-lightbox-img').src = src;
+    document.getElementById('perangkat-foto-lightbox').style.display = 'flex';
+}
+</script>
+@endif
 <div class="card">
     <div class="card-header"><h6 class="mb-0"><i class="bi bi-tools me-2"></i>Riwayat Maintenance</h6></div>
     <div class="card-body p-0">

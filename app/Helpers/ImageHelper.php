@@ -95,11 +95,13 @@ class ImageHelper
     }
 
     /**
-     * URL original
+     * URL original (lewat storage symlink: public/storage -> storage/app/public)
      */
     public static function url($path)
     {
-        return asset('uploads/' . ltrim($path, '/'));
+        if (!$path) return null;
+        if (str_starts_with($path, 'http')) return $path;
+        return asset('storage/' . ltrim($path, '/'));
     }
 
     /**
@@ -107,6 +109,7 @@ class ImageHelper
      */
     public static function thumbnailUrl($path)
     {
-        return asset('uploads/' . self::thumbnail($path));
+        if (!$path) return null;
+        return self::url(self::thumbnail($path));
     }
 }

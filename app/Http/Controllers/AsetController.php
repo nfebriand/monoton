@@ -5,6 +5,7 @@ use App\Models\Aset;
 use App\Models\AsetKategori;
 use App\Models\AsetFoto;
 use App\Models\Lokasi;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -70,8 +71,8 @@ class AsetController extends Controller
         $aset = Aset::create($v);
         if ($request->hasFile('fotos')) {
             foreach ($request->file('fotos') as $idx => $foto) {
-                $path = $foto->store('aset','public');
-                AsetFoto::create(['aset_id'=>$aset->id,'path'=>$path,'urutan'=>$idx]);
+                $saved = ImageHelper::saveWithThumbnail($foto, 'aset');
+                AsetFoto::create(['aset_id'=>$aset->id,'path'=>$saved['original'],'thumb_path'=>$saved['thumbnail'],'urutan'=>$idx]);
             }
         }
         return redirect()->route('aset.show',$aset)->with('success','Aset berhasil ditambahkan dengan kode '.$aset->kode_aset.'.');
@@ -115,14 +116,14 @@ class AsetController extends Controller
         if ($request->hasFile('fotos')) {
             $last = $aset->fotos()->max('urutan') ?? -1;
             foreach ($request->file('fotos') as $idx => $foto) {
-                $path = $foto->store('aset','public');
-                AsetFoto::create(['aset_id'=>$aset->id,'path'=>$path,'urutan'=>$last+$idx+1]);
+                $saved = ImageHelper::saveWithThumbnail($foto, 'aset');
+                AsetFoto::create(['aset_id'=>$aset->id,'path'=>$saved['original'],'thumb_path'=>$saved['thumbnail'],'urutan'=>$last+$idx+1]);
             }
         }
         if ($request->has('hapus_foto')) {
             foreach ($request->hapus_foto as $fotoId) {
                 $f = AsetFoto::where('aset_id',$aset->id)->find($fotoId);
-                if ($f) { Storage::disk('public')->delete($f->path); $f->delete(); }
+                if ($f) { ImageHelper::deleteWithThumbnail($f->path); $f->delete(); }
             }
         }
         return redirect()->route('aset.show',$aset)->with('success','Aset berhasil diperbarui.');

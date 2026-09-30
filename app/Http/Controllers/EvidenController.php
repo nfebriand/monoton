@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Eviden;
 use App\Models\EvidenFoto;
+use App\Helpers\ImageHelper;
 use App\Models\User;
 use App\Models\Lokasi;
 use App\Models\AppSetting;
@@ -116,10 +117,11 @@ class EvidenController extends Controller
                 : [$request->file('fotos')];
             foreach ($fotos as $idx => $foto) {
                 if (!$foto || !$foto->isValid()) continue;
-                $path = $foto->store('eviden', 'public');
+                $saved = ImageHelper::saveWithThumbnail($foto, 'eviden');
                 EvidenFoto::create([
                     'eviden_id'  => $eviden->id,
-                    'path'       => $path,
+                    'path'       => $saved['original'],
+                    'thumb_path' => $saved['thumbnail'],
                     'keterangan' => $request->input("foto_keterangan.{$idx}"),
                     'urutan'     => $idx,
                 ]);
@@ -180,10 +182,11 @@ class EvidenController extends Controller
                 : [$request->file('fotos')];
             foreach ($fotos as $idx => $foto) {
                 if (!$foto || !$foto->isValid()) continue;
-                $path = $foto->store('eviden', 'public');
+                $saved = ImageHelper::saveWithThumbnail($foto, 'eviden');
                 EvidenFoto::create([
                     'eviden_id'  => $eviden->id,
-                    'path'       => $path,
+                    'path'       => $saved['original'],
+                    'thumb_path' => $saved['thumbnail'],
                     'keterangan' => $request->input("foto_keterangan_baru.{$idx}"),
                     'urutan'     => $last + $idx + 1,
                 ]);
@@ -193,7 +196,7 @@ class EvidenController extends Controller
         if ($request->has('hapus_foto')) {
             foreach ($request->hapus_foto as $fotoId) {
                 $f = EvidenFoto::where('eviden_id', $eviden->id)->find($fotoId);
-                if ($f) { Storage::disk('public')->delete($f->path); $f->delete(); }
+                if ($f) { ImageHelper::deleteWithThumbnail($f->path); $f->delete(); }
             }
         }
 
@@ -204,7 +207,7 @@ class EvidenController extends Controller
     public function destroy(Eviden $eviden)
     {
         $this->authorizeEviden($eviden, true);
-        foreach ($eviden->fotos as $f) Storage::disk('public')->delete($f->path);
+        foreach ($eviden->fotos as $f) ImageHelper::deleteWithThumbnail($f->path);
         $eviden->delete();
         return redirect()->route('eviden.index')->with('success', 'Eviden berhasil dihapus.');
     }

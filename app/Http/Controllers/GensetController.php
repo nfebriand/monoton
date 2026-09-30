@@ -25,14 +25,18 @@ class GensetController extends Controller
 
     /**
      * Cek akses manajemen unit genset.
-     * Hanya Admin Utama dan Admin Divisi yang diperbolehkan.
+     * Hanya Super Admin dan Admin Divisi Sarana yang diperbolehkan
+     * (bukan Admin Divisi divisi lain — genset adalah aset Sarana & Prasarana).
      */
     private function checkUnitAccess(): void
     {
         $user = auth()->user();
 
-        if (!$user->isAdmin() && !$user->isAdminDivisi()) {
-            abort(403, 'Anda tidak memiliki akses untuk mengelola unit genset.');
+        $boleh = $user->isAdmin()
+            || ($user->isAdminDivisi() && $user->isDivisi('sarana'));
+
+        if (!$boleh) {
+            abort(403, 'Anda tidak memiliki akses untuk mengelola unit genset. Menu ini khusus Super Admin dan Admin Divisi Sarana & Prasarana.');
         }
     }
 

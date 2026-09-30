@@ -30,6 +30,28 @@ class StudioPerangkatController extends Controller
         }
     }
 
+    /**
+     * Cek akses admin untuk SATU record perangkat tertentu.
+     * Admin Divisi Studio: boleh semua lokasi.
+     * Admin Divisi non-Studio yang berlokasi Way Kanan: HANYA boleh
+     * perangkat yang lokasinya 'Way Kanan' (bukan seluruh perangkat studio).
+     */
+    private function checkAdminAccessFor(StudioPerangkat $perangkat): void
+    {
+        $user = auth()->user();
+
+        if ($user->isAdmin()) return;
+
+        if ($user->isAdminDivisi() && $user->isDivisi('studio')) return;
+
+        if ($user->isAdminDivisi() && $user->isWayKanan()) {
+            if (strcasecmp(trim($perangkat->lokasi ?? ''), 'Way Kanan') === 0) return;
+            abort(403, 'Admin Way Kanan hanya dapat mengelola perangkat yang berlokasi di Way Kanan.');
+        }
+
+        abort(403, 'Hanya Admin Divisi Studio atau Admin Way Kanan yang dapat mengelola master perangkat.');
+    }
+
     private function saveFotos(StudioPerangkat $perangkat, Request $request, int $startUrutan = 0): void
     {
         if (!$request->hasFile('fotos')) return;
@@ -101,6 +123,13 @@ class StudioPerangkatController extends Controller
             'fotos.*'                   => 'image|mimes:jpeg,png,jpg,webp|max:8192',
             'foto_keterangan'           => 'nullable|array',
         ]);
+        // Admin Way Kanan (non-Studio) hanya boleh membuat perangkat berlokasi Way Kanan
+        $user = auth()->user();
+        if ($user->isAdminDivisi() && $user->isWayKanan() && !$user->isDivisi('studio')
+            && strcasecmp(trim($v['lokasi']), 'Way Kanan') !== 0) {
+            return back()->withErrors(['lokasi' => 'Admin Way Kanan hanya dapat menambahkan perangkat berlokasi Way Kanan.'])->withInput();
+        }
+
         unset($v['fotos'], $v['foto_keterangan']);
         $perangkat = StudioPerangkat::create($v);
         $this->saveFotos($perangkat, $request);
@@ -116,7 +145,7 @@ class StudioPerangkatController extends Controller
 
     public function edit(StudioPerangkat $studioPerangkat)
     {
-        $this->checkAdminAccess();
+        $this->checkAdminAccessFor($studioPerangkat);
         $studioPerangkat->load('fotos');
         $lokasisStudio = ['Pahoman', 'Way Kanan'];
         return view('studio.perangkat.edit', compact('studioPerangkat', 'lokasisStudio'));
@@ -124,7 +153,7 @@ class StudioPerangkatController extends Controller
 
     public function update(Request $request, StudioPerangkat $studioPerangkat)
     {
-        $this->checkAdminAccess();
+        $this->checkAdminAccessFor($studioPerangkat);
         $v = $request->validate([
             'nama'                      => 'required|string|max:255',
 			'lokasi'					=> 'required|string|max:100',            
@@ -143,6 +172,13 @@ class StudioPerangkatController extends Controller
             'foto_keterangan'           => 'nullable|array',
             'hapus_foto'                => 'nullable|array',
         ]);
+        // Admin Way Kanan (non-Studio) tidak boleh memindahkan perangkat keluar dari Way Kanan
+        $user = auth()->user();
+        if ($user->isAdminDivisi() && $user->isWayKanan() && !$user->isDivisi('studio')
+            && strcasecmp(trim($v['lokasi']), 'Way Kanan') !== 0) {
+            return back()->withErrors(['lokasi' => 'Admin Way Kanan hanya dapat mengelola perangkat berlokasi Way Kanan.'])->withInput();
+        }
+
         unset($v['fotos'], $v['foto_keterangan'], $v['hapus_foto']);
        $studioPerangkat->update($v);
 
@@ -161,7 +197,7 @@ class StudioPerangkatController extends Controller
 
     public function destroy(StudioPerangkat $studioPerangkat)
     {
-        $this->checkAdminAccess();
+        $this->checkAdminAccessFor($studioPerangkat);
         if ($studioPerangkat->maintenances()->exists()) {
             return back()->withErrors(['perangkat' => 'Perangkat ini memiliki riwayat maintenance dan tidak dapat dihapus.']);
         }

@@ -94,8 +94,8 @@ tr:nth-child(even) td { background:#f8f9fa; }
             <td style="width:50%;text-align:center;border:none;padding-top:0">
                 <div style="font-size:8.5pt">Mengetahui,</div>
                 <div style="font-size:8.5pt">{{ $koordinator['jabatan'] }}</div>
-                @if(!empty($koordinator['ttd_url']))
-                <img src="{{ $koordinator['ttd_url'] }}" style="height:45px;margin:5px auto;display:block">
+                @if(!empty($koordinator['ttd_base64']))
+                <img src="{{ $koordinator['ttd_base64'] }}" style="height:45px;margin:5px auto;display:block">
                 @else
                 <div style="height:55px"></div>
                 @endif
@@ -105,8 +105,8 @@ tr:nth-child(even) td { background:#f8f9fa; }
             <td style="width:50%;text-align:center;border:none;padding-top:0">
                 <div style="font-size:8.5pt">Mengesahkan,</div>
                 <div style="font-size:8.5pt">{{ $kabid['jabatan'] }}</div>
-                @if(!empty($kabid['ttd_url']))
-                <img src="{{ $kabid['ttd_url'] }}" style="height:45px;margin:5px auto;display:block">
+                @if(!empty($kabid['ttd_base64']))
+                <img src="{{ $kabid['ttd_base64'] }}" style="height:45px;margin:5px auto;display:block">
                 @else
                 <div style="height:55px"></div>
                 @endif

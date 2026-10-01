@@ -14,6 +14,12 @@ body { font-family:'DejaVu Sans',sans-serif; font-size:9pt; color:#222; }
 table.checklist { width:100%; border-collapse:collapse; margin-top:6px; }
 table.checklist th { background:#4a90d9; color:#fff; padding:5px 8px; font-size:8pt; text-align:center; border:1px solid #ccc; }
 table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vertical-align:top; }
+.col-item { width:50%; }
+.col-kondisi { width:15%; }
+.col-ket { width:35%; }
+.foto-grid { width:100%; margin-top:10px; }
+.foto-grid td { border:1px solid #ccc; text-align:center; padding:4px; }
+.foto-grid img { max-width:100%; max-height:120px; object-fit:cover; }
 .row-header { background:#f0f0f0; }
 .row-header td { font-weight:bold; text-align:center; }
 .shift-header { background:#4a90d9; color:#fff; }
@@ -62,17 +68,17 @@ table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vert
         {{-- Sub header --}}
         <tr class="shift-sub-header">
             <td colspan="2" style="text-align:center">Aksi</td>
-            <td style="text-align:center">Deskripsi (Bila Ada Masalah)</td>
+            <td style="text-align:center">Keterangan</td>
         </tr>
         {{-- Checklist items --}}
         @foreach(\App\Models\StudioLog::CHECKLIST_ITEMS as $key => $item)
         @php $kondisi = $log->$key; $ket = $log->{$key.'_ket'}; @endphp
         <tr style="{{ $kondisi==='gangguan'?'background:#fff5f5':'' }}">
-            <td>
+            <td class="col-item">
                 <strong>{{ $item['label'] }}</strong>
                 @if($item['desc'])<br><span style="font-size:7.5pt;color:#666">*{{ $item['desc'] }}</span>@endif
             </td>
-            <td style="text-align:center">
+            <td class="col-kondisi" style="text-align:center">
                 @if($kondisi==='baik')
                 <span class="kondisi-baik">Baik</span>
                 @elseif($kondisi==='gangguan')
@@ -81,7 +87,7 @@ table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vert
                 <span class="kondisi-na">N/A</span>
                 @endif
             </td>
-            <td>{{ $ket ?: '' }}</td>
+            <td class="col-ket">{{ $ket ?: '' }}</td>
         </tr>
         @endforeach
         {{-- Catatan --}}
@@ -98,13 +104,39 @@ table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vert
     </tbody>
 </table>
 
+@if($log->fotos->isNotEmpty())
+<table class="foto-grid">
+    <tr>
+        @foreach($log->fotos->take(4) as $foto)
+        @php
+            $fotoRel = $foto->thumb_path ?: $foto->path;
+            $fotoB64 = '';
+            if ($fotoRel && \Illuminate\Support\Facades\Storage::disk('public')->exists($fotoRel)) {
+                $ext  = strtolower(pathinfo($fotoRel, PATHINFO_EXTENSION));
+                $mime = $ext==='png'?'image/png':($ext==='webp'?'image/webp':'image/jpeg');
+                $fotoB64 = 'data:'.$mime.';base64,'.base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($fotoRel));
+            }
+        @endphp
+        <td style="width:{{ 100/min($log->fotos->count(),4) }}%">
+            @if($fotoB64)
+            <img src="{{ $fotoB64 }}">
+            @endif
+            @if($foto->keterangan)
+            <div style="font-size:7pt;color:#666;margin-top:2px">{{ $foto->keterangan }}</div>
+            @endif
+        </td>
+        @endforeach
+    </tr>
+</table>
+@endif
+
 <table class="ttd-table">
     <tr>
         <td style="width:50%">
             <div>Mengetahui,</div>
             <div>{{ $koordinator['jabatan'] }}</div>
-            @if(!empty($koordinator['ttd_url']))
-            <img src="{{ $koordinator['ttd_url'] }}" style="height:40px;margin:5px auto;display:block">
+            @if(!empty($koordinator['ttd_base64']))
+            <img src="{{ $koordinator['ttd_base64'] }}" style="height:40px;margin:5px auto;display:block">
             @else
             <div style="height:50px"></div>
             @endif
@@ -114,7 +146,11 @@ table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vert
         <td style="width:50%">
             <div>Dibuat oleh,</div>
             <div>Petugas / Operator</div>
+            @if(!empty($log->user->ttd_base64))
+            <img src="{{ $log->user->ttd_base64 }}" style="height:40px;margin:5px auto;display:block">
+            @else
             <div style="height:50px"></div>
+            @endif
             <div style="border-top:1px solid #333;padding-top:3px;font-weight:bold">{{ $log->user->name }}</div>
             @if($log->user->nip)<div style="font-size:7.5pt;color:#555">NIP. {{ $log->user->nip }}</div>@endif
         </td>

@@ -192,13 +192,21 @@ class StudioLogController extends Controller
     public function bulkCetak(Request $request)
     {
         $this->checkAccess();
+        $user = auth()->user();
 
         $query = StudioLog::with(['user','fotos'])->orderBy('tanggal')->orderBy('jam_mulai');
 
         if ($request->filled('tanggal_dari'))   $query->where('tanggal', '>=', $request->tanggal_dari);
         if ($request->filled('tanggal_sampai')) $query->where('tanggal', '<=', $request->tanggal_sampai);
         if ($request->filled('shift'))          $query->where('shift', $request->shift);
-        if ($request->filled('user_id'))        $query->where('user_id', $request->user_id);
+
+        // Operator biasa (bukan admin/admin divisi) HANYA boleh mencetak
+        // logbook miliknya sendiri, berapa pun parameter user_id yang dikirim.
+        if (!$user->isAdmin() && !$user->isAdminDivisi()) {
+            $query->where('user_id', $user->id);
+        } elseif ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
 
         $logs = $query->limit(50)->get();
 
@@ -209,9 +217,9 @@ class StudioLogController extends Controller
         $settings       = AppSetting::allKeyed();
         $koordinator    = AppSetting::getKoordinator('studio');
         $kabid          = AppSetting::getKabid();
-        $operatorFilter = $request->filled('user_id')
-            ? \App\Models\User::find($request->user_id)
-            : null;
+        $operatorFilter = (!$user->isAdmin() && !$user->isAdminDivisi())
+            ? $user
+            : ($request->filled('user_id') ? \App\Models\User::find($request->user_id) : null);
 
         $dari   = $request->filled('tanggal_dari')   ? '-'.$request->tanggal_dari   : '';
         $sampai = $request->filled('tanggal_sampai') ? 's'.$request->tanggal_sampai : '';
@@ -229,11 +237,19 @@ class StudioLogController extends Controller
     public function cetakHarian(Request $request)
     {
         $this->checkAccess();
+        $user = auth()->user();
         $tanggal     = $request->get('tanggal', now()->toDateString());
         $query = StudioLog::with(['user','fotos'])->where('tanggal', $tanggal)->orderBy('jam_mulai');
-        if ($request->filled('user_id')) $query->where('user_id', $request->user_id);
+
+        if (!$user->isAdmin() && !$user->isAdminDivisi()) {
+            $query->where('user_id', $user->id);
+            $operatorFilter = $user;
+        } else {
+            if ($request->filled('user_id')) $query->where('user_id', $request->user_id);
+            $operatorFilter = $request->filled('user_id') ? \App\Models\User::find($request->user_id) : null;
+        }
+
         $logs = $query->get();
-        $operatorFilter = $request->filled('user_id') ? \App\Models\User::find($request->user_id) : null;
         $settings    = AppSetting::allKeyed();
         $koordinator = AppSetting::getKoordinator('studio');
         $kabid       = AppSetting::getKabid();
@@ -245,13 +261,21 @@ class StudioLogController extends Controller
     public function cetakBulanan(Request $request)
     {
         $this->checkAccess();
+        $user = auth()->user();
         $bulan       = $request->get('bulan', now()->format('Y-m'));
         [$year, $month] = explode('-', $bulan);
         $qBulanan = StudioLog::with('user')->whereYear('tanggal', $year)->whereMonth('tanggal', $month)
                         ->orderBy('tanggal')->orderBy('jam_mulai');
-        if ($request->filled('user_id')) $qBulanan->where('user_id', $request->user_id);
+
+        if (!$user->isAdmin() && !$user->isAdminDivisi()) {
+            $qBulanan->where('user_id', $user->id);
+            $operatorFilter = $user;
+        } else {
+            if ($request->filled('user_id')) $qBulanan->where('user_id', $request->user_id);
+            $operatorFilter = $request->filled('user_id') ? \App\Models\User::find($request->user_id) : null;
+        }
+
         $logs = $qBulanan->get();
-        $operatorFilter = $request->filled('user_id') ? \App\Models\User::find($request->user_id) : null;
         $settings    = AppSetting::allKeyed();
         $koordinator = AppSetting::getKoordinator('studio');
         $kabid       = AppSetting::getKabid();

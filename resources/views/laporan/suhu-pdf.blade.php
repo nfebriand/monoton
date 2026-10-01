@@ -115,7 +115,6 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
 {{-- ── TANDA TANGAN — Koordinator Transmisi ── --}}
 @php
     $koordinator = $koordinator ?? \App\Models\AppSetting::getKoordinator('transmisi');
-    $ttdFile = !empty($koordinator['ttd_path']) ? public_path('uploads/'.$koordinator['ttd_path']) : null;
 @endphp
 <table class="ttd-tbl">
 <tr>
@@ -123,8 +122,8 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
         <div>Mengetahui,</div>
         <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
 
-        @if($ttdFile && file_exists($ttdFile))
-        <div class="ttd-sign"><img src="{{ $koordinator['ttd_url'] }}" alt="TTD"></div>
+        @if(!empty($koordinator['ttd_base64']))
+        <div class="ttd-sign"><img src="{{ $koordinator['ttd_base64'] }}" alt="TTD"></div>
         @else
         <div class="ttd-space"></div>
         @endif

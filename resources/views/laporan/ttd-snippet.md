@@ -10,7 +10,7 @@ $koordinator = \App\Models\AppSetting::getKoordinator('transmisi');
 $koordinator = \App\Models\AppSetting::getKoordinator($eviden->divisi ?? 'transmisi');
 ```
 
-Kirim variabel `$koordinator` (array: nama, nip, jabatan, ttd_url) ke view.
+Kirim variabel `$koordinator` (array: nama, nip, jabatan, ttd_url, ttd_base64) ke view.
 
 ## 2. Di Blade (ttd-tbl), ganti cell "Mengetahui" dengan:
 
@@ -19,9 +19,9 @@ Kirim variabel `$koordinator` (array: nama, nip, jabatan, ttd_url) ke view.
     <div>Mengetahui,</div>
     <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
 
-    @if(!empty($koordinator['ttd_url']) && file_exists(public_path('uploads/'.$koordinator['ttd_path'])))
+    @if(!empty($koordinator['ttd_base64']))
         <div style="height:55px;display:flex;align-items:center;justify-content:center">
-            <img src="{{ $koordinator['ttd_url'] }}" style="max-height:50px;max-width:140px;object-fit:contain">
+            <img src="{{ $koordinator['ttd_base64'] }}" style="max-height:50px;max-width:140px;object-fit:contain">
         </div>
     @else
         <div class="ttd-space"></div>
@@ -35,3 +35,9 @@ Kirim variabel `$koordinator` (array: nama, nip, jabatan, ttd_url) ke view.
     @endif
 </td>
 ```
+
+**PENTING:** dompdf di app ini di-set `setIsRemoteEnabled(false)` (lihat
+batch patch keamanan sebelumnya), jadi `ttd_url` (URL http/https) TIDAK
+akan ter-load di PDF. Untuk PDF, SELALU pakai `ttd_base64` (data-URI),
+bukan `ttd_url`. `ttd_url` hanya untuk ditampilkan di halaman HTML biasa
+(misal preview di halaman Settings).

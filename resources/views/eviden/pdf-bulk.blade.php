@@ -126,7 +126,6 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
 @foreach($evidens as $i => $eviden)
 @php
     $koordinator = $koordinatorCache[$eviden->divisi ?? 'transmisi'] ?? $koordinatorCache['transmisi'];
-    $ttdFile = !empty($koordinator['ttd_path']) ? public_path('uploads/'.$koordinator['ttd_path']) : null;
 @endphp
 <div class="eviden-page">
 
@@ -223,16 +222,12 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
     <tr>
         @foreach($row as $foto)
         @php
-            $fotoPath   = public_path('storage/' . $foto->path);
-            // Fallback ke uploads/ untuk backward compat
-            if (!file_exists($fotoPath)) {
-                $fotoPath = public_path('uploads/' . $foto->path);
-            }
+            $fotoRel    = $foto->thumb_path ?: $foto->path;
             $fotoBase64 = '';
-            if (file_exists($fotoPath)) {
-                $ext  = strtolower(pathinfo($fotoPath, PATHINFO_EXTENSION));
+            if ($fotoRel && \Illuminate\Support\Facades\Storage::disk('public')->exists($fotoRel)) {
+                $ext  = strtolower(pathinfo($fotoRel, PATHINFO_EXTENSION));
                 $mime = match($ext) { 'png'=>'image/png','webp'=>'image/webp',default=>'image/jpeg' };
-                $fotoBase64 = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($fotoPath));
+                $fotoBase64 = 'data:'.$mime.';base64,'.base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($fotoRel));
             }
         @endphp
         <td>
@@ -260,9 +255,9 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
         <td class="ttd-cell">
             <div>Mengetahui,</div>
             <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
-            @if($ttdFile && file_exists($ttdFile))
+            @if(!empty($koordinator['ttd_base64']))
             <div style="height:45px;display:flex;align-items:center;justify-content:center">
-                <img src="{{ $koordinator['ttd_url'] }}" alt="TTD" style="max-height:40px;max-width:120px">
+                <img src="{{ $koordinator['ttd_base64'] }}" alt="TTD" style="max-height:40px;max-width:120px">
             </div>
             @else
             <div class="ttd-space"></div>

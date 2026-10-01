@@ -138,12 +138,12 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
 <tr>
     @foreach($row as $foto)
     @php
-        $fotoPath   = public_path('uploads/' . $foto->path);
+        $fotoRel    = $foto->thumb_path ?: $foto->path;
         $fotoBase64 = '';
-        if(file_exists($fotoPath)){
-            $ext  = strtolower(pathinfo($fotoPath, PATHINFO_EXTENSION));
+        if ($fotoRel && \Illuminate\Support\Facades\Storage::disk('public')->exists($fotoRel)) {
+            $ext  = strtolower(pathinfo($fotoRel, PATHINFO_EXTENSION));
             $mime = $ext==='png'?'image/png':($ext==='webp'?'image/webp':'image/jpeg');
-            $fotoBase64 = 'data:'.$mime.';base64,'.base64_encode(file_get_contents($fotoPath));
+            $fotoBase64 = 'data:'.$mime.';base64,'.base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($fotoRel));
         }
     @endphp
     <td>
@@ -168,7 +168,6 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
 {{-- ── TANDA TANGAN — Koordinator sesuai DIVISI eviden ── --}}
 @php
     $koordinator = $koordinator ?? \App\Models\AppSetting::getKoordinator($eviden->divisi ?? 'transmisi');
-    $ttdFile = !empty($koordinator['ttd_path']) ? public_path('uploads/'.$koordinator['ttd_path']) : null;
 @endphp
 <table class="ttd-tbl">
 <tr>
@@ -176,11 +175,12 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
         <div>Mengetahui,</div>
         <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
 
-        @if($ttdFile && file_exists($ttdFile))
-        <div class="ttd-sign"><img src="{{ $koordinator['ttd_url'] }}" alt="TTD"></div>
+        @if(!empty($koordinator['ttd_base64']))
+        <div class="ttd-sign"><img src="{{ $koordinator['ttd_base64'] }}" alt="TTD"></div>
         @else
         <div class="ttd-space"></div>
         @endif
+
 
         <div class="ttd-line">{{ $koordinator['nama'] ?: '( _________________________ )' }}</div>
         @if(!empty($koordinator['nip']))<div class="ttd-sub">NIP. {{ $koordinator['nip'] }}</div>@endif

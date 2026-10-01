@@ -25,6 +25,21 @@ class AppSetting extends Model
     }
 
     /**
+     * Base64 data-URI dari file TTD, siap dipakai langsung di <img src="">
+     * pada PDF (dompdf tidak boleh fetch remote, jadi tidak bisa pakai ttd_url).
+     * Null kalau path kosong atau file tidak ditemukan di storage.
+     */
+    private static function ttdBase64(?string $path): ?string
+    {
+        if (!$path) return null;
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        if (!$disk->exists($path)) return null;
+        $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $mime = $ext === 'png' ? 'image/png' : ($ext === 'webp' ? 'image/webp' : 'image/jpeg');
+        return 'data:'.$mime.';base64,'.base64_encode($disk->get($path));
+    }
+
+    /**
      * Ambil profil koordinator untuk divisi tertentu.
      * $divisi: 'transmisi' | 'studio' | 'sarana'
      *
@@ -50,7 +65,8 @@ class AppSetting extends Model
             'nip'     => $nip,
             'jabatan' => $jabatan,
             'ttd_path'=> $ttd,
-            'ttd_url' => $ttd ? asset('uploads/'.$ttd) : null,
+            'ttd_url' => $ttd ? \App\Helpers\ImageHelper::url($ttd) : null,
+            'ttd_base64' => self::ttdBase64($ttd),
         ];
     }
 
@@ -70,7 +86,8 @@ class AppSetting extends Model
             'nip'     => $nip,
             'jabatan' => $jabatan,
             'ttd_path'=> $ttd,
-            'ttd_url' => $ttd ? asset('uploads/'.$ttd) : null,
+            'ttd_url' => $ttd ? \App\Helpers\ImageHelper::url($ttd) : null,
+            'ttd_base64' => self::ttdBase64($ttd),
         ];
     }
 

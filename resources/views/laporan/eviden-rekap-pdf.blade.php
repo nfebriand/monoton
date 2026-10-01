@@ -97,16 +97,14 @@ table.tbl tr:nth-child(even) td{background:#f7fafc;}
 </table>
 
 @php
-    $ttdFile = !empty($koordinator['ttd_path']) ? public_path('uploads/'.$koordinator['ttd_path']) : null;
-    $kabidFile = !empty($kabid['ttd_path']) ? public_path('uploads/'.$kabid['ttd_path']) : null;
 @endphp
 <table class="ttd-tbl">
 <tr>
     <td class="ttd-cell">
         <div>Mengetahui,</div>
         <div>{{ $koordinator['jabatan'] ?: 'Koordinator '.$divisiLabel }}</div>
-        @if($ttdFile && file_exists($ttdFile))
-        <div class="ttd-sign"><img src="{{ $koordinator['ttd_url'] }}" alt="TTD"></div>
+        @if(!empty($koordinator['ttd_base64']))
+        <div class="ttd-sign"><img src="{{ $koordinator['ttd_base64'] }}" alt="TTD"></div>
         @else
         <div class="ttd-space"></div>
         @endif
@@ -118,8 +116,8 @@ table.tbl tr:nth-child(even) td{background:#f7fafc;}
         @if(!empty($kabid['nama']))
         <div>Menyetujui,</div>
         <div>{{ $kabid['jabatan'] }}</div>
-        @if($kabidFile && file_exists($kabidFile))
-        <div class="ttd-sign"><img src="{{ $kabid['ttd_url'] }}" alt="TTD Kabid"></div>
+        @if(!empty($kabid['ttd_base64']))
+        <div class="ttd-sign"><img src="{{ $kabid['ttd_base64'] }}" alt="TTD Kabid"></div>
         @else
         <div class="ttd-space"></div>
         @endif

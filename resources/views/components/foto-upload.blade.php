@@ -1,6 +1,10 @@
 {{--
     Komponen Upload Foto Multi — versi reliable tanpa DataTransfer API
     Usage: @include('components.foto-upload', ['existingFotos' => $model->fotos])
+
+    Sumber foto diprioritaskan GALERI, kamera hanya opsi kedua (tombol terpisah)
+    supaya operator tidak "terjebak" langsung ke kamera saat mau unggah foto
+    yang sudah ada di galeri HP.
 --}}
 @php $existingFotos = $existingFotos ?? collect(); $maxMb = $maxMb ?? 8; @endphp
 
@@ -42,11 +46,20 @@
     <div id="foto-slots-container">
         {{-- Slot pertama selalu tampil --}}
         <div class="foto-slot mb-2" id="slot-0">
-            <div class="input-group">
-                <input type="file" name="fotos[]" class="form-control"
-                       accept="image/jpeg,image/png,image/jpg,image/webp"
-                       capture="environment"
-                       onchange="previewSlot(this, 0)">
+            <div class="d-flex gap-2 flex-wrap align-items-start">
+                <label class="btn btn-primary btn-sm mb-0" style="cursor:pointer">
+                    <i class="bi bi-images me-1"></i>Pilih dari Galeri
+                    <input type="file" name="fotos[]" class="d-none foto-input-gallery"
+                           accept="image/jpeg,image/png,image/jpg,image/webp"
+                           onchange="previewSlot(this, 0)" data-slot="0">
+                </label>
+                <label class="btn btn-outline-secondary btn-sm mb-0" style="cursor:pointer">
+                    <i class="bi bi-camera me-1"></i>Ambil Foto
+                    <input type="file" name="fotos[]" class="d-none foto-input-camera"
+                           accept="image/jpeg,image/png,image/jpg,image/webp"
+                           capture="environment"
+                           onchange="previewSlot(this, 0)" data-slot="0">
+                </label>
                 <button type="button" class="btn btn-outline-secondary btn-sm"
                         onclick="clearSlot(0)" title="Hapus">
                     <i class="bi bi-x"></i>
@@ -81,9 +94,19 @@
 <script>
 let slotCount = 1;
 
+// input = elemen <input type=file> yang baru saja dipilih (galeri ATAU kamera).
+// Kalau slot yang sama punya input lain yang sudah terisi, kosongkan supaya
+// tidak terkirim dua foto dari satu slot.
 function previewSlot(input, idx) {
+    const slot = document.getElementById('slot-' + idx);
+    const siblingSelector = input.classList.contains('foto-input-gallery')
+        ? '.foto-input-camera' : '.foto-input-gallery';
+    const sibling = slot ? slot.querySelector(siblingSelector) : null;
+
     const file = input.files[0];
     if (!file) { clearSlot(idx); return; }
+    if (sibling) sibling.value = '';
+
     const reader = new FileReader();
     reader.onload = e => {
         const prev = document.getElementById('preview-' + idx);
@@ -99,10 +122,9 @@ function previewSlot(input, idx) {
 function clearSlot(idx) {
     const slot = document.getElementById('slot-' + idx);
     if (!slot) return;
-    const input = slot.querySelector('input[type=file]');
-    const prev  = document.getElementById('preview-' + idx);
-    if (input) input.value = '';
-    if (prev)  prev.style.display = 'none';
+    slot.querySelectorAll('input[type=file]').forEach(inp => inp.value = '');
+    const prev = document.getElementById('preview-' + idx);
+    if (prev) prev.style.display = 'none';
 }
 
 function addFotoSlot() {
@@ -112,11 +134,20 @@ function addFotoSlot() {
     div.className = 'foto-slot mb-2';
     div.id = 'slot-' + idx;
     div.innerHTML = `
-        <div class="input-group">
-            <input type="file" name="fotos[]" class="form-control"
-                   accept="image/jpeg,image/png,image/jpg,image/webp"
-                   capture="environment"
-                   onchange="previewSlot(this, ${idx})">
+        <div class="d-flex gap-2 flex-wrap align-items-start">
+            <label class="btn btn-primary btn-sm mb-0" style="cursor:pointer">
+                <i class="bi bi-images me-1"></i>Pilih dari Galeri
+                <input type="file" name="fotos[]" class="d-none foto-input-gallery"
+                       accept="image/jpeg,image/png,image/jpg,image/webp"
+                       onchange="previewSlot(this, ${idx})" data-slot="${idx}">
+            </label>
+            <label class="btn btn-outline-secondary btn-sm mb-0" style="cursor:pointer">
+                <i class="bi bi-camera me-1"></i>Ambil Foto
+                <input type="file" name="fotos[]" class="d-none foto-input-camera"
+                       accept="image/jpeg,image/png,image/jpg,image/webp"
+                       capture="environment"
+                       onchange="previewSlot(this, ${idx})" data-slot="${idx}">
+            </label>
             <button type="button" class="btn btn-outline-danger btn-sm"
                     onclick="removeSlot(${idx})" title="Hapus baris">
                 <i class="bi bi-trash"></i>

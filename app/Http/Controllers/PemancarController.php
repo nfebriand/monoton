@@ -84,6 +84,7 @@ class PemancarController extends Controller
 				PemancarFoto::create([
 					'pemancar_id' => $pemancar->id,
 					'path'        => $img['original'],
+					'thumb_path'  => $img['thumbnail'],
 					'keterangan'  => $request->input("foto_keterangan.{$idx}"),
 					'urutan'      => $idx,
 				]);
@@ -195,6 +196,7 @@ class PemancarController extends Controller
 				PemancarFoto::create([
 					'pemancar_id' => $pemancar->id,
 					'path'        => $img['original'],
+					'thumb_path'  => $img['thumbnail'],
 					'keterangan'  => $request->input("foto_keterangan_baru.{$idx}"),
 					'urutan'      => $last + $idx + 1,
 				]);

@@ -206,7 +206,7 @@
                     <div style="aspect-ratio:1;border-radius:6px;overflow:hidden;cursor:pointer;
                          border:2px solid {{ $i===0?'var(--primary)':'var(--border)' }}"
                          onclick="document.getElementById('pemancarFotoUtama').src='{{ $foto->url }}'">
-                        <img src="{{ $foto->url }}" style="width:100%;height:100%;object-fit:cover"
+                        <img src="{{ $foto->thumb_url }}" style="width:100%;height:100%;object-fit:cover"
                              onerror="this.parentElement.style.background='#eee'">
                     </div>
                     @endforeach

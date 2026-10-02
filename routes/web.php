@@ -44,6 +44,8 @@ Route::middleware(['auth'])->group(function(){
     Route::get('/operasional/create',           [OperasionalController::class,'create'])->name('operasional.create');
     Route::post('/operasional',                 [OperasionalController::class,'store'])->name('operasional.store');
     Route::post('/operasional/hitung-vswr',     [OperasionalController::class,'hitungVswr'])->name('operasional.vswr');
+	Route::get('/operasional/isi-susulan', 			[OperasionalController::class,'backfillCreate'])->name('operasional.backfill.create');	
+	Route::post('/operasional/isi-susulan', 		[OperasionalController::class,'backfillStore'])->name('operasional.backfill.store');	
     Route::get('/operasional/{operasional}',        [OperasionalController::class,'show'])->name('operasional.show');
     Route::get('/operasional/{operasional}/edit',   [OperasionalController::class,'edit'])->name('operasional.edit');
     Route::put('/operasional/{operasional}',        [OperasionalController::class,'update'])->name('operasional.update');

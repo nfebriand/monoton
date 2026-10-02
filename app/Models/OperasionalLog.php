@@ -12,7 +12,7 @@ class OperasionalLog extends Model
         'reflect_final', 'reject_final',
         'vswr_final', 'return_loss_final',
         'suhu_pemancar', 'suhu_ruangan', 'kelembaban',
-        'keterangan',
+        'keterangan', 'is_backfill',
     ];
 
     protected $casts = [
@@ -27,6 +27,7 @@ class OperasionalLog extends Model
         'suhu_pemancar'     => 'decimal:1',
         'suhu_ruangan'      => 'decimal:1',
         'kelembaban'        => 'decimal:1',
+        'is_backfill'       => 'boolean',
     ];
 
     public function pemancar() { return $this->belongsTo(Pemancar::class); }

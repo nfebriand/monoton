@@ -48,6 +48,9 @@
                 <a href="{{ route('operasional.create') }}" class="btn btn-success btn-sm ms-auto">
                     <i class="bi bi-plus-lg me-1"></i>Catat
                 </a>
+                <a href="{{ route('operasional.backfill.create') }}" class="btn btn-outline-warning btn-sm">
+                    <i class="bi bi-clock-history me-1"></i>Isi Data Susulan
+                </a>
             </div>
         </form>
     </div>
@@ -80,6 +83,11 @@
                     <td class="ps-3">
                         <div class="mono" style="font-size:.8rem">{{ $log->dicatat_pada->format('d/m/Y') }}</div>
                         <div class="mono text-muted" style="font-size:.72rem">{{ $log->dicatat_pada->format('H:i') }}</div>
+                        @if($log->is_backfill)
+                        <span class="badge bg-warning text-dark" style="font-size:.6rem" title="Diisi lewat menu Isi Data Susulan">
+                            <i class="bi bi-clock-history"></i> Susulan
+                        </span>
+                        @endif
                     </td>
                     <td>
                         <div style="font-size:.83rem;font-weight:600">{{ $log->pemancar->nama_stasiun }}</div>

@@ -216,6 +216,144 @@ class OperasionalController extends Controller
         return back()->with('success','Log berhasil dihapus.');
     }
 
+    /**
+     * Default jam checkpoint per shift (3x per shift), dipakai sebagai
+     * ISIAN AWAL yang MASIH BISA DIEDIT operator — bukan nilai final.
+     * Operator wajib menyesuaikan ke waktu sebenarnya sesuai catatan asli
+     * mereka sebelum menyimpan.
+     */
+    private function defaultCheckpoints(string $shift): array
+    {
+        $map = [
+            '1' => ['00:20', '04:00', '07:30'], // malam/dini hari 00:15-07:45
+            '2' => ['08:00', '12:00', '15:20'], // pagi 07:45-15:45
+            '3' => ['16:00', '20:00', '23:20'], // sore/malam 15:45-23:45
+        ];
+        $jams = $map[$shift] ?? $map['2'];
+
+        return array_map(function ($jam) {
+            [$h, $m] = explode(':', $jam);
+            $menit = ((int) $m + random_int(1, 20)) % 60;
+            $jamFinal = (int) $h + (int) (((int) $m + random_int(1, 20)) >= 60 ? 1 : 0);
+            return sprintf('%02d:%02d', $jamFinal, $menit);
+        }, $jams);
+    }
+
+    /**
+     * GET /operasional/isi-susulan
+     * Form bantu untuk OPERATOR mengisi log operasional hari/shift yang
+     * terlewat, berdasarkan catatan manual (kertas/WA) yang mereka miliki.
+     * Operator hanya bisa mengisi data ATAS NAMA DIRINYA SENDIRI.
+     */
+    public function backfillCreate(Request $request)
+    {
+        $user      = auth()->user();
+        $pemancars = $this->getPemancarsForUser();
+
+        $tanggal = $request->get('tanggal');
+        $shift   = $request->get('shift');
+
+        $checkpoints = null;
+        if ($tanggal && $shift) {
+            $checkpoints = $this->defaultCheckpoints($shift);
+        }
+
+        return view('operasional.backfill', compact(
+            'pemancars', 'tanggal', 'shift', 'checkpoints'
+        ));
+    }
+
+    /**
+     * POST /operasional/isi-susulan
+     * Menyimpan beberapa baris log operasional sekaligus (hingga 3
+     * checkpoint waktu) ATAS NAMA operator yang sedang login. Nilai
+     * parameter teknis tetap wajib diisi manual oleh operator dari
+     * catatan asli mereka — tidak ada nilai yang dibuat otomatis oleh
+     * sistem.
+     */
+    public function backfillStore(Request $request)
+    {
+        $user      = auth()->user();
+        $pemancars = $this->getPemancarsForUser();
+
+        if ($user->isOperator() && !$user->lokasi_dinas) {
+            return back()->withErrors(['lokasi' => 'Lokasi dinas Anda belum diset.']);
+        }
+
+        $validated = $request->validate([
+            'tanggal'                                  => 'required|date|before_or_equal:today',
+            'shift'                                     => 'required|in:1,2,3',
+            'checkpoint'                                => 'required|array|min:1',
+            'checkpoint.*.jam'                           => 'required|date_format:H:i',
+            'checkpoint.*.suhu_ruangan'                  => 'required|numeric|between:-50,100',
+            'checkpoint.*.kelembaban'                    => 'nullable|numeric|between:0,100',
+            'checkpoint.*.pemancar'                      => 'required|array|min:1',
+            'checkpoint.*.pemancar.*.id'                 => 'required|exists:pemancars,id',
+            'checkpoint.*.pemancar.*.output_final_pa'    => 'nullable|numeric|min:0',
+            'checkpoint.*.pemancar.*.output_driver'      => 'nullable|numeric|min:0',
+            'checkpoint.*.pemancar.*.output_exciter'     => 'nullable|numeric|min:0',
+            'checkpoint.*.pemancar.*.reflect_final'      => 'nullable|numeric|min:0',
+            'checkpoint.*.pemancar.*.reject_final'       => 'nullable|numeric|min:0',
+            'checkpoint.*.pemancar.*.suhu_pemancar'      => 'nullable|numeric|between:-50,200',
+            'checkpoint.*.pemancar.*.keterangan'         => 'nullable|string|max:500',
+        ]);
+
+        $allowedIds = $pemancars->pluck('id')->toArray();
+        $dibuat = 0;
+
+        foreach ($validated['checkpoint'] as $cp) {
+            $dicatatPada = $validated['tanggal'] . ' ' . $cp['jam'] . ':00';
+
+            foreach ($cp['pemancar'] as $data) {
+                // Lewati baris yang tidak diisi sama sekali (semua field kosong)
+                $adaIsi = collect($data)->except('id')->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty();
+                if (!$adaIsi) continue;
+
+                if ($user->isOperator() && !in_array($data['id'], $allowedIds)) {
+                    return back()->withErrors(['pemancar' => 'Pemancar di luar lokasi dinas Anda.'])->withInput();
+                }
+
+                if (!empty($data['output_final_pa'])) {
+                    $p = $pemancars->firstWhere('id', $data['id']);
+                    if ($p && $data['output_final_pa'] > $p->kapasitas_output_final) {
+                        return back()->withErrors([
+                            'output' => "Output Final PA untuk {$p->nama_stasiun} tidak boleh melebihi kapasitas ({$p->kapasitas_output_final} W).",
+                        ])->withInput();
+                    }
+                }
+
+                $vswr = VswrCalculator::calculateAll($data);
+
+                OperasionalLog::create([
+                    'pemancar_id'       => $data['id'],
+                    'user_id'           => $user->id,
+                    'jadwal_shift_id'   => null,
+                    'dicatat_pada'      => $dicatatPada,
+                    'output_final_pa'   => $data['output_final_pa']  ?? null,
+                    'output_driver'     => $data['output_driver']    ?? null,
+                    'output_exciter'    => $data['output_exciter']   ?? null,
+                    'reflect_final'     => $data['reflect_final']    ?? null,
+                    'reject_final'      => $data['reject_final']     ?? null,
+                    'vswr_final'        => $vswr['vswr_final'],
+                    'return_loss_final' => $vswr['return_loss_final'],
+                    'suhu_pemancar'     => $data['suhu_pemancar']    ?? null,
+                    'suhu_ruangan'      => $cp['suhu_ruangan'],
+                    'kelembaban'        => $cp['kelembaban']         ?? null,
+                    'keterangan'        => $data['keterangan']       ?? null,
+                    'is_backfill'       => true,
+                ]);
+                $dibuat++;
+            }
+        }
+
+        if ($dibuat === 0) {
+            return back()->withErrors(['umum' => 'Tidak ada data yang diisi.'])->withInput();
+        }
+
+        return redirect()->route('operasional.index')
+            ->with('success', "{$dibuat} log operasional susulan berhasil disimpan atas nama Anda.");
+    }
+
     private function checkAkses(OperasionalLog $operasional): void
     {
         $user = auth()->user();

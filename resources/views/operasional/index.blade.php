@@ -90,7 +90,11 @@
                         @endif
                     </td>
                     <td>
-                        <div style="font-size:.83rem;font-weight:600">{{ $log->pemancar->nama_stasiun }}</div>
+                        <div style="font-size:.83rem;font-weight:600">{{ $log->pemancar->nama_stasiun }}
+                            @if($log->status === 'off')
+                            <span class="badge bg-warning text-dark" style="font-size:.6rem" title="Tidak dihitung dalam rata-rata">OFF</span>
+                            @endif
+                        </div>
                         <small class="text-muted">{{ $log->pemancar->modulasi }}{{ $log->pemancar->frekuensi?' '.$log->pemancar->frekuensi.' MHz':'' }}</small>
                     </td>
                     <td>
@@ -166,6 +170,9 @@
                         <span class="fw-bold text-truncate" style="font-size:.85rem">{{ $log->pemancar->nama_stasiun }}</span>
                         @if($log->pemancar->lokasi)
                         <span class="badge bg-secondary" style="font-size:.62rem">{{ $log->pemancar->lokasi }}</span>
+                        @endif
+                        @if($log->status === 'off')
+                        <span class="badge bg-warning text-dark" style="font-size:.62rem">OFF</span>
                         @endif
                         @if($log->vswr_final)
                             @php $v=$log->vswr_final;$cls=$v<=1.5?'vswr-baik':($v<=2?'vswr-sedang':'vswr-buruk'); @endphp

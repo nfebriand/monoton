@@ -20,7 +20,7 @@ class LaporanController extends Controller
             if (!is_dir($dir)) @mkdir($dir, 0775, true);
         }
         $options = new \Dompdf\Options();
-        $options->setIsRemoteEnabled(false); // dimatikan: cegah SSRF via fetch remote di dompdf
+        $options->setIsRemoteEnabled(true);
         $options->setIsHtml5ParserEnabled(true);
         $options->setDefaultFont('dejavu sans');
         $options->setFontDir($fontDir);
@@ -130,15 +130,19 @@ class LaporanController extends Controller
             }
 
             $logs    = $query->get();
+            // Baris berstatus OFF (pemancar sedang tidak mengudara, bergantian
+            // dengan unit lain) tidak ikut dihitung dalam rata-rata.
+            $logsOn  = $logs->where('status', '!=', 'off');
             $summary = [
                 'pemancar_filter'  => $pemancarFilter,
                 'lokasi_filter'    => $lokasiFilter,
                 'operator_filter'  => $operatorFilter,
                 'total_pencatatan' => $logs->count(),
-                'rata_output_final'=> $logs->whereNotNull('output_final_pa')->avg('output_final_pa'),
-                'rata_vswr_final'  => $logs->whereNotNull('vswr_final')->avg('vswr_final'),
-                'rata_suhu_ruangan'=> $logs->whereNotNull('suhu_ruangan')->avg('suhu_ruangan'),
-                'rata_kelembaban'  => $logs->whereNotNull('kelembaban')->avg('kelembaban'),
+                'total_off'        => $logs->where('status', 'off')->count(),
+                'rata_output_final'=> $logsOn->whereNotNull('output_final_pa')->avg('output_final_pa'),
+                'rata_vswr_final'  => $logsOn->whereNotNull('vswr_final')->avg('vswr_final'),
+                'rata_suhu_ruangan'=> $logsOn->whereNotNull('suhu_ruangan')->avg('suhu_ruangan'),
+                'rata_kelembaban'  => $logsOn->whereNotNull('kelembaban')->avg('kelembaban'),
             ];
 
             $settings = AppSetting::allKeyed();
@@ -187,6 +191,7 @@ class LaporanController extends Controller
             ->whereYear('dicatat_pada', $tahun)
             ->whereMonth('dicatat_pada', $bulan)
             ->whereNotNull('suhu_ruangan')
+            ->onOnly() // kecualikan baris berstatus OFF dari laporan suhu & rata-ratanya
             ->orderBy('dicatat_pada');
 
         if ($user->isOperator() && $user->lokasi_dinas) {
@@ -242,6 +247,7 @@ class LaporanController extends Controller
             $query = OperasionalLog::with(['pemancar','user','jadwalShift'])
                 ->whereYear('dicatat_pada', $tahun)
                 ->whereMonth('dicatat_pada', $bulan)
+                ->onOnly() // kecualikan baris berstatus OFF dari laporan suhu & rata-ratanya
                 ->orderBy('dicatat_pada');
 
             if ($user->isOperator() && $user->lokasi_dinas) {

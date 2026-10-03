@@ -99,6 +99,18 @@
             </div>
             <div class="pemancar-bdy open" id="bdy-{{ $pemancar->id }}">
                 <input type="hidden" name="pemancar[{{ $idx }}][id]" value="{{ $pemancar->id }}">
+
+                <div class="form-check form-switch mb-3 p-2" style="background:#fff7e6;border:1px solid #ffe4a0;border-radius:6px">
+                    <input class="form-check-input" type="checkbox" role="switch"
+                           id="status-off-{{ $idx }}"
+                           onchange="toggleStatusOff({{ $idx }}, this.checked)">
+                    <label class="form-check-label" for="status-off-{{ $idx }}" style="font-size:.8rem">
+                        Pemancar sedang <strong>OFF</strong> (rusak/bergantian dengan cadangan)
+                    </label>
+                    <input type="hidden" name="pemancar[{{ $idx }}][status]" id="status-val-{{ $idx }}" value="on">
+                </div>
+
+                <div class="param-fields" id="fields-{{ $idx }}">
                 <div class="param-lbl mb-2">⚡ Output Power</div>
                 <div class="row g-2 mb-3">
                     <div class="col-4">
@@ -157,7 +169,9 @@
                     <span class="vswr-st ms-2" id="vs-{{ $idx }}" style="font-size:.73rem"></span>
                     <span class="text-muted ms-auto" style="font-size:.7rem">RL: <span id="rl-{{ $idx }}">—</span> dB</span>
                 </div>
-                <textarea name="pemancar[{{ $idx }}][keterangan]" class="form-control form-control-sm" rows="2"></textarea>
+                </div> {{-- /param-fields --}}
+                <textarea name="pemancar[{{ $idx }}][keterangan]" class="form-control form-control-sm" rows="2"
+                          placeholder="Keterangan (wajib diisi kalau status OFF, misal: digantikan unit cadangan)"></textarea>
             </div>
         </div>
         @if(!$loop->last)<div style="height:1px;background:#edf2f7"></div>@endif
@@ -195,6 +209,17 @@
 <script>
 // Toggle accordion
 function toggleBlk(id){const b=document.getElementById('bdy-'+id);const t=document.getElementById('ti-'+id);b.classList.toggle('open');t.classList.toggle('rot');}
+
+function toggleStatusOff(idx, isOff) {
+    document.getElementById('status-val-' + idx).value = isOff ? 'off' : 'on';
+    const fields = document.getElementById('fields-' + idx);
+    if (!fields) return;
+    fields.style.opacity = isOff ? '.4' : '1';
+    fields.querySelectorAll('input[type=number]').forEach(inp => {
+        inp.disabled = isOff;
+        if (isOff) inp.value = '';
+    });
+}
 let allOpen=true;
 function toggleAll(){allOpen=!allOpen;document.querySelectorAll('.pemancar-bdy').forEach(b=>b.classList.toggle('open',allOpen));document.querySelectorAll('.ti').forEach(t=>t.classList.toggle('rot',!allOpen));document.getElementById('toggleLabel').textContent=allOpen?'Tutup Semua':'Buka Semua';}
 

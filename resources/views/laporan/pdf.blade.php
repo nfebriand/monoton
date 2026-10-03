@@ -69,6 +69,12 @@ table.log tr:nth-child(even) td{background:#f7fafc;}
 </tr>
 </table>
 
+@if(($summary['total_off'] ?? 0) > 0)
+<div style="font-size:6.5pt;color:#888;margin:2px 0 6px">
+    <strong>{{ $summary['total_off'] }}</strong> baris berstatus <strong>[OFF]</strong> (pemancar sedang tidak mengudara / bergantian dengan unit lain) — tidak dihitung dalam rata-rata di atas.
+</div>
+@endif
+
 <table class="log">
 <thead>
 <tr>
@@ -92,11 +98,11 @@ table.log tr:nth-child(even) td{background:#f7fafc;}
 </thead>
 <tbody>
 @forelse($logs as $i => $log)
-@php $v=$log->vswr_final; $vc=$v&&$v<=1.5?'ok':($v&&$v<=2?'wrn':'bad'); @endphp
-<tr>
+@php $v=$log->vswr_final; $vc=$v&&$v<=1.5?'ok':($v&&$v<=2?'wrn':'bad'); $isOff=$log->status==='off'; @endphp
+<tr style="{{ $isOff ? 'background:#f0f0f0;color:#888' : '' }}">
     <td class="tc">{{ $i+1 }}</td>
     <td class="tc" style="font-family:monospace">{{ $log->dicatat_pada->format('d/m/y H:i') }}</td>
-    <td class="tl">{{ $log->pemancar->nama_stasiun }}</td>
+    <td class="tl">{{ $log->pemancar->nama_stasiun }}@if($isOff) <span style="font-size:6pt;font-weight:bold">[OFF]</span>@endif</td>
     <td class="tc" style="font-size:6pt">{{ $log->pemancar->lokasi ?? '–' }}</td>
     <td class="tl">{{ $log->user->name }}</td>
     <td class="tc">{{ $log->jadwalShift ? 'S'.$log->jadwalShift->shift : '–' }}</td>
@@ -121,6 +127,7 @@ table.log tr:nth-child(even) td{background:#f7fafc;}
 @php
     // $koordinator dikirim dari controller via AppSetting::getKoordinator('transmisi')
     $koordinator = $koordinator ?? \App\Models\AppSetting::getKoordinator('transmisi');
+    $ttdFile = !empty($koordinator['ttd_path']) ? public_path('uploads/'.$koordinator['ttd_path']) : null;
 @endphp
 <table class="ttd-tbl">
 <tr>
@@ -128,8 +135,8 @@ table.log tr:nth-child(even) td{background:#f7fafc;}
         <div>Mengetahui,</div>
         <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
 
-        @if(!empty($koordinator['ttd_base64']))
-        <div class="ttd-sign"><img src="{{ $koordinator['ttd_base64'] }}" alt="TTD"></div>
+        @if($ttdFile && file_exists($ttdFile))
+        <div class="ttd-sign"><img src="{{ $koordinator['ttd_url'] }}" alt="TTD"></div>
         @else
         <div class="ttd-space"></div>
         @endif

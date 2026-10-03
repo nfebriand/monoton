@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class OperasionalLog extends Model
 {
     protected $fillable = [
-        'pemancar_id', 'user_id', 'jadwal_shift_id', 'dicatat_pada',
+        'pemancar_id', 'status', 'user_id', 'jadwal_shift_id', 'dicatat_pada',
         'output_final_pa', 'output_driver', 'output_exciter',
         'reflect_final', 'reject_final',
         'vswr_final', 'return_loss_final',
@@ -33,6 +33,21 @@ class OperasionalLog extends Model
     public function pemancar() { return $this->belongsTo(Pemancar::class); }
     public function user()     { return $this->belongsTo(User::class); }
     public function jadwalShift() { return $this->belongsTo(JadwalShift::class); }
+
+    public function isOff(): bool
+    {
+        return $this->status === 'off';
+    }
+
+    /**
+     * Scope: hanya baris yang pemancarnya ON — dipakai setiap kali
+     * menghitung rata-rata/statistik, supaya baris OFF (bergantian
+     * dengan unit lain) tidak ikut jadi faktor perhitungan.
+     */
+    public function scopeOnOnly($query)
+    {
+        return $query->where('status', 'on');
+    }
 
     public function getVswrStatusAttribute(): array
     {

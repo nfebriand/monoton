@@ -84,7 +84,6 @@ class PemancarController extends Controller
 				PemancarFoto::create([
 					'pemancar_id' => $pemancar->id,
 					'path'        => $img['original'],
-					'thumb_path'  => $img['thumbnail'],
 					'keterangan'  => $request->input("foto_keterangan.{$idx}"),
 					'urutan'      => $idx,
 				]);
@@ -123,18 +122,22 @@ class PemancarController extends Controller
         $logs30 = OperasionalLog::where('pemancar_id',$pemancar->id)
             ->where('dicatat_pada','>=', now()->subDays(30))
             ->get();
+        // Baris berstatus OFF (pemancar sedang tidak mengudara, bergantian
+        // dengan unit lain) tidak ikut dihitung dalam statistik/rata-rata.
+        $logs30On = $logs30->where('status', '!=', 'off');
 
         $statistik = [
             'total_log'        => $logs30->count(),
-            'rata_output'      => $logs30->whereNotNull('output_final_pa')->avg('output_final_pa'),
-            'max_output'       => $logs30->whereNotNull('output_final_pa')->max('output_final_pa'),
-            'min_output'       => $logs30->whereNotNull('output_final_pa')->min('output_final_pa'),
-            'rata_vswr'        => $logs30->whereNotNull('vswr_final')->avg('vswr_final'),
-            'max_vswr'         => $logs30->whereNotNull('vswr_final')->max('vswr_final'),
-            'rata_suhu_pmcr'   => $logs30->whereNotNull('suhu_pemancar')->avg('suhu_pemancar'),
-            'max_suhu_pmcr'    => $logs30->whereNotNull('suhu_pemancar')->max('suhu_pemancar'),
-            'rata_suhu_ruang'  => $logs30->whereNotNull('suhu_ruangan')->avg('suhu_ruangan'),
-            'jumlah_vswr_buruk'=> $logs30->where('vswr_final','>=',2)->count(),
+            'total_off'        => $logs30->where('status', 'off')->count(),
+            'rata_output'      => $logs30On->whereNotNull('output_final_pa')->avg('output_final_pa'),
+            'max_output'       => $logs30On->whereNotNull('output_final_pa')->max('output_final_pa'),
+            'min_output'       => $logs30On->whereNotNull('output_final_pa')->min('output_final_pa'),
+            'rata_vswr'        => $logs30On->whereNotNull('vswr_final')->avg('vswr_final'),
+            'max_vswr'         => $logs30On->whereNotNull('vswr_final')->max('vswr_final'),
+            'rata_suhu_pmcr'   => $logs30On->whereNotNull('suhu_pemancar')->avg('suhu_pemancar'),
+            'max_suhu_pmcr'    => $logs30On->whereNotNull('suhu_pemancar')->max('suhu_pemancar'),
+            'rata_suhu_ruang'  => $logs30On->whereNotNull('suhu_ruangan')->avg('suhu_ruangan'),
+            'jumlah_vswr_buruk'=> $logs30On->where('vswr_final','>=',2)->count(),
         ];
 
         // ── Total sepanjang waktu ──
@@ -196,7 +199,6 @@ class PemancarController extends Controller
 				PemancarFoto::create([
 					'pemancar_id' => $pemancar->id,
 					'path'        => $img['original'],
-					'thumb_path'  => $img['thumbnail'],
 					'keterangan'  => $request->input("foto_keterangan_baru.{$idx}"),
 					'urutan'      => $last + $idx + 1,
 				]);

@@ -8,6 +8,9 @@
         <i class="bi bi-arrow-left"></i> Kembali
     </a>
     <span class="fw-bold">Log #{{ $operasional->id }}</span>
+    @if($operasional->status === 'off')
+    <span class="badge bg-warning text-dark"><i class="bi bi-power me-1"></i>OFF — tidak dihitung rata-rata</span>
+    @endif
     <span class="badge bg-secondary ms-auto mono">{{ $operasional->dicatat_pada->format('d/m/Y H:i') }}</span>
     @if(auth()->user()->isAdmin() || auth()->id() === $operasional->user_id)
     <a href="{{ route('operasional.edit',$operasional) }}" class="btn btn-sm btn-warning">

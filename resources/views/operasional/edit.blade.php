@@ -50,6 +50,16 @@
         </div>
     </div>
 
+    <div class="form-check form-switch mb-4 p-3" style="background:#fff7e6;border:1px solid #ffe4a0;border-radius:6px">
+        <input class="form-check-input" type="checkbox" role="switch" id="statusOff"
+               {{ old('status', $operasional->status) === 'off' ? 'checked' : '' }}
+               onchange="toggleStatusOffEdit(this.checked)">
+        <label class="form-check-label" for="statusOff">
+            Pemancar sedang <strong>OFF</strong> (rusak/bergantian dengan cadangan)
+        </label>
+        <input type="hidden" name="status" id="statusVal" value="{{ old('status', $operasional->status ?? 'on') }}">
+    </div>
+
     {{-- Output Power --}}
     <h6 class="section-title mb-3">⚡ Output Power</h6>
     <div class="row g-3 mb-4">
@@ -63,7 +73,7 @@
                 @endif
             </label>
             <div class="input-group input-group-sm">
-                <input type="number" name="output_final_pa" id="outFinal" class="form-control mono"
+                <input type="number" name="output_final_pa" id="outFinal" class="form-control mono op-numeric"
                        step="0.01" min="0" max="{{ $operasional->pemancar->kapasitas_output_final }}"
                        value="{{ old('output_final_pa', $operasional->output_final_pa) }}" placeholder="0.00">
                 <span class="input-group-text">W</span>
@@ -72,7 +82,7 @@
         <div class="col-6 col-md-4">
             <label class="form-label">Output Driver</label>
             <div class="input-group input-group-sm">
-                <input type="number" name="output_driver" class="form-control mono"
+                <input type="number" name="output_driver" class="form-control mono op-numeric"
                        step="0.01" min="0" value="{{ old('output_driver', $operasional->output_driver) }}" placeholder="0.00">
                 <span class="input-group-text">W</span>
             </div>
@@ -80,7 +90,7 @@
         <div class="col-6 col-md-4">
             <label class="form-label">Output Exciter</label>
             <div class="input-group input-group-sm">
-                <input type="number" name="output_exciter" class="form-control mono"
+                <input type="number" name="output_exciter" class="form-control mono op-numeric"
                        step="0.01" min="0" value="{{ old('output_exciter', $operasional->output_exciter) }}" placeholder="0.00">
                 <span class="input-group-text">W</span>
             </div>
@@ -93,7 +103,7 @@
         <div class="col-6 col-md-4">
             <label class="form-label">Reflect Final</label>
             <div class="input-group input-group-sm">
-                <input type="number" name="reflect_final" id="refFinal" class="form-control mono"
+                <input type="number" name="reflect_final" id="refFinal" class="form-control mono op-numeric"
                        step="0.01" min="0" value="{{ old('reflect_final', $operasional->reflect_final) }}" placeholder="0.00">
                 <span class="input-group-text">W</span>
             </div>
@@ -101,7 +111,7 @@
         <div class="col-6 col-md-4">
             <label class="form-label">Reject Final</label>
             <div class="input-group input-group-sm">
-                <input type="number" name="reject_final" class="form-control mono"
+                <input type="number" name="reject_final" class="form-control mono op-numeric"
                        step="0.01" min="0" value="{{ old('reject_final', $operasional->reject_final) }}" placeholder="0.00">
                 <span class="input-group-text">W</span>
             </div>
@@ -125,7 +135,7 @@
         <div class="col-6 col-md-4">
             <label class="form-label">Suhu Pemancar</label>
             <div class="input-group input-group-sm">
-                <input type="number" name="suhu_pemancar" class="form-control mono"
+                <input type="number" name="suhu_pemancar" class="form-control mono op-numeric"
                        step="0.1" value="{{ old('suhu_pemancar', $operasional->suhu_pemancar) }}" placeholder="0.0">
                 <span class="input-group-text">°C</span>
             </div>
@@ -179,6 +189,16 @@
 @push('scripts')
 <script>
 const maxKapasitas = {{ $operasional->pemancar->kapasitas_output_final }};
+
+function toggleStatusOffEdit(isOff) {
+    document.getElementById('statusVal').value = isOff ? 'off' : 'on';
+    document.querySelectorAll('.op-numeric').forEach(inp => {
+        inp.disabled = isOff;
+        if (isOff) inp.value = '';
+    });
+    if (isOff) updateVswr();
+}
+if (document.getElementById('statusOff')?.checked) toggleStatusOffEdit(true);
 
 function updateVswr(){
     const fwd = parseFloat(document.getElementById('outFinal')?.value) || 0;

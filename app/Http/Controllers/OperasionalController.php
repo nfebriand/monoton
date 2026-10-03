@@ -96,6 +96,7 @@ class OperasionalController extends Controller
             'kelembaban'                 => 'nullable|numeric|between:0,100',
             'pemancar'                   => 'required|array|min:1',
             'pemancar.*.id'              => 'required|exists:pemancars,id',
+            'pemancar.*.status'          => 'nullable|in:on,off',
             'pemancar.*.output_final_pa' => 'nullable|numeric|min:0',
             'pemancar.*.output_driver'   => 'nullable|numeric|min:0',
             'pemancar.*.output_exciter'  => 'nullable|numeric|min:0',
@@ -110,7 +111,8 @@ class OperasionalController extends Controller
             if ($user->isOperator() && !in_array($data['id'], $allowedIds)) {
                 return back()->withErrors(['pemancar' => 'Pemancar di luar lokasi dinas Anda.']);
             }
-            if (!empty($data['output_final_pa'])) {
+            $statusOff = ($data['status'] ?? 'on') === 'off';
+            if (!$statusOff && !empty($data['output_final_pa'])) {
                 $p = $pemancars->firstWhere('id', $data['id']);
                 if ($p && $data['output_final_pa'] > $p->kapasitas_output_final) {
                     return back()->withErrors([
@@ -122,23 +124,27 @@ class OperasionalController extends Controller
 
         $shiftAktifId = session('shift_aktif_id');
         foreach ($validated['pemancar'] as $data) {
-            $vswr = VswrCalculator::calculateAll($data);
+            $statusOff = ($data['status'] ?? 'on') === 'off';
+            // Saat OFF, nilai teknis tidak relevan (pemancar tidak mengudara)
+            // -- tetap boleh diisi kalau operator mau catat, tapi tidak wajib.
+            $vswr = $statusOff ? ['vswr_final' => null, 'return_loss_final' => null] : VswrCalculator::calculateAll($data);
             OperasionalLog::create([
                 'pemancar_id'       => $data['id'],
+                'status'            => $data['status'] ?? 'on',
                 'user_id'           => $user->id,
                 'jadwal_shift_id'   => $shiftAktifId,
                 'dicatat_pada'      => $validated['dicatat_pada'],
-                'output_final_pa'   => $data['output_final_pa']  ?? null,
-                'output_driver'     => $data['output_driver']     ?? null,
-                'output_exciter'    => $data['output_exciter']    ?? null,
-                'reflect_final'     => $data['reflect_final']     ?? null,
-                'reject_final'      => $data['reject_final']      ?? null,
+                'output_final_pa'   => $statusOff ? null : ($data['output_final_pa']  ?? null),
+                'output_driver'     => $statusOff ? null : ($data['output_driver']     ?? null),
+                'output_exciter'    => $statusOff ? null : ($data['output_exciter']    ?? null),
+                'reflect_final'     => $statusOff ? null : ($data['reflect_final']     ?? null),
+                'reject_final'      => $statusOff ? null : ($data['reject_final']      ?? null),
                 'vswr_final'        => $vswr['vswr_final'],
                 'return_loss_final' => $vswr['return_loss_final'],
-                'suhu_pemancar'     => $data['suhu_pemancar']     ?? null,
+                'suhu_pemancar'     => $statusOff ? null : ($data['suhu_pemancar']     ?? null),
                 'suhu_ruangan'      => $validated['suhu_ruangan'],
                 'kelembaban'        => $validated['kelembaban']   ?? null,
-                'keterangan'        => $data['keterangan']        ?? null,
+                'keterangan'        => $data['keterangan']        ?? ($statusOff ? 'Pemancar OFF (bergantian/cadangan)' : null),
             ]);
         }
 
@@ -171,6 +177,7 @@ class OperasionalController extends Controller
 
         $validated = $request->validate([
             'dicatat_pada'    => 'required|date',
+            'status'          => 'nullable|in:on,off',
             'output_final_pa' => 'nullable|numeric|min:0',
             'output_driver'   => 'nullable|numeric|min:0',
             'output_exciter'  => 'nullable|numeric|min:0',
@@ -182,7 +189,9 @@ class OperasionalController extends Controller
             'keterangan'      => 'nullable|string|max:1000',
         ]);
 
-        if (!empty($validated['output_final_pa'])) {
+        $statusOff = ($validated['status'] ?? 'on') === 'off';
+
+        if (!$statusOff && !empty($validated['output_final_pa'])) {
             $p = $operasional->pemancar;
             if ($validated['output_final_pa'] > $p->kapasitas_output_final) {
                 return back()->withErrors([
@@ -191,8 +200,17 @@ class OperasionalController extends Controller
             }
         }
 
-        $vswr = VswrCalculator::calculateAll($validated);
+        $vswr = $statusOff ? ['vswr_final' => null, 'return_loss_final' => null] : VswrCalculator::calculateAll($validated);
+        if ($statusOff) {
+            $validated['output_final_pa'] = null;
+            $validated['output_driver']   = null;
+            $validated['output_exciter']  = null;
+            $validated['reflect_final']   = null;
+            $validated['reject_final']    = null;
+            $validated['suhu_pemancar']   = null;
+        }
         $operasional->update(array_merge($validated, [
+            'status'             => $validated['status'] ?? 'on',
             'vswr_final'        => $vswr['vswr_final'],
             'return_loss_final' => $vswr['return_loss_final'],
         ]));
@@ -289,6 +307,7 @@ class OperasionalController extends Controller
             'checkpoint.*.kelembaban'                    => 'nullable|numeric|between:0,100',
             'checkpoint.*.pemancar'                      => 'required|array|min:1',
             'checkpoint.*.pemancar.*.id'                 => 'required|exists:pemancars,id',
+            'checkpoint.*.pemancar.*.status'             => 'nullable|in:on,off',
             'checkpoint.*.pemancar.*.output_final_pa'    => 'nullable|numeric|min:0',
             'checkpoint.*.pemancar.*.output_driver'      => 'nullable|numeric|min:0',
             'checkpoint.*.pemancar.*.output_exciter'     => 'nullable|numeric|min:0',
@@ -305,15 +324,18 @@ class OperasionalController extends Controller
             $dicatatPada = $validated['tanggal'] . ' ' . $cp['jam'] . ':00';
 
             foreach ($cp['pemancar'] as $data) {
+                $statusOff = ($data['status'] ?? 'on') === 'off';
+
                 // Lewati baris yang tidak diisi sama sekali (semua field kosong)
-                $adaIsi = collect($data)->except('id')->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty();
-                if (!$adaIsi) continue;
+                // -- kecuali status-nya memang sengaja di-set OFF.
+                $adaIsi = collect($data)->except(['id','status'])->filter(fn ($v) => $v !== null && $v !== '')->isNotEmpty();
+                if (!$adaIsi && !$statusOff) continue;
 
                 if ($user->isOperator() && !in_array($data['id'], $allowedIds)) {
                     return back()->withErrors(['pemancar' => 'Pemancar di luar lokasi dinas Anda.'])->withInput();
                 }
 
-                if (!empty($data['output_final_pa'])) {
+                if (!$statusOff && !empty($data['output_final_pa'])) {
                     $p = $pemancars->firstWhere('id', $data['id']);
                     if ($p && $data['output_final_pa'] > $p->kapasitas_output_final) {
                         return back()->withErrors([
@@ -322,24 +344,25 @@ class OperasionalController extends Controller
                     }
                 }
 
-                $vswr = VswrCalculator::calculateAll($data);
+                $vswr = $statusOff ? ['vswr_final' => null, 'return_loss_final' => null] : VswrCalculator::calculateAll($data);
 
                 OperasionalLog::create([
                     'pemancar_id'       => $data['id'],
+                    'status'            => $data['status'] ?? 'on',
                     'user_id'           => $user->id,
                     'jadwal_shift_id'   => null,
                     'dicatat_pada'      => $dicatatPada,
-                    'output_final_pa'   => $data['output_final_pa']  ?? null,
-                    'output_driver'     => $data['output_driver']    ?? null,
-                    'output_exciter'    => $data['output_exciter']   ?? null,
-                    'reflect_final'     => $data['reflect_final']    ?? null,
-                    'reject_final'      => $data['reject_final']     ?? null,
+                    'output_final_pa'   => $statusOff ? null : ($data['output_final_pa']  ?? null),
+                    'output_driver'     => $statusOff ? null : ($data['output_driver']    ?? null),
+                    'output_exciter'    => $statusOff ? null : ($data['output_exciter']   ?? null),
+                    'reflect_final'     => $statusOff ? null : ($data['reflect_final']    ?? null),
+                    'reject_final'      => $statusOff ? null : ($data['reject_final']     ?? null),
                     'vswr_final'        => $vswr['vswr_final'],
                     'return_loss_final' => $vswr['return_loss_final'],
-                    'suhu_pemancar'     => $data['suhu_pemancar']    ?? null,
+                    'suhu_pemancar'     => $statusOff ? null : ($data['suhu_pemancar']    ?? null),
                     'suhu_ruangan'      => $cp['suhu_ruangan'],
                     'kelembaban'        => $cp['kelembaban']         ?? null,
-                    'keterangan'        => $data['keterangan']       ?? null,
+                    'keterangan'        => $data['keterangan']       ?? ($statusOff ? 'Pemancar OFF (bergantian/cadangan)' : null),
                     'is_backfill'       => true,
                 ]);
                 $dibuat++;

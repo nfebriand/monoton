@@ -27,7 +27,7 @@
             <select name="lokasi" id="selectLokasi" class="form-select" onchange="toggleLokasiCustom(this)">
                 <option value="">— Pilih Lokasi —</option>
                 @foreach($lokasiList as $lok)
-                <option value="{{ $lok->nama }}" {{ old('lokasi')===$lok->nama?'selected':'' }}>{{ $lok->nama }}</option>
+				<option value="{{ $lok }}" {{ old('lokasi', $defaultLokasi ?? '')==$lok?'selected':'' }}></option>
                 @endforeach
                 <option value="__custom__">Lainnya (isi manual)</option>
             </select>

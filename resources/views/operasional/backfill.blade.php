@@ -84,6 +84,7 @@
                 <thead class="table-light">
                     <tr>
                         <th style="min-width:140px">Pemancar</th>
+                        <th style="min-width:70px">Status</th>
                         <th>Final PA (W)</th>
                         <th>Driver (W)</th>
                         <th>Exciter (W)</th>
@@ -95,26 +96,36 @@
                 </thead>
                 <tbody>
                     @foreach($pemancars as $pemancar)
-                    <tr>
+                    @php $fid = $cpIdx.'-'.$pemancar->id; @endphp
+                    <tr id="row-{{ $fid }}">
                         <td>
                             <input type="hidden" name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][id]" value="{{ $pemancar->id }}">
                             <strong>{{ $pemancar->nama_stasiun }}</strong><br>
                             <span class="text-muted" style="font-size:.7rem">maks {{ number_format($pemancar->kapasitas_output_final,0) }} W</span>
                         </td>
-                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono"
+                        <td class="text-center">
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       onchange="toggleBackfillOff('{{ $fid }}', this.checked)" title="Tandai OFF">
+                            </div>
+                            <input type="hidden" id="status-{{ $fid }}" name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][status]" value="on">
+                            <span class="badge bg-secondary" id="badge-{{ $fid }}" style="font-size:.6rem">ON</span>
+                        </td>
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono bf-numeric-{{ $fid }}"
                                name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][output_final_pa]"></td>
-                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono"
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono bf-numeric-{{ $fid }}"
                                name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][output_driver]"></td>
-                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono"
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono bf-numeric-{{ $fid }}"
                                name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][output_exciter]"></td>
-                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono"
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono bf-numeric-{{ $fid }}"
                                name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][reflect_final]"></td>
-                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono"
+                        <td><input type="number" step="0.01" min="0" class="form-control form-control-sm mono bf-numeric-{{ $fid }}"
                                name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][reject_final]"></td>
-                        <td><input type="number" step="0.1" class="form-control form-control-sm mono"
+                        <td><input type="number" step="0.1" class="form-control form-control-sm mono bf-numeric-{{ $fid }}"
                                name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][suhu_pemancar]"></td>
                         <td><input type="text" class="form-control form-control-sm"
-                               name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][keterangan]" maxlength="500"></td>
+                               name="checkpoint[{{ $cpIdx }}][pemancar][{{ $pemancar->id }}][keterangan]" maxlength="500"
+                               placeholder="Isi kalau status OFF"></td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -137,4 +148,19 @@
 @endif
 
 @endif
+
+@push('scripts')
+<script>
+function toggleBackfillOff(fid, isOff) {
+    document.getElementById('status-' + fid).value = isOff ? 'off' : 'on';
+    const badge = document.getElementById('badge-' + fid);
+    badge.textContent = isOff ? 'OFF' : 'ON';
+    badge.className = 'badge ' + (isOff ? 'bg-warning text-dark' : 'bg-secondary');
+    document.querySelectorAll('.bf-numeric-' + fid).forEach(inp => {
+        inp.disabled = isOff;
+        if (isOff) inp.value = '';
+    });
+}
+</script>
+@endpush
 @endsection

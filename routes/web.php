@@ -32,8 +32,8 @@ Route::middleware(['auth'])->group(function(){
 
     // Pemancar
     Route::get('/pemancar',                    [PemancarController::class,'index'])->name('pemancar.index');
+    Route::get('/pemancar/create',             [PemancarController::class,'create'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.create');	
     Route::get('/pemancar/{pemancar}',         [PemancarController::class,'show'])->name('pemancar.show');
-    Route::get('/pemancar/create',             [PemancarController::class,'create'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.create');
     Route::post('/pemancar',                   [PemancarController::class,'store'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.store');
     Route::get('/pemancar/{pemancar}/edit',    [PemancarController::class,'edit'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.edit');
     Route::put('/pemancar/{pemancar}',         [PemancarController::class,'update'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.update');

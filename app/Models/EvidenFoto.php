@@ -6,12 +6,12 @@ class EvidenFoto extends Model
 {
     protected $fillable = ['eviden_id','path','thumb_path','keterangan','urutan'];
 
-    public function getUrlAttribute(): string
+    public function getUrlAttribute(): ?string
     {
         return \App\Helpers\ImageHelper::url($this->path);
     }
 
-    public function getThumbUrlAttribute(): string
+    public function getThumbUrlAttribute(): ?string
     {
         return \App\Helpers\ImageHelper::thumbnailUrl($this->path) ?? $this->url;
     }

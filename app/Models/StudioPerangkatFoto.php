@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -14,12 +15,12 @@ class StudioPerangkatFoto extends Model
         return $this->belongsTo(StudioPerangkat::class, 'studio_perangkat_id');
     }
 
-    public function getUrlAttribute(): string
+    public function getUrlAttribute(): ?string
     {
         return \App\Helpers\ImageHelper::url($this->path);
     }
 
-    public function getThumbUrlAttribute(): string
+    public function getThumbUrlAttribute(): ?string
     {
         return \App\Helpers\ImageHelper::thumbnailUrl($this->path) ?? $this->url;
     }

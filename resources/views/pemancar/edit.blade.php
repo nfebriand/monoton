@@ -4,8 +4,7 @@
 
 @section('content')
 @php
-    // Ambil semua lokasi aktif tanpa filter divisi
-    $lokasiList = \App\Models\Lokasi::where('is_active', 1)->orderBy('nama')->get();
+    $lokasiList = \App\Models\Lokasi::listAktif('transmisi');
     $lokasiVal  = old('lokasi', $pemancar->lokasi ?? '');
     $isCustom   = $lokasiVal && !$lokasiList->pluck('nama')->contains($lokasiVal);
 @endphp

@@ -3,7 +3,7 @@
 @section('page-title','Tambah Pemancar Baru')
 
 @section('content')
-@php $lokasiList = \App\Models\Lokasi::where('divisi','transmisi')->orderBy('nama')->get(); @endphp
+@php $lokasiList = \App\Models\Lokasi::listAktif('transmisi'); @endphp
 <div class="row justify-content-center">
 <div class="col-12 col-lg-8">
 <div class="card">
@@ -27,7 +27,7 @@
             <select name="lokasi" id="selectLokasi" class="form-select" onchange="toggleLokasiCustom(this)">
                 <option value="">— Pilih Lokasi —</option>
                 @foreach($lokasiList as $lok)
-				<option value="{{ $lok }}" {{ old('lokasi', $defaultLokasi ?? '')==$lok?'selected':'' }}></option>
+                <option value="{{ $lok->nama }}" {{ old('lokasi')===$lok->nama?'selected':'' }}>{{ $lok->nama }}</option>
                 @endforeach
                 <option value="__custom__">Lainnya (isi manual)</option>
             </select>

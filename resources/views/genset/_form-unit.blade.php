@@ -1,4 +1,4 @@
-@php $lokasiList = \App\Models\Lokasi::where('divisi','sarana')->orWhere('divisi','transmisi')->orderBy('nama')->get(); @endphp
+@php $lokasiList = \App\Models\Lokasi::where('is_active', true)->whereIn('divisi', ['sarana','transmisi','umum'])->orderBy('divisi')->orderBy('nama')->get(); @endphp
 <div class="row g-3">
     <div class="col-12">
         <label class="form-label">Nama Unit <span class="text-danger">*</span></label>

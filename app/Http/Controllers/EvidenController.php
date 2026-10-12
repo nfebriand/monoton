@@ -71,7 +71,15 @@ class EvidenController extends Controller
 
         if ($request->filled('tanggal_dari'))   $query->where('tanggal', '>=', $request->tanggal_dari);
         if ($request->filled('tanggal_sampai')) $query->where('tanggal', '<=', $request->tanggal_sampai);
-        if ($request->filled('user_id'))        $query->where('user_id', $request->user_id);
+        if ($request->filled('user_id')) {
+            $filterUid = (int) $request->user_id;
+            $query->where(function($q) use ($filterUid) {
+                $q->where('user_id', $filterUid)
+                  ->orWhereHas('operators', function($q2) use ($filterUid) {
+                      $q2->where('users.id', $filterUid);
+                  });
+            });
+        }
 
         $evidens   = $query->paginate(12)->withQueryString();
         $operators = $this->allOperators();
@@ -278,7 +286,15 @@ class EvidenController extends Controller
         // Filter tambahan
         if ($request->filled('tanggal_dari'))   $query->where('tanggal', '>=', $request->tanggal_dari);
         if ($request->filled('tanggal_sampai')) $query->where('tanggal', '<=', $request->tanggal_sampai);
-        if ($request->filled('user_id'))        $query->where('user_id', $request->user_id);
+        if ($request->filled('user_id')) {
+            $filterUid = (int) $request->user_id;
+            $query->where(function($q) use ($filterUid) {
+                $q->where('user_id', $filterUid)
+                  ->orWhereHas('operators', function($q2) use ($filterUid) {
+                      $q2->where('users.id', $filterUid);
+                  });
+            });
+        }
         if ($request->filled('divisi_filter'))  $query->where('divisi', $request->divisi_filter);
 
         // Batasi max 100 eviden sekaligus agar tidak timeout

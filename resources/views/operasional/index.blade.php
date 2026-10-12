@@ -30,6 +30,15 @@
                     @endforeach
                 </select>
             </div>
+            <div class="col-12 col-sm-6 col-md-2">
+                <label class="form-label mb-1">Operator</label>
+                <select name="user_id" class="form-select form-select-sm">
+                    <option value="" {{ (string)$userIdFilter===''?'selected':'' }}>Semua Operator</option>
+                    @foreach($operators as $op)
+                    <option value="{{ $op->id }}" {{ (string)$userIdFilter===(string)$op->id?'selected':'' }}>{{ $op->name }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="col-6 col-sm-3 col-md-2">
                 <label class="form-label mb-1">Dari</label>
                 <input type="date" name="tanggal_dari" class="form-control form-control-sm"

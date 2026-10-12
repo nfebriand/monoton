@@ -7,6 +7,22 @@
 <div class="card mb-3">
     <div class="card-body py-2">
         <form method="GET" class="row g-2 align-items-end">
+            @php
+                $__a1 = now()->subMonthNoOverflow(1)->startOfMonth();
+                $__a3 = now()->subMonthNoOverflow(3)->startOfMonth();
+                $__akhir = now()->subMonthNoOverflow(1)->endOfMonth();
+                $__r1 = [$__a1->toDateString(), $__akhir->toDateString()];
+                $__r3 = [$__a3->toDateString(), $__akhir->toDateString()];
+                $__cur = [request('tanggal_dari'), request('tanggal_sampai')];
+            @endphp
+            <div class="col-12 col-sm-6 col-md-3">
+                <label class="form-label mb-1" style="font-size:.7rem">Rentang Cepat</label>
+                <select class="form-select form-select-sm" onchange="setRentangCepat(this)">
+                    <option value="">Pilih rentang...</option>
+                    <option value="{{ $__r1[0] }}|{{ $__r1[1] }}" {{ $__cur===$__r1?'selected':'' }}>1 bulan lalu ({{ $__a1->format('d/m') }} - {{ $__akhir->format('d/m/Y') }})</option>
+                    <option value="{{ $__r3[0] }}|{{ $__r3[1] }}" {{ $__cur===$__r3?'selected':'' }}>3 bulan lalu ({{ $__a3->format('d/m') }} - {{ $__akhir->format('d/m/Y') }})</option>
+                </select>
+            </div>
             <div class="col-6 col-sm-3 col-md-2">
                 <label class="form-label mb-1">Dari</label>
                 <input type="date" name="tanggal_dari" class="form-control form-control-sm"
@@ -17,7 +33,7 @@
                 <input type="date" name="tanggal_sampai" class="form-control form-control-sm"
                        value="{{ request('tanggal_sampai') }}">
             </div>
-            @if(auth()->user()->isAdmin())
+            @if(auth()->user()->isAdmin() || auth()->user()->isAdminDivisi())
             <div class="col-12 col-sm-4 col-md-3">
                 <label class="form-label mb-1">Operator</label>
                 <select name="user_id" class="form-select form-select-sm">
@@ -175,6 +191,14 @@
 
 @push('scripts')
 <script>
+function setRentangCepat(sel) {
+    if (!sel.value) return;
+    const p = sel.value.split('|');
+    const f = sel.form;
+    f.querySelector('[name=tanggal_dari]').value = p[0];
+    f.querySelector('[name=tanggal_sampai]').value = p[1];
+    f.submit();
+}
 function konfirmasiBulkCetak() {
     const total = {{ $evidens->total() }};
     if (total === 0) {

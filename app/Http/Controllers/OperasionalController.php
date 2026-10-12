@@ -44,11 +44,29 @@ class OperasionalController extends Controller
         if ($request->filled('tanggal_dari'))   $query->whereDate('dicatat_pada', '>=', $request->tanggal_dari);
         if ($request->filled('tanggal_sampai')) $query->whereDate('dicatat_pada', '<=', $request->tanggal_sampai);
 
+        // Filter operator: default = user yang login (operator / admin divisi).
+        // Pilihan "Semua Operator" mengirim user_id kosong, sehingga default tidak dipakai.
+        $userIdFilter = $request->has('user_id')
+            ? $request->input('user_id')
+            : (($user->isOperator() || $user->isAdminDivisi()) ? (string) $user->id : '');
+        if ($userIdFilter !== null && $userIdFilter !== '') {
+            $query->where('user_id', (int) $userIdFilter);
+        }
+
         $logs        = $query->paginate(20)->withQueryString();
         $pemancars   = $this->getPemancarsForUser();
         $semuaLokasi = Pemancar::whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
 
-        return view('operasional.index', compact('logs','pemancars','semuaLokasi'));
+        // Daftar operator: yang pernah mencatat log (dibatasi lokasi dinas untuk operator) + user login
+        $opQuery = OperasionalLog::query()->whereNotNull('user_id');
+        if ($user->isOperator() && $user->lokasi_dinas) {
+            $opQuery->whereIn('pemancar_id', Pemancar::where('lokasi', $user->lokasi_dinas)->pluck('id'));
+        }
+        $operators = \App\Models\User::whereIn('id', $opQuery->distinct()->pluck('user_id'))
+            ->orWhere('id', $user->id)
+            ->orderBy('name')->get(['id','name']);
+
+        return view('operasional.index', compact('logs','pemancars','semuaLokasi','operators','userIdFilter'));
     }
 
     public function create()

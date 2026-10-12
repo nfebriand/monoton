@@ -25,6 +25,7 @@ class SettingController extends Controller
             'koordinator'    => 'nullable|string|max:100', // legacy
             'tema_warna'     => 'nullable|string|max:20',
             'logo'           => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
+            'logo_instansi'  => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
 
             // Kepala Stasiun (kepala_stasiun = nama)
             'kepala_stasiun_nip'     => 'nullable|string|max:30',
@@ -52,6 +53,14 @@ class SettingController extends Controller
         if ($request->hasFile('logo')) {
             $path = $request->file('logo')->store('settings','public');
             AppSetting::set('logo_path', $path);
+        }
+
+        // Logo instansi (RRI) untuk dokumen/laporan
+        if ($request->hasFile('logo_instansi')) {
+            $old = AppSetting::get('logo_instansi');
+            $path = $request->file('logo_instansi')->store('settings','public');
+            AppSetting::set('logo_instansi', $path);
+            if ($old) Storage::disk('public')->delete($old);
         }
 
         // TTD Kepala Stasiun
@@ -98,7 +107,7 @@ class SettingController extends Controller
      */
     public function removeTtd(Request $request)
     {
-        $valid = array_merge(['kabid_ttd','kepala_stasiun_ttd'], array_map(fn($d)=>"koordinator_{$d}_ttd", self::DIVISI));
+        $valid = array_merge(['kabid_ttd','kepala_stasiun_ttd','logo_instansi'], array_map(fn($d)=>"koordinator_{$d}_ttd", self::DIVISI));
         $v = $request->validate(['target' => 'required|in:'.implode(',',$valid)]);
 
         $key  = $v['target'];

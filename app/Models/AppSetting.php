@@ -110,6 +110,12 @@ class AppSetting extends Model
         ];
     }
 
+    /** Path logo instansi (RRI) untuk dokumen/laporan; kosong bila belum diupload. */
+    public static function logoInstansiPath(): string
+    {
+        return (string) self::get('logo_instansi', '');
+    }
+
     /**
      * Validasi kredit aplikasi tetap utuh
      */

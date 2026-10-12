@@ -142,6 +142,7 @@ class JadwalController extends Controller
             'tahun'  => $tahun,
             'shifts' => $shifts,
             'sheets' => $sheets,
+            'logo'        => $this->ttdGambar(AppSetting::logoInstansiPath() ?: null),
             'koordinator' => ['jabatan'=>$kor['jabatan'],'nama'=>$kor['nama'],'nip'=>$kor['nip'],'ttd'=>$this->ttdGambar($kor['ttd_path'] ?? null)],
             'kabid'       => ['jabatan'=>$kabid['jabatan'],'nama'=>$kabid['nama'],'nip'=>$kabid['nip'],'ttd'=>$this->ttdGambar($kabid['ttd_path'] ?? null)],
             'kepala'      => ['jabatan'=>$kepala['jabatan'],'nama'=>$kepala['nama'],'nip'=>$kepala['nip'],'ttd'=>$this->ttdGambar($kepala['ttd_path'] ?? null)],

@@ -65,6 +65,9 @@ class JadwalExcel
         $tgl1  = Carbon::create($d['tahun'], $d['bulan'], 1);
         $hariN = $tgl1->daysInMonth;
         $bulanNama = self::BULAN[$d['bulan']];
+        // Tanggal surat = H-1 dari tanggal 1 bulan jadwal (= akhir bulan sebelumnya)
+        $hMin1  = $tgl1->copy()->subDay();
+        $tglTtd = $hMin1->day.' '.ucfirst(strtolower(self::BULAN[(int) $hMin1->month])).' '.$hMin1->year;
 
         foreach ($d['sheets'] as $sh) {
             $s = $x->addSheet($sh['lokasi']);
@@ -74,10 +77,20 @@ class JadwalExcel
             foreach ($widths as $c => $w) $s->colWidth($c, $w);
 
             // Kop
-            $s->set(1, 1, 'LEMBAGA PENYIARAN PUBLIK RADIO REPUBLIK INDONESIA', $st['org'])->merge(1, 1, 1, $lastCol);
-            $s->set(2, 1, 'RRI BANDAR LAMPUNG', $st['org'])->merge(2, 1, 2, $lastCol);
-            $s->set(3, 1, 'Jl. Gatot Subroto No. 26 Pahoman, Bandar Lampung', $st['sub'])->merge(3, 1, 3, $lastCol);
-            $s->rowHeight(1, 20)->rowHeight(2, 20);
+            // Logo instansi (opsional) di kiri kop; teks kop bergeser ke kolom 3 bila ada logo
+            $kopKol = 1;
+            $logo = $d['logo'] ?? null;
+            if (!empty($logo['bytes']) && ($li = @getimagesizefromstring($logo['bytes'])) && $li[0] > 0 && $li[1] > 0) {
+                $sc = min(170 / $li[0], 78 / $li[1], 1.0);
+                $lw = max(1, (int) round($li[0] * $sc));
+                $lh = max(1, (int) round($li[1] * $sc));
+                $s->addImage($logo['bytes'], $logo['ext'] ?? 'png', 0, 0, 4, 3, $lw, $lh);
+                $kopKol = 3;
+            }
+            $s->set(1, $kopKol, 'LEMBAGA PENYIARAN PUBLIK RADIO REPUBLIK INDONESIA', $st['org'])->merge(1, $kopKol, 1, $lastCol);
+            $s->set(2, $kopKol, 'RRI BANDAR LAMPUNG', $st['org'])->merge(2, $kopKol, 2, $lastCol);
+            $s->set(3, $kopKol, 'Jl. Gatot Subroto No. 26 Pahoman, Bandar Lampung', $st['sub'])->merge(3, $kopKol, 3, $lastCol);
+            $s->rowHeight(1, 24)->rowHeight(2, 24)->rowHeight(3, 18);
 
             // Judul
             $judul = 'JADWAL OPERATOR '.mb_strtoupper($d['divisi_label']).' - '.mb_strtoupper($sh['lokasi'])
@@ -160,7 +173,7 @@ class JadwalExcel
             $r += 1;
             $kiriMulai = 1; $kiriAkhir = max(2, (int) floor($lastCol / 2));
             $kananMulai = $kiriAkhir + 1;
-            $s->set($r, $kananMulai, 'Bandar Lampung, ........................ '.$d['tahun'], $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
+            $s->set($r, $kananMulai, 'Bandar Lampung, '.$tglTtd, $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
             $r++;
             $k = $d['koordinator']; $b = $d['kabid'];
             $s->set($r, $kiriMulai, $k['jabatan'], $st['ttdc'])->merge($r, $kiriMulai, $r, $kiriAkhir);

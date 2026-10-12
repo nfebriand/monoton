@@ -81,6 +81,30 @@
                 </div>
                 <div class="form-text">PNG, JPG, SVG. Maks 2MB. Rekomendasi 100×100px.</div>
             </div>
+            <div class="col-md-12">
+                <label class="form-label">Logo Instansi (RRI) <span class="badge bg-secondary" style="font-size:.6rem">Untuk dokumen / Excel jadwal</span></label>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    @if(!empty($settings['logo_instansi']))
+                    <img src="{{ asset('storage/'.$settings['logo_instansi']) }}"
+                         style="height:50px;object-fit:contain;border-radius:6px;border:1px solid #dfe6e9;background:#fff;cursor:zoom-in"
+                         onclick="bukaLightbox('{{ asset('storage/'.$settings['logo_instansi']) }}','Logo Instansi')">
+                    @else
+                    <div style="width:50px;height:50px;background:#f0f4f8;border-radius:8px;
+                         display:flex;align-items:center;justify-content:center;border:1px dashed #ccc">
+                        <i class="bi bi-image text-muted"></i>
+                    </div>
+                    @endif
+                    <div class="flex-fill">
+                        <input type="file" name="logo_instansi" class="form-control" accept="image/png,image/jpg,image/jpeg">
+                        @if(!empty($settings['logo_instansi']))
+                        <button type="submit" form="formHapusLogoInstansi" class="btn btn-sm btn-outline-danger mt-1" style="font-size:.65rem;padding:.1rem .4rem">
+                            <i class="bi bi-trash me-1"></i>Hapus logo instansi
+                        </button>
+                        @endif
+                    </div>
+                </div>
+                <div class="form-text">PNG (disarankan transparan) atau JPG, maks 2MB. Tampil di kop Excel jadwal shift. Terpisah dari Logo Aplikasi.</div>
+            </div>
         </div>
 @php
     $divisiList = [
@@ -475,6 +499,11 @@
     <input type="hidden" name="target" value="koordinator_{{ $kode }}_ttd">
 </form>
 @endforeach
+
+<form id="formHapusLogoInstansi" action="{{ route('setting.remove-ttd') }}" method="POST" class="d-none">
+    @csrf
+    <input type="hidden" name="target" value="logo_instansi">
+</form>
 
 <form id="formHapusTtd_kepala_stasiun" action="{{ route('setting.remove-ttd') }}" method="POST" class="d-none">
     @csrf

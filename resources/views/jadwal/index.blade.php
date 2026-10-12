@@ -68,6 +68,22 @@
             <a href="?bulan={{ $bulanNext }}&tahun={{ $tahunNext }}" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-chevron-right"></i>
             </a>
+            @if(auth()->user()->isAdminDivisi())
+            <a href="{{ route('jadwal.export',['bulan'=>$bulan,'tahun'=>$tahun]) }}" class="btn btn-sm btn-success" title="Export jadwal bulan ini ke Excel">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </a>
+            @else
+            <div class="dropdown">
+                <button class="btn btn-sm btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    @foreach(\App\Models\User::DIVISI_LABEL as $kodeDiv => $labelDiv)
+                    <li><a class="dropdown-item" href="{{ route('jadwal.export',['bulan'=>$bulan,'tahun'=>$tahun,'divisi'=>$kodeDiv]) }}">{{ $labelDiv }}</a></li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
         </div>
         <div class="card-body p-2">
             <div class="kal-grid mb-1">

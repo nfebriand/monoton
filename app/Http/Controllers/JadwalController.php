@@ -6,6 +6,8 @@ use App\Models\SkemaShift;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\AppSetting;
+use App\Support\JadwalExcel;
 
 class JadwalController extends Controller
 {
@@ -81,6 +83,75 @@ class JadwalController extends Controller
         return view('jadwal.index', compact(
             'jadwals', 'operators', 'bulan', 'tahun', 'hariKalender', 'skemaShift'
         ));
+    }
+
+    /**
+     * Export jadwal shift bulanan ke Excel (.xlsx), satu sheet per lokasi dinas.
+     * Admin Divisi: otomatis divisinya sendiri. Super Admin: pilih ?divisi=
+     */
+    public function exportExcel(Request $request)
+    {
+        $this->checkAccess();
+
+        $user  = auth()->user();
+        $bulan = max(1, min(12, (int)$request->get('bulan', now()->month)));
+        $tahun = (int)$request->get('tahun', now()->year);
+
+        $divisi = $user->isAdminDivisi() ? $user->divisi : $request->get('divisi', 'transmisi');
+        if (!in_array($divisi, ['transmisi','studio','sarana'], true)) $divisi = 'transmisi';
+
+        $jadwals = JadwalShift::with('user')
+            ->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)
+            ->whereHas('user', fn($q) => $q->where('divisi', $divisi))
+            ->orderBy('tanggal')->get();
+
+        if ($request->filled('lokasi')) {
+            $jadwals = $jadwals->filter(fn($j) => ($j->user->lokasi_dinas ?: 'Umum') === $request->lokasi);
+        }
+
+        if ($jadwals->isEmpty()) {
+            return back()->withErrors(['export' => 'Belum ada jadwal untuk diexport pada bulan/divisi ini.']);
+        }
+
+        // Susun per lokasi: [lokasi => [Y-m-d => [shift => [nama,...]]]]
+        $perLokasi = [];
+        foreach ($jadwals as $j) {
+            $lok = $j->user->lokasi_dinas ?: 'Umum';
+            $perLokasi[$lok][Carbon::parse($j->tanggal)->toDateString()][(int)$j->shift][] = $j->user->name;
+        }
+        ksort($perLokasi);
+        $sheets = [];
+        foreach ($perLokasi as $lok => $data) {
+            foreach ($data as $tgl => $perShift) foreach ($perShift as $no => $list) {
+                sort($list, SORT_NATURAL | SORT_FLAG_CASE);
+                $data[$tgl][$no] = $list;
+            }
+            $sheets[] = ['lokasi' => $lok, 'jadwal' => $data];
+        }
+
+        $skema  = JadwalShift::getSkemaForDivisi($divisi);
+        $shifts = SkemaShift::getShiftsForKode($skema);
+
+        $kor  = AppSetting::getKoordinator($divisi);
+        $kabid = AppSetting::getKabid();
+
+        $x = JadwalExcel::build([
+            'divisi_label' => \App\Models\User::DIVISI_LABEL[$divisi] ?? ucfirst($divisi),
+            'bulan'  => $bulan,
+            'tahun'  => $tahun,
+            'shifts' => $shifts,
+            'sheets' => $sheets,
+            'koordinator' => ['jabatan'=>$kor['jabatan'],'nama'=>$kor['nama'],'nip'=>$kor['nip']],
+            'kabid'       => ['jabatan'=>$kabid['jabatan'],'nama'=>$kabid['nama'],'nip'=>$kabid['nip']],
+        ]);
+
+        $tmp = tempnam(sys_get_temp_dir(), 'jadwal_').'.xlsx';
+        $x->save($tmp);
+
+        $namaFile = 'Jadwal-'.ucfirst($divisi).'-'.sprintf('%04d-%02d', $tahun, $bulan).'.xlsx';
+        return response()->download($tmp, $namaFile, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     public function store(Request $request)

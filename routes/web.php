@@ -32,7 +32,7 @@ Route::middleware(['auth'])->group(function(){
 
     // Pemancar
     Route::get('/pemancar',                    [PemancarController::class,'index'])->name('pemancar.index');
-    Route::get('/pemancar/create',             [PemancarController::class,'create'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.create');
+    Route::get('/pemancar/create',             [PemancarController::class,'create'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.create');	
     Route::get('/pemancar/{pemancar}',         [PemancarController::class,'show'])->name('pemancar.show');
     Route::post('/pemancar',                   [PemancarController::class,'store'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.store');
     Route::get('/pemancar/{pemancar}/edit',    [PemancarController::class,'edit'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.edit');
@@ -155,6 +155,7 @@ Route::middleware(['auth'])->group(function(){
     // ── Admin Divisi + Super Admin ──
     Route::middleware(['App\Http\Middleware\AdminOrDivisiAdmin'])->group(function(){
         Route::get('/jadwal',           [JadwalController::class,'index'])->name('jadwal.index');
+        Route::get('/jadwal/export',    [JadwalController::class,'exportExcel'])->name('jadwal.export');
         Route::post('/jadwal',          [JadwalController::class,'store'])->name('jadwal.store');
         Route::post('/jadwal/bulanan',  [JadwalController::class,'storeBulanan'])->name('jadwal.bulanan');
         Route::delete('/jadwal/{jadwal}',[JadwalController::class,'destroy'])->name('jadwal.destroy');

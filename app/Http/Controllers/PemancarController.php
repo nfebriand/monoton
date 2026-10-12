@@ -69,7 +69,12 @@ class PemancarController extends Controller
 			'keterangan'              => 'nullable|string',
 			'fotos.*'                 => 'image|mimes:jpeg,png,jpg,webp|max:8192',
 			'is_active'               => 'nullable|boolean',
-		]);
+], [
+		            'fotos.*.uploaded' => 'Foto gagal diupload ke server (kemungkinan ukuran file melebihi batas upload_max_filesize di PHP-FPM). Perkecil ukuran foto atau naikkan batas upload server.',
+		            'fotos.*.image'    => 'File harus berupa gambar.',
+		            'fotos.*.mimes'    => 'Format foto harus JPG, PNG, atau WEBP.',
+		            'fotos.*.max'      => 'Ukuran tiap foto maksimal 8 MB.',
+		        ]);
 
 		$v['is_active'] = $request->boolean('is_active', true);
 
@@ -84,6 +89,7 @@ class PemancarController extends Controller
 				PemancarFoto::create([
 					'pemancar_id' => $pemancar->id,
 					'path'        => $img['original'],
+					'thumb_path'  => $img['thumbnail'],
 					'keterangan'  => $request->input("foto_keterangan.{$idx}"),
 					'urutan'      => $idx,
 				]);
@@ -188,6 +194,11 @@ class PemancarController extends Controller
             'keterangan'              => 'nullable|string',
             'fotos.*'                 => 'image|mimes:jpeg,png,jpg,webp|max:8192',
             'is_active'               => 'nullable|boolean',
+], [
+            'fotos.*.uploaded' => 'Foto gagal diupload ke server (kemungkinan ukuran file melebihi batas upload_max_filesize di PHP-FPM). Perkecil ukuran foto atau naikkan batas upload server.',
+            'fotos.*.image'    => 'File harus berupa gambar.',
+            'fotos.*.mimes'    => 'Format foto harus JPG, PNG, atau WEBP.',
+            'fotos.*.max'      => 'Ukuran tiap foto maksimal 8 MB.',
         ]);
         $v['is_active'] = $request->boolean('is_active', true);
         $pemancar->update($v);
@@ -199,6 +210,7 @@ class PemancarController extends Controller
 				PemancarFoto::create([
 					'pemancar_id' => $pemancar->id,
 					'path'        => $img['original'],
+					'thumb_path'  => $img['thumbnail'],
 					'keterangan'  => $request->input("foto_keterangan_baru.{$idx}"),
 					'urutan'      => $last + $idx + 1,
 				]);

@@ -134,6 +134,7 @@ class JadwalController extends Controller
 
         $kor  = AppSetting::getKoordinator($divisi);
         $kabid = AppSetting::getKabid();
+        $kepala = AppSetting::getKepalaStasiun();
 
         $x = JadwalExcel::build([
             'divisi_label' => \App\Models\User::DIVISI_LABEL[$divisi] ?? ucfirst($divisi),
@@ -141,8 +142,9 @@ class JadwalController extends Controller
             'tahun'  => $tahun,
             'shifts' => $shifts,
             'sheets' => $sheets,
-            'koordinator' => ['jabatan'=>$kor['jabatan'],'nama'=>$kor['nama'],'nip'=>$kor['nip']],
-            'kabid'       => ['jabatan'=>$kabid['jabatan'],'nama'=>$kabid['nama'],'nip'=>$kabid['nip']],
+            'koordinator' => ['jabatan'=>$kor['jabatan'],'nama'=>$kor['nama'],'nip'=>$kor['nip'],'ttd'=>$this->ttdGambar($kor['ttd_path'] ?? null)],
+            'kabid'       => ['jabatan'=>$kabid['jabatan'],'nama'=>$kabid['nama'],'nip'=>$kabid['nip'],'ttd'=>$this->ttdGambar($kabid['ttd_path'] ?? null)],
+            'kepala'      => ['jabatan'=>$kepala['jabatan'],'nama'=>$kepala['nama'],'nip'=>$kepala['nip'],'ttd'=>$this->ttdGambar($kepala['ttd_path'] ?? null)],
         ]);
 
         $tmp = tempnam(sys_get_temp_dir(), 'jadwal_').'.xlsx';
@@ -152,6 +154,16 @@ class JadwalController extends Controller
         return response()->download($tmp, $namaFile, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend(true);
+    }
+
+    /** Baca file TTD dari storage -> ['bytes'=>..., 'ext'=>'png|jpeg'] atau null */
+    private function ttdGambar(?string $path): ?array
+    {
+        if (!$path) return null;
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        if (!$disk->exists($path)) return null;
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        return ['bytes' => $disk->get($path), 'ext' => $ext === 'png' ? 'png' : 'jpeg'];
     }
 
     public function store(Request $request)

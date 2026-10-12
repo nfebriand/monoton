@@ -92,6 +92,25 @@ class AppSetting extends Model
     }
 
     /**
+     * Profil Kepala Stasiun (penandatangan tertinggi / "Mengetahui")
+     * Key 'kepala_stasiun' = nama (kompatibel dengan data lama).
+     */
+    public static function getKepalaStasiun(): array
+    {
+        $s = self::allKeyed();
+        $ttd = $s['kepala_stasiun_ttd'] ?? '';
+
+        return [
+            'nama'    => $s['kepala_stasiun'] ?? '',
+            'nip'     => $s['kepala_stasiun_nip'] ?? '',
+            'jabatan' => ($s['kepala_stasiun_jabatan'] ?? '') !== '' ? $s['kepala_stasiun_jabatan'] : 'Kepala Stasiun',
+            'ttd_path'=> $ttd,
+            'ttd_url' => $ttd ? \App\Helpers\ImageHelper::url($ttd) : null,
+            'ttd_base64' => self::ttdBase64($ttd),
+        ];
+    }
+
+    /**
      * Validasi kredit aplikasi tetap utuh
      */
     public static function kreditValid(): bool

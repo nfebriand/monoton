@@ -76,9 +76,12 @@ class SimpleXlsx
             throw new \RuntimeException('Tidak dapat membuat file xlsx.');
         }
         $n = count($this->sheets);
+        $imgNo = 0;
 
         $ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>';
         for ($i = 1; $i <= $n; $i++) $ct .= '<Override PartName="/xl/worksheets/sheet'.$i.'.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+        $ct .= '<Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/>';
+        foreach ($this->sheets as $i => $sh) if ($sh->images) $ct .= '<Override PartName="/xl/drawings/drawing'.($i + 1).'.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>';
         $zip->addFromString('[Content_Types].xml', $ct.'</Types>');
 
         $zip->addFromString('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
@@ -90,12 +93,34 @@ class SimpleXlsx
             $wb   .= '<sheet name="'.self::esc($s->name).'" sheetId="'.$id.'" r:id="rId'.$id.'"/>';
             $rels .= '<Relationship Id="rId'.$id.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet'.$id.'.xml"/>';
             $zip->addFromString('xl/worksheets/sheet'.$id.'.xml', $s->toXml());
+            if ($s->images) $this->writeDrawing($zip, $id, $s->images, $imgNo);
         }
         $rels .= '<Relationship Id="rId'.($n + 1).'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>';
         $zip->addFromString('xl/workbook.xml', $wb.'</sheets></workbook>');
         $zip->addFromString('xl/_rels/workbook.xml.rels', $rels);
         $zip->addFromString('xl/styles.xml', $this->stylesXml());
         $zip->close();
+    }
+
+    private function writeDrawing(ZipArchive $zip, int $sheetId, array $images, int &$imgNo): void
+    {
+        $d = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">';
+        $rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">';
+        foreach ($images as $k => [$bytes, $ext, $row0, $col0, $cOff, $rOff, $w, $h]) {
+            $imgNo++;
+            $file = 'image'.$imgNo.'.'.$ext;
+            $zip->addFromString('xl/media/'.$file, $bytes);
+            $rid = 'rId'.($k + 1);
+            $rels .= '<Relationship Id="'.$rid.'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/'.$file.'"/>';
+            $d .= '<xdr:oneCellAnchor><xdr:from><xdr:col>'.$col0.'</xdr:col><xdr:colOff>'.($cOff * 9525).'</xdr:colOff><xdr:row>'.$row0.'</xdr:row><xdr:rowOff>'.($rOff * 9525).'</xdr:rowOff></xdr:from>'
+                . '<xdr:ext cx="'.($w * 9525).'" cy="'.($h * 9525).'"/>'
+                . '<xdr:pic><xdr:nvPicPr><xdr:cNvPr id="'.($k + 2).'" name="Gambar '.$imgNo.'"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr>'
+                . '<xdr:blipFill><a:blip r:embed="'.$rid.'"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>'
+                . '<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'.($w * 9525).'" cy="'.($h * 9525).'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>';
+        }
+        $zip->addFromString('xl/drawings/drawing'.$sheetId.'.xml', $d.'</xdr:wsDr>');
+        $zip->addFromString('xl/drawings/_rels/drawing'.$sheetId.'.xml.rels', $rels.'</Relationships>');
+        $zip->addFromString('xl/worksheets/_rels/sheet'.$sheetId.'.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing'.$sheetId.'.xml"/></Relationships>');
     }
 
     private function stylesXml(): string
@@ -134,6 +159,7 @@ class SimpleXlsxSheet
     private array $merges = [];
     private array $colW = [];
     private array $rowH = [];
+    public array $images = [];  // [bytes, ext, row0, col0, colOffPx, rowOffPx, wPx, hPx]
 
     public function __construct(string $name) { $this->name = $name; }
 
@@ -158,12 +184,19 @@ class SimpleXlsxSheet
         return $this;
     }
 
+    /** Tempel gambar (png/jpeg). row0/col0 = 0-based; offset & ukuran dalam piksel. */
+    public function addImage(string $bytes, string $ext, int $row0, int $col0, int $colOff, int $rowOff, int $w, int $h): self
+    {
+        $this->images[] = [$bytes, $ext === 'png' ? 'png' : 'jpeg', $row0, $col0, $colOff, $rowOff, $w, $h];
+        return $this;
+    }
+
     public function colWidth(int $col, float $w): self { $this->colW[$col] = $w; return $this; }
     public function rowHeight(int $row, float $h): self { $this->rowH[$row] = $h; return $this; }
 
     public function toXml(): string
     {
-        $x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>';
+        $x = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>';
         if ($this->colW) {
             ksort($this->colW);
             $x .= '<cols>';
@@ -192,6 +225,6 @@ class SimpleXlsxSheet
             foreach ($this->merges as $m) $x .= '<mergeCell ref="'.$m.'"/>';
             $x .= '</mergeCells>';
         }
-        return $x.'<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>';
+        return $x.'<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="1"/>'.($this->images ? '<drawing r:id="rId1"/>' : '').'</worksheet>';
     }
 }

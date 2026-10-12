@@ -26,6 +26,11 @@ class SettingController extends Controller
             'tema_warna'     => 'nullable|string|max:20',
             'logo'           => 'nullable|image|mimes:png,jpg,jpeg,svg|max:2048',
 
+            // Kepala Stasiun (kepala_stasiun = nama)
+            'kepala_stasiun_nip'     => 'nullable|string|max:30',
+            'kepala_stasiun_jabatan' => 'nullable|string|max:100',
+            'kepala_stasiun_ttd'     => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
+
             // Kepala Bidang Teknik (lintas divisi)
             'kabid_nama'    => 'nullable|string|max:100',
             'kabid_nip'     => 'nullable|string|max:30',
@@ -49,6 +54,12 @@ class SettingController extends Controller
             AppSetting::set('logo_path', $path);
         }
 
+        // TTD Kepala Stasiun
+        if ($request->hasFile('kepala_stasiun_ttd')) {
+            $path = $request->file('kepala_stasiun_ttd')->store('settings/ttd','public');
+            AppSetting::set('kepala_stasiun_ttd', $path);
+        }
+
         // TTD Kepala Bidang
         if ($request->hasFile('kabid_ttd')) {
             $path = $request->file('kabid_ttd')->store('settings/ttd','public');
@@ -65,7 +76,8 @@ class SettingController extends Controller
 
         // Field teks
         $textKeys = ['satuan_kerja','kepala_stasiun','kepala_bidang','koordinator','tema_warna',
-                      'kabid_nama','kabid_nip','kabid_jabatan'];
+                      'kabid_nama','kabid_nip','kabid_jabatan',
+                      'kepala_stasiun_nip','kepala_stasiun_jabatan'];
         foreach (self::DIVISI as $d) {
             $textKeys[] = "koordinator_{$d}_nama";
             $textKeys[] = "koordinator_{$d}_nip";
@@ -82,11 +94,11 @@ class SettingController extends Controller
 
     /**
      * Hapus tanda tangan digital (reset ke kosong)
-     * target: kabid_ttd | koordinator_transmisi_ttd | koordinator_studio_ttd | koordinator_sarana_ttd
+     * target: kepala_stasiun_ttd | kabid_ttd | koordinator_transmisi_ttd | koordinator_studio_ttd | koordinator_sarana_ttd
      */
     public function removeTtd(Request $request)
     {
-        $valid = array_merge(['kabid_ttd'], array_map(fn($d)=>"koordinator_{$d}_ttd", self::DIVISI));
+        $valid = array_merge(['kabid_ttd','kepala_stasiun_ttd'], array_map(fn($d)=>"koordinator_{$d}_ttd", self::DIVISI));
         $v = $request->validate(['target' => 'required|in:'.implode(',',$valid)]);
 
         $key  = $v['target'];

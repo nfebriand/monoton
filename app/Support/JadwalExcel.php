@@ -68,9 +68,10 @@ class JadwalExcel
 
         foreach ($d['sheets'] as $sh) {
             $s = $x->addSheet($sh['lokasi']);
-            $s->colWidth(1, 11)->colWidth(2, 13);
-            for ($i = 0; $i < $nShift; $i++) $s->colWidth(3 + $i, 20);
-            $s->colWidth($colOp, 28);
+            $widths = [1 => 11, 2 => 13];
+            for ($i = 0; $i < $nShift; $i++) $widths[3 + $i] = 20;
+            $widths[$colOp] = 28;
+            foreach ($widths as $c => $w) $s->colWidth($c, $w);
 
             // Kop
             $s->set(1, 1, 'LEMBAGA PENYIARAN PUBLIK RADIO REPUBLIK INDONESIA', $st['org'])->merge(1, 1, 1, $lastCol);
@@ -132,6 +133,22 @@ class JadwalExcel
                 $s->set($r0 + $i, $colOp, ($i + 1).'. '.$n, $ls);
             }
 
+            // Tempel gambar TTD di tengah blok kolom $c1..$c2, mulai baris $rowSpace (1-based, 4 baris kosong)
+            $tempelTtd = function(?array $ttd, int $rowSpace, int $c1, int $c2) use ($s, $widths) {
+                if (empty($ttd['bytes'])) return;
+                $info = @getimagesizefromstring($ttd['bytes']);
+                if (!$info || $info[0] < 1 || $info[1] < 1) return;
+                $scale = min(170 / $info[0], 85 / $info[1], 1.0);
+                $w = max(1, (int) round($info[0] * $scale));
+                $h = max(1, (int) round($info[1] * $scale));
+                $px = fn($c) => (int) floor(($widths[$c] ?? 8.43) * 7 + 5);
+                $blok = 0; for ($c = $c1; $c <= $c2; $c++) $blok += $px($c);
+                $x = max(0, (int) floor(($blok - $w) / 2));
+                $col = $c1;
+                while ($col < $c2 && $x >= $px($col)) { $x -= $px($col); $col++; }
+                $s->addImage($ttd['bytes'], $ttd['ext'] ?? 'png', $rowSpace - 1, $col - 1, $x, 4, $w, $h);
+            };
+
             // Catatan
             $r = $rEnd + 2;
             $s->set($r++, 1, 'Catatan:', $st['catjud']);
@@ -148,12 +165,29 @@ class JadwalExcel
             $k = $d['koordinator']; $b = $d['kabid'];
             $s->set($r, $kiriMulai, $k['jabatan'], $st['ttdc'])->merge($r, $kiriMulai, $r, $kiriAkhir);
             $s->set($r, $kananMulai, $b['jabatan'], $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
+            for ($i = 1; $i <= 4; $i++) $s->rowHeight($r + $i, 21);
+            $tempelTtd($k['ttd'] ?? null, $r + 1, $kiriMulai, $kiriAkhir);
+            $tempelTtd($b['ttd'] ?? null, $r + 1, $kananMulai, $lastCol);
             $r += 5; // ruang tanda tangan
             $s->set($r, $kiriMulai, $k['nama'] ?: '(................................)', $st['ttdnm'])->merge($r, $kiriMulai, $r, $kiriAkhir);
             $s->set($r, $kananMulai, $b['nama'] ?: '(................................)', $st['ttdnm'])->merge($r, $kananMulai, $r, $lastCol);
             $r++;
             $s->set($r, $kiriMulai, $k['nip'] ? 'NIP. '.$k['nip'] : '', $st['ttdc'])->merge($r, $kiriMulai, $r, $kiriAkhir);
             $s->set($r, $kananMulai, $b['nip'] ? 'NIP. '.$b['nip'] : '', $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
+
+            // Mengetahui: Kepala Stasiun (opsional, tampil bila ada di Pengaturan)
+            if (!empty($d['kepala']) && ($d['kepala']['nama'] ?? '') !== '') {
+                $kp = $d['kepala'];
+                $r += 2;
+                $s->set($r++, 1, 'Mengetahui', $st['ttdc'])->merge($r - 1, 1, $r - 1, $lastCol);
+                $s->set($r, 1, $kp['jabatan'], $st['ttdc'])->merge($r, 1, $r, $lastCol);
+                for ($i = 1; $i <= 4; $i++) $s->rowHeight($r + $i, 21);
+                $tempelTtd($kp['ttd'] ?? null, $r + 1, 1, $lastCol);
+                $r += 5;
+                $s->set($r, 1, $kp['nama'], $st['ttdnm'])->merge($r, 1, $r, $lastCol);
+                $r++;
+                $s->set($r, 1, $kp['nip'] ? 'NIP. '.$kp['nip'] : '', $st['ttdc'])->merge($r, 1, $r, $lastCol);
+            }
         }
         return $x;
     }

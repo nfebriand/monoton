@@ -31,11 +31,6 @@
                        placeholder="LPPL Radio Lampung">
             </div>
             <div class="col-md-6">
-                <label class="form-label">Kepala Stasiun</label>
-                <input type="text" name="kepala_stasiun" class="form-control"
-                       value="{{ old('kepala_stasiun', $settings['kepala_stasiun']??'') }}">
-            </div>
-            <div class="col-md-6">
                 <label class="form-label">Kepala Bidang</label>
                 <input type="text" name="kepala_bidang" class="form-control"
                        value="{{ old('kepala_bidang', $settings['kepala_bidang']??'') }}">
@@ -73,9 +68,9 @@
                 <label class="form-label">Logo Aplikasi</label>
                 <div class="d-flex align-items-center gap-3 mb-2">
                     @if(!empty($settings['logo_path']))
-                    <img src="{{ asset('uploads/'.$settings['logo_path']) }}"
+                    <img src="{{ asset('storage/'.$settings['logo_path']) }}"
                          style="height:44px;object-fit:contain;border-radius:6px;border:1px solid #dfe6e9;cursor:zoom-in"
-                         onclick="bukaLightbox('{{ asset('uploads/'.$settings['logo_path']) }}','Logo')">
+                         onclick="bukaLightbox('{{ asset('storage/'.$settings['logo_path']) }}','Logo')">
                     @else
                     <div style="width:44px;height:44px;background:#f0f4f8;border-radius:8px;
                          display:flex;align-items:center;justify-content:center;border:1px dashed #ccc">
@@ -138,7 +133,7 @@
                 <div style="width:90px;height:50px;border:1px dashed #ccc;border-radius:6px;
                      background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
                     @if(!empty($settings['koordinator_'.$kode.'_ttd']))
-                    <img src="{{ asset('uploads/'.$settings['koordinator_'.$kode.'_ttd']) }}" alt="TTD"
+                    <img src="{{ asset('storage/'.$settings['koordinator_'.$kode.'_ttd']) }}" alt="TTD"
                          style="max-width:100%;max-height:100%;object-fit:contain">
                     @else
                     <span class="text-muted" style="font-size:.6rem">Belum ada</span>
@@ -162,6 +157,58 @@
 
 {{-- Kepala Bidang Teknik (lintas divisi) --}}
 <div class="row g-3 mb-4">
+    <div class="col-12 col-lg-6">
+        <div class="p-3 rounded h-100" style="background:#eef6ff;border:1px solid #cfe3fb">
+            <div class="fw-bold mb-2" style="font-size:.85rem;color:#1b5fa8">
+                <i class="bi bi-person-vcard-fill me-1"></i>Kepala Stasiun
+                <span class="badge bg-secondary ms-1" style="font-size:.6rem">Mengetahui</span>
+            </div>
+
+            <div class="row g-2 mb-2">
+                <div class="col-12">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" name="kepala_stasiun" class="form-control"
+                           value="{{ old('kepala_stasiun', $settings['kepala_stasiun'] ?? '') }}"
+                           placeholder="Nama Kepala Stasiun">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">NIP</label>
+                    <input type="text" name="kepala_stasiun_nip" class="form-control mono"
+                           value="{{ old('kepala_stasiun_nip', $settings['kepala_stasiun_nip'] ?? '') }}"
+                           placeholder="NIP (opsional)">
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Jabatan</label>
+                    <input type="text" name="kepala_stasiun_jabatan" class="form-control"
+                           value="{{ old('kepala_stasiun_jabatan', $settings['kepala_stasiun_jabatan'] ?? 'Kepala Stasiun') }}"
+                           placeholder="Kepala Stasiun">
+                </div>
+            </div>
+
+            <label class="form-label">Tanda Tangan Digital</label>
+            <div class="d-flex align-items-center gap-2">
+                <div style="width:90px;height:50px;border:1px dashed #ccc;border-radius:6px;
+                     background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+                    @if(!empty($settings['kepala_stasiun_ttd']))
+                    <img src="{{ asset('storage/'.$settings['kepala_stasiun_ttd']) }}" alt="TTD Kepala Stasiun"
+                         style="max-width:100%;max-height:100%;object-fit:contain">
+                    @else
+                    <span class="text-muted" style="font-size:.6rem">Belum ada</span>
+                    @endif
+                </div>
+                <div class="flex-fill">
+                    <input type="file" name="kepala_stasiun_ttd" class="form-control form-control-sm"
+                           accept="image/png,image/jpg,image/jpeg">
+                    @if(!empty($settings['kepala_stasiun_ttd']))
+                    <button type="submit" form="formHapusTtd_kepala_stasiun" class="btn btn-sm btn-outline-danger mt-1" style="font-size:.65rem;padding:.1rem .4rem">
+                        <i class="bi bi-trash me-1"></i>Hapus
+                    </button>
+                    @endif
+                </div>
+            </div>
+            <div class="form-text" style="font-size:.65rem">PNG transparan, maks 1MB. Dipakai pada blok "Mengetahui" di laporan/jadwal formal.</div>
+        </div>
+    </div>
     <div class="col-12 col-lg-6">
         <div class="p-3 rounded h-100" style="background:#fff8e6;border:1px solid #ffe9b3">
             <div class="fw-bold mb-2" style="font-size:.85rem;color:#b8860b">
@@ -195,7 +242,7 @@
                 <div style="width:90px;height:50px;border:1px dashed #ccc;border-radius:6px;
                      background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
                     @if(!empty($settings['kabid_ttd']))
-                    <img src="{{ asset('uploads/'.$settings['kabid_ttd']) }}" alt="TTD Kabid"
+                    <img src="{{ asset('storage/'.$settings['kabid_ttd']) }}" alt="TTD Kabid"
                          style="max-width:100%;max-height:100%;object-fit:contain">
                     @else
                     <span class="text-muted" style="font-size:.6rem">Belum ada</span>
@@ -428,6 +475,11 @@
     <input type="hidden" name="target" value="koordinator_{{ $kode }}_ttd">
 </form>
 @endforeach
+
+<form id="formHapusTtd_kepala_stasiun" action="{{ route('setting.remove-ttd') }}" method="POST" class="d-none">
+    @csrf
+    <input type="hidden" name="target" value="kepala_stasiun_ttd">
+</form>
 
 <form id="formHapusTtd_kabid" action="{{ route('setting.remove-ttd') }}" method="POST" class="d-none">
     @csrf

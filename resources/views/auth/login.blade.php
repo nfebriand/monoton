@@ -9,7 +9,7 @@
     @php
         $settings   = \App\Models\AppSetting::allKeyed();
         $tema       = $settings['tema_warna'] ?? '#0a3d62';
-        $logoPath   = !empty($settings['logo_path']) ? asset('uploads/'.$settings['logo_path']) : null;
+        $logoPath   = !empty($settings['logo_path']) ? \App\Helpers\ImageHelper::url($settings['logo_path']) : null;
         $satkerName = $settings['satuan_kerja'] ?? 'Monitoring Operasional Transmisi Online';
     @endphp
     <link rel="manifest" href="/manifest.json">
@@ -40,7 +40,15 @@
             pointer-events:none;z-index:1;
         }
 
-        /* ── SVG PETA ── */
+        .peta-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;}
+        .inp-wrap .toggle-pw{position:absolute;right:.5rem;background:none;border:0;color:#999;font-size:1rem;cursor:pointer;padding:.3rem .45rem;}
+        .inp-wrap .toggle-pw:hover{color:var(--primary);}
+        .inp-wrap input.has-toggle{padding-right:2.6rem;}
+        .remember-row{display:flex;align-items:center;justify-content:space-between;margin-top:.6rem;font-size:.76rem;color:#2d3436;}
+        .remember-row label{display:flex;align-items:center;gap:.4rem;cursor:pointer;margin:0;}
+        .remember-row input{accent-color:var(--primary);width:15px;height:15px;}
+        .caps-hint{display:none;font-size:.7rem;color:#b9770e;margin-top:.3rem;}
+        /* ── SVG PETA (lama, tidak dipakai) ── */
         #peta-wrap{
             position:absolute;
             inset:0;
@@ -207,7 +215,7 @@
 {{-- ── KIRI: PETA LAMPUNG ── --}}
 
 <div class="bg-map">
-    <div id="map"></div>
+    <img class="peta-img" src="{{ asset('img/peta-lampung.svg') }}" alt="" aria-hidden="true">
     <div class="grid-overlay"></div>
 
     <div class="brand-top">
@@ -269,16 +277,21 @@
             <div class="inp-wrap">
                 <i class="bi bi-envelope ii"></i>
                 <input type="email" name="email" value="{{ old('email') }}"
-                       placeholder="operator@mono.id" required autocomplete="email" autofocus>
+                       required autocomplete="email" autofocus>
             </div>
         </div>
         <div class="mb-1">
             <div class="form-lbl">Password</div>
             <div class="inp-wrap">
                 <i class="bi bi-lock ii"></i>
-                <input type="password" name="password" placeholder=""
+                <input type="password" name="password" id="pw" class="has-toggle"
                        required autocomplete="current-password">
+                <button type="button" class="toggle-pw" id="togglePw" aria-label="Tampilkan password"><i class="bi bi-eye"></i></button>
             </div>
+            <div class="caps-hint" id="capsHint"><i class="bi bi-exclamation-circle"></i> Caps Lock aktif</div>
+        </div>
+        <div class="remember-row">
+            <label><input type="checkbox" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}> Ingat saya</label>
         </div>
         <button type="submit" class="btn-login">
             <i class="bi bi-box-arrow-in-right"></i> Masuk ke Sistem
@@ -286,9 +299,10 @@
         </form>
     </div>
     <div class="text-center mt-2" style="font-size:.65rem;color:#aaa">
-        MonOTOn v{{ $settings['app_version'] ?? '1.0.0' }}
         @if($satkerName && $satkerName !== 'Monitoring Operasional Transmisi Online')
-        &nbsp;|&nbsp; {{ $satkerName }}
+        {{ $satkerName }}
+        @else
+        MonOTOn
         @endif
     </div>
 </div>
@@ -303,88 +317,19 @@
 }
 </script>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
-
-<script>
-document.addEventListener("DOMContentLoaded", function(){
-
-// FAST MAP INIT (Canvas renderer)
-const map = L.map('map',{
-    zoomControl:false,
-    attributionControl:false,
-    preferCanvas:true
-}).setView([-5.45,105.27],9);
-
-// faster tile (lighter)
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png',{
-    maxZoom:18
-}).addTo(map);
-
-// REMOVE heavy geojson (speed fix)
-const sites = [
-{n:"Studio RRI",t:"studio",lat:-5.4246,lon:105.2736},
-{n:"Pemancar Gedung Air",t:"main",lat:-5.4011,lon:105.2388},
-{n:"Sukarame",t:"relay",lat:-5.3811,lon:105.2976},
-{n:"Ketapang",t:"relay",lat:-4.7164,lon:104.7862},
-{n:"Bakauheni",t:"relay",lat:-5.8556,lon:105.7394}
-];
-
-// CLUSTER GROUP (FAST RENDER)
-const cluster = L.markerClusterGroup({
-    chunkedLoading:true,
-    disableClusteringAtZoom:11
-});
-
-function icon(t){
-let c="#4fc3f7";
-if(t==="studio")c="#00ff88";
-if(t==="main")c="#00d2d3";
-
-return L.divIcon({
-className:"",
-html:`<div style="
-width:8px;height:8px;
-background:${c};
-border-radius:50%;
-box-shadow:none;
-border:1px solid #fff;
-"></div>`,
-iconSize:[8,8]
-});
-}
-
-// add markers (lightweight)
-sites.forEach(s=>{
-    const m = L.marker([s.lat,s.lon],{icon:icon(s.t)});
-    m.bindPopup(s.n,{maxWidth:120,autoPan:false});
-    cluster.addLayer(m);
-});
-
-map.addLayer(cluster);
-
-// SIMPLE LINKS (NO ANIMATION)
-const links=[
-[[-5.4246,105.2736],[-5.4011,105.2388]],
-[[-5.4011,105.2388],[-5.3811,105.2976]],
-[[-5.4011,105.2388],[-5.8556,105.7394]]
-];
-
-L.polyline(links,{
-color:"#00ff88",
-weight:1,
-opacity:0.6
-}).addTo(map);
-
-});
+(function(){
+    var pw=document.getElementById('pw'),btn=document.getElementById('togglePw'),hint=document.getElementById('capsHint');
+    btn.addEventListener('click',function(){
+        var show=pw.type==='password';
+        pw.type=show?'text':'password';
+        btn.firstElementChild.className=show?'bi bi-eye-slash':'bi bi-eye';
+        btn.setAttribute('aria-label',show?'Sembunyikan password':'Tampilkan password');
+    });
+    function caps(e){ if(e.getModifierState) hint.style.display=e.getModifierState('CapsLock')?'block':'none'; }
+    pw.addEventListener('keydown',caps); pw.addEventListener('keyup',caps);
+    pw.addEventListener('blur',function(){hint.style.display='none';});
+})();
 </script>
 </body>
-
-</body>
-
 </html>

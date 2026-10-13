@@ -98,8 +98,9 @@
             <div style="height:160px;overflow:hidden;border-radius:10px 10px 0 0;
                  background:#f0f4f8;cursor:zoom-in;position:relative"
                  onclick="bukaLightbox('{{ $ev->fotos->first()->url }}','{{ addslashes($ev->judul) }}')">
-                <img src="{{ $ev->fotos->first()->url }}"
-                     onerror="this.onerror=null;this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:#aaa\'><i class=\'bi bi-image\' style=\'font-size:2rem\'></i></div>'"
+                <img src="{{ $ev->fotos->first()->thumb_url }}" loading="lazy" decoding="async"
+                     data-full="{{ $ev->fotos->first()->url }}"
+                     onerror="if(!this.dataset.fb){this.dataset.fb=1;this.src=this.dataset.full;}else{this.onerror=null;this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;color:#aaa\'><i class=\'bi bi-image\' style=\'font-size:2rem\'></i></div>'}"
                      style="width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s"
                      onmouseover="this.style.transform='scale(1.03)'"
                      onmouseout="this.style.transform='scale(1)'">

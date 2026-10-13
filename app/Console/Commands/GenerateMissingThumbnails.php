@@ -18,7 +18,7 @@ class GenerateMissingThumbnails extends Command
      * php artisan fotos:generate-thumbnails
      * php artisan fotos:generate-thumbnails --dry-run
      */
-    protected $signature = 'fotos:generate-thumbnails {--dry-run : Hanya tampilkan apa yang akan diproses, tanpa menulis apa pun}';
+    protected $signature = 'fotos:generate-thumbnails {--dry-run : Hanya tampilkan apa yang akan diproses, tanpa menulis apa pun} {--repair : Juga buat ulang thumbnail yang thumb_path-nya terisi tetapi file thumbnail hilang dari disk}';
 
     protected $description = 'Generate ulang thumbnail untuk foto lama (thumb_path kosong) di semua modul: Eviden, Aset, Maintenance, StudioLog, StudioPerangkat, Pemancar';
 
@@ -47,6 +47,13 @@ class GenerateMissingThumbnails extends Command
             $rows = $modelClass::whereNull('thumb_path')
                 ->orWhere('thumb_path', '')
                 ->get();
+
+            if ($this->option('repair')) {
+                // thumb_path terisi, tetapi file thumbnail-nya tidak ada di disk
+                $rusak = $modelClass::whereNotNull('thumb_path')->where('thumb_path', '!=', '')->get()
+                    ->filter(fn($f) => !$disk->exists($f->thumb_path));
+                $rows = $rows->concat($rusak)->unique('id')->values();
+            }
 
             if ($rows->isEmpty()) {
                 $this->line('  (tidak ada foto yang perlu di-generate)');

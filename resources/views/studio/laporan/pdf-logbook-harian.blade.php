@@ -109,17 +109,29 @@ table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vert
     <tr>
         @foreach($log->fotos->take(4) as $foto)
         @php
-            $fotoRel = $foto->thumb_path ?: $foto->path;
+            // Coba berurutan: thumbnail -> foto asli (disk public) -> lokasi lama public/uploads.
             $fotoB64 = '';
-            if ($fotoRel && \Illuminate\Support\Facades\Storage::disk('public')->exists($fotoRel)) {
-                $ext  = strtolower(pathinfo($fotoRel, PATHINFO_EXTENSION));
-                $mime = $ext==='png'?'image/png':($ext==='webp'?'image/webp':'image/jpeg');
-                $fotoB64 = 'data:'.$mime.';base64,'.base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($fotoRel));
+            $disk = \Illuminate\Support\Facades\Storage::disk('public');
+            foreach (array_filter([$foto->thumb_path, $foto->path]) as $cand) {
+                $bytes = null;
+                if ($disk->exists($cand)) {
+                    $bytes = $disk->get($cand);
+                } elseif (is_file(public_path('uploads/'.$cand))) {
+                    $bytes = file_get_contents(public_path('uploads/'.$cand));
+                }
+                if ($bytes === null || $bytes === '') continue;
+                $info = @getimagesizefromstring($bytes);
+                $mime = $info['mime'] ?? 'image/jpeg';
+                if ($mime === 'image/webp') continue; // dompdf tidak mendukung webp, pakai kandidat berikutnya
+                $fotoB64 = 'data:'.$mime.';base64,'.base64_encode($bytes);
+                break;
             }
         @endphp
         <td style="width:{{ 100/min($log->fotos->count(),4) }}%">
             @if($fotoB64)
             <img src="{{ $fotoB64 }}">
+            @else
+            <div style="font-size:7pt;color:#c0392b">[foto tidak ditemukan di server]</div>
             @endif
             @if($foto->keterangan)
             <div style="font-size:7pt;color:#666;margin-top:2px">{{ $foto->keterangan }}</div>

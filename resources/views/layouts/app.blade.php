@@ -12,6 +12,9 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     @if(file_exists(public_path('js/foto-compress.js')))
     <script src="/js/foto-compress.js"></script>
+    @if(file_exists(public_path('js/foto-auto-compress.js')))
+    <script src="/js/foto-auto-compress.js"></script>
+    @endif
     @endif
     @if(file_exists(public_path('js/offline-db.js')))
     <script src="/js/offline-db.js"></script>
@@ -23,7 +26,7 @@
     @php
         $settings    = \App\Models\AppSetting::allKeyed();
         $tema        = $settings['tema_warna'] ?? '#0a3d62';
-        $logoPath    = !empty($settings['logo_path']) ? asset('uploads/'.$settings['logo_path']) : null;
+        $logoPath    = !empty($settings['logo_path']) ? \App\Helpers\ImageHelper::url($settings['logo_path']) : null;
         $satuanKerja = $settings['satuan_kerja'] ?? 'MonOTOn';
         $kreditValid = \App\Models\AppSetting::kreditValid();
         $kPembuat    = 'Nanda Febriandy';

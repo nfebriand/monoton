@@ -1,5 +1,5 @@
 // MonOTOn Service Worker — v2 (full page caching for offline)
-const CACHE_VERSION = 'monoton-v7';
+const CACHE_VERSION = 'monoton-v8';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 const ASSET_CACHE   = `${CACHE_VERSION}-assets`;
@@ -14,6 +14,7 @@ const STATIC_ASSETS = [
     'https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js',
     'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
     '/js/foto-compress.js',
+    '/js/foto-auto-compress.js',
     '/js/offline-db.js',
     '/js/offline-sync.js',
 ];

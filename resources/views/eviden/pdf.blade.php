@@ -55,7 +55,7 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
 <tr>
     <td style="width:58px"><div class="kop-logo">📡</div></td>
     <td class="kop-brand">
-        <h1>MonOTOn — Monitoring Operasional Transmisi Online</h1>
+        <h1>MonOTOn — Monitoring Operasional Terintegrasi Online</h1>
         <div class="sub">LAPORAN CATATAN EVIDEN / DOKUMENTASI KEGIATAN</div>
         @if($satkerName)<div class="satker">{{ $satkerName }}</div>@endif
     </td>
@@ -202,6 +202,6 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
     </td>
 </tr>
 </table>
-<div class="pg">MonOTOn v{{ $appVersion }} — Monitoring Operasional Transmisi Online{{ $satkerName?' | '.$satkerName:'' }}</div>
+<div class="pg">MonOTOn v{{ $appVersion }} — Monitoring Operasional Terintegrasi Online{{ $satkerName?' | '.$satkerName:'' }}</div>
 </body>
 </html>

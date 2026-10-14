@@ -23,7 +23,7 @@
                     📡
                 </div>
                 <div class="flex-fill">
-                    <h5 class="fw-bold mb-0" style="color:#0a3d62">MonOTOn — Monitoring Operasional Transmisi Online</h5>
+                    <h5 class="fw-bold mb-0" style="color:#0a3d62">MonOTOn — Monitoring Operasional Terintegrasi Online</h5>
                     <div class="text-muted" style="font-size:.82rem">LAPORAN OPERASIONAL PEMANCAR RADIO</div>
                     <div class="mt-2 d-flex flex-wrap gap-3" style="font-size:.78rem">
                         <span><i class="bi bi-calendar3 me-1"></i>Periode:

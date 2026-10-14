@@ -49,7 +49,7 @@
     <a href="/" class="btn-retry" onclick="window.location.reload()">
         🔄 Coba Lagi
     </a>
-    <div class="ver">MonOTOn — Monitoring Operasional Transmisi Online</div>
+    <div class="ver">MonOTOn — Monitoring Operasional Terintegrasi Online</div>
 </div>
 </body>
 </html>

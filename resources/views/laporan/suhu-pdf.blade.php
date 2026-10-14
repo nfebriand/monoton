@@ -44,7 +44,7 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
 <tr>
     <td style="width:54px"><div class="kop-logo">📡</div></td>
     <td class="kop-brand">
-        <h1>MonOTOn — Monitoring Operasional Transmisi Online</h1>
+        <h1>MonOTOn — Monitoring Operasional Terintegrasi Online</h1>
         <div class="sub">LAPORAN MONITORING SUHU & KELEMBABAN BULANAN</div>
         @if(!empty($satkerName))<div class="satker">{{ $satkerName }}</div>@endif
     </td>
@@ -143,6 +143,6 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
     </td>
 </tr>
 </table>
-<div class="pg">MonOTOn — Monitoring Operasional Transmisi Online | Laporan Suhu & Kelembaban | {{ $bulanLabel }}</div>
+<div class="pg">MonOTOn — Monitoring Operasional Terintegrasi Online | Laporan Suhu & Kelembaban | {{ $bulanLabel }}</div>
 </body>
 </html>

@@ -117,7 +117,7 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
         </div>
 
         <div style="margin-top:40px;font-size:7.5pt;color:#aaa">
-            MonOTOn v{{ $settings['app_version'] ?? '1.0.0' }} — Monitoring Operasional Transmisi Online
+            MonOTOn v{{ $settings['app_version'] ?? '1.0.0' }} — Monitoring Operasional Terintegrasi Online
         </div>
     </div>
 </div>
@@ -135,7 +135,7 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
         <tr>
             <td style="width:58px"><div class="kop-logo">📡</div></td>
             <td class="kop-brand">
-                <h1>MonOTOn — Monitoring Operasional Transmisi Online</h1>
+                <h1>MonOTOn — Monitoring Operasional Terintegrasi Online</h1>
                 <div class="sub">LAPORAN CATATAN EVIDEN / DOKUMENTASI KEGIATAN</div>
                 @if(!empty($settings['satuan_kerja']))<div class="satker">{{ $settings['satuan_kerja'] }}</div>@endif
             </td>

@@ -10,7 +10,7 @@
         $settings   = \App\Models\AppSetting::allKeyed();
         $tema       = $settings['tema_warna'] ?? '#0a3d62';
         $logoPath   = !empty($settings['logo_path']) ? \App\Helpers\ImageHelper::url($settings['logo_path']) : null;
-        $satkerName = $settings['satuan_kerja'] ?? 'Monitoring Operasional Transmisi Online';
+        $satkerName = $settings['satuan_kerja'] ?? 'Monitoring Operasional Terintegrasi Online';
     @endphp
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="{{ $tema }}">
@@ -228,7 +228,7 @@
         </div>
         <div>
             <div class="brand-name">Mon<span>OTO</span>n</div>
-            <div class="brand-sub">Monitoring Operasional Transmisi Online</div>
+            <div class="brand-sub">Monitoring Operasional Terintegrasi Online</div>
         </div>
     </div>
 
@@ -259,7 +259,7 @@
             </div>
             <div>
                 <p class="panel-brand-name">MonOTOn</p>
-                <p class="panel-brand-sub">Monitoring Operasional Transmisi Online</p>
+                <p class="panel-brand-sub">Monitoring Operasional Terintegrasi Online</p>
             </div>
         </div>
 
@@ -299,7 +299,7 @@
         </form>
     </div>
     <div class="text-center mt-2" style="font-size:.65rem;color:#aaa">
-        @if($satkerName && $satkerName !== 'Monitoring Operasional Transmisi Online')
+        @if($satkerName && $satkerName !== 'Monitoring Operasional Terintegrasi Online')
         {{ $satkerName }}
         @else
         MonOTOn

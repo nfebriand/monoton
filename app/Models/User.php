@@ -9,9 +9,16 @@ class User extends Authenticatable
     use Notifiable;
 
     protected $fillable = [
-        'name','nip','email','password','role',
+        'name','alias','nip','email','password','role',
         'lokasi_dinas','divisi','is_active','ttd_path',
     ];
+
+    /** Alias bila diisi, jika kosong memakai nama lengkap. */
+    public function getDisplayAliasAttribute(): string
+    {
+        $a = trim((string) $this->alias);
+        return $a !== '' ? $a : (string) $this->name;
+    }
 
     protected $hidden = ['password','remember_token'];
 

@@ -115,8 +115,10 @@ class JadwalController extends Controller
 
         // Susun per lokasi: [lokasi => [Y-m-d => [shift => [nama,...]]]]
         $perLokasi = [];
+        $aliasLokasi = []; // [lokasi => [nama lengkap => alias]]
         foreach ($jadwals as $j) {
             $lok = $j->user->lokasi_dinas ?: 'Umum';
+            if (trim((string) $j->user->alias) !== '') $aliasLokasi[$lok][$j->user->name] = trim($j->user->alias);
             $perLokasi[$lok][Carbon::parse($j->tanggal)->toDateString()][(int)$j->shift][] = $j->user->name;
         }
         ksort($perLokasi);
@@ -126,7 +128,7 @@ class JadwalController extends Controller
                 sort($list, SORT_NATURAL | SORT_FLAG_CASE);
                 $data[$tgl][$no] = $list;
             }
-            $sheets[] = ['lokasi' => $lok, 'jadwal' => $data];
+            $sheets[] = ['lokasi' => $lok, 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? []];
         }
 
         $skema  = JadwalShift::getSkemaForDivisi($divisi);
@@ -142,7 +144,7 @@ class JadwalController extends Controller
             'tahun'  => $tahun,
             'shifts' => $shifts,
             'sheets' => $sheets,
-            'logo'        => $this->ttdGambar(AppSetting::logoInstansiPath() ?: null),
+            'logo'        => $this->ttdGambar(AppSetting::logoInstansiPath() ?: null, false),
             'koordinator' => ['jabatan'=>$kor['jabatan'],'nama'=>$kor['nama'],'nip'=>$kor['nip'],'ttd'=>$this->ttdGambar($kor['ttd_path'] ?? null)],
             'kabid'       => ['jabatan'=>$kabid['jabatan'],'nama'=>$kabid['nama'],'nip'=>$kabid['nip'],'ttd'=>$this->ttdGambar($kabid['ttd_path'] ?? null)],
             'kepala'      => ['jabatan'=>$kepala['jabatan'],'nama'=>$kepala['nama'],'nip'=>$kepala['nip'],'ttd'=>$this->ttdGambar($kepala['ttd_path'] ?? null)],
@@ -158,13 +160,16 @@ class JadwalController extends Controller
     }
 
     /** Baca file TTD dari storage -> ['bytes'=>..., 'ext'=>'png|jpeg'] atau null */
-    private function ttdGambar(?string $path): ?array
+    private function ttdGambar(?string $path, bool $trim = true): ?array
     {
         if (!$path) return null;
         $disk = \Illuminate\Support\Facades\Storage::disk('public');
         if (!$disk->exists($path)) return null;
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-        return ['bytes' => $disk->get($path), 'ext' => $ext === 'png' ? 'png' : 'jpeg'];
+        $bytes = $disk->get($path);
+        // TTD: buang margin kosong/putih supaya proporsi & posisi di Excel pas
+        if ($trim && ($t = \App\Support\ImageTrim::trim($bytes))) return $t;
+        return ['bytes' => $bytes, 'ext' => $ext === 'png' ? 'png' : 'jpeg'];
     }
 
     public function store(Request $request)

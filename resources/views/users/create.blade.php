@@ -26,6 +26,10 @@
             <input type="text" name="name" class="form-control" value="{{ old('name') }}" required>
         </div>
         <div class="col-12 col-md-6">
+            <label class="form-label">Alias <span class="text-muted" style="font-weight:400;font-size:.75rem">(nama singkat untuk jadwal shift)</span></label>
+            <input type="text" name="alias" maxlength="30" class="form-control" value="{{ old('alias') }}">
+        </div>
+        <div class="col-12 col-md-6">
             <label class="form-label">NIP</label>
             <input type="text" name="nip" class="form-control mono" value="{{ old('nip') }}" placeholder="Opsional">
         </div>

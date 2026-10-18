@@ -122,7 +122,17 @@ table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vert
                 if ($bytes === null || $bytes === '') continue;
                 $info = @getimagesizefromstring($bytes);
                 $mime = $info['mime'] ?? 'image/jpeg';
-                if ($mime === 'image/webp') continue; // dompdf tidak mendukung webp, pakai kandidat berikutnya
+                // Foto besar (fallback ke file asli) dikecilkan dulu agar PDF tidak kehabisan memori/waktu.
+                if (strlen($bytes) > 150000 || ($info[0] ?? 0) > 800) {
+                    try {
+                        $bytes = (string) \Intervention\Image\Facades\Image::make($bytes)
+                            ->widen(600, fn($c) => $c->upsize())->encode('jpg', 70);
+                        $mime = 'image/jpeg';
+                    } catch (\Throwable $e) {
+                        continue; // gagal diproses -> coba kandidat berikutnya
+                    }
+                }
+                if ($mime === 'image/webp') continue; // dompdf tidak mendukung webp
                 $fotoB64 = 'data:'.$mime.';base64,'.base64_encode($bytes);
                 break;
             }

@@ -286,6 +286,8 @@ class StudioLogController extends Controller
 
     private function streamPdf(string $html, string $filename, string $orientation = 'portrait')
     {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(180);
         $fontDir   = storage_path('app/dompdf/fonts');
         $fontCache = storage_path('app/dompdf/font-cache');
         $tempDir   = storage_path('app/dompdf/tmp');

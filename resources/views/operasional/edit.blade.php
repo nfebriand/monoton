@@ -50,12 +50,14 @@
         </div>
     </div>
 
-    <div class="form-check form-switch mb-4 p-3" style="background:#fff7e6;border:1px solid #ffe4a0;border-radius:6px">
-        <input class="form-check-input" type="checkbox" role="switch" id="statusOff"
-               {{ old('status', $operasional->status) === 'off' ? 'checked' : '' }}
-               onchange="toggleStatusOffEdit(this.checked)">
-        <label class="form-check-label" for="statusOff">
-            Pemancar sedang <strong>OFF</strong> (rusak/bergantian dengan cadangan)
+    <div class="d-flex align-items-center gap-2 mb-4 px-3 py-2" style="background:#fff7e6;border:1px solid #ffe4a0;border-radius:6px">
+        <div class="form-check form-switch m-0 flex-shrink-0" style="min-height:0">
+            <input class="form-check-input" type="checkbox" role="switch" id="statusOff" style="cursor:pointer"
+                   {{ old('status', $operasional->status) === 'off' ? 'checked' : '' }}
+                   onchange="toggleStatusOffEdit(this.checked)">
+        </div>
+        <label for="statusOff" class="mb-0" style="font-size:.78rem;line-height:1.25;cursor:pointer">
+            Pemancar sedang <strong>OFF</strong> <span class="text-muted">(rusak/ganti pemancar)</span>
         </label>
         <input type="hidden" name="status" id="statusVal" value="{{ old('status', $operasional->status ?? 'on') }}">
     </div>

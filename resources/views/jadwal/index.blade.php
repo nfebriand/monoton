@@ -106,7 +106,7 @@
                     @endphp
                     <div class="kal-shift" style="background:{{ $sc }}"
                          title="{{ $j->user->name }} — {{ $sl }} ({{ $j->jam_mulai }}–{{ $j->jam_selesai }})">
-                        {{ \Str::limit($sl,4,'') }} {{ \Str::limit($j->user->name,5) }}
+                        {{ \Str::limit($sl,4,'') }} {{ \Str::limit($j->user->display_alias,8) }}
                     </div>
                     @endforeach
                 </div>

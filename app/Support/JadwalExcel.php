@@ -30,7 +30,7 @@ class JadwalExcel
      * @param array $d [
      *   'divisi_label'=>string, 'bulan'=>int, 'tahun'=>int,
      *   'shifts'=>[no=>['label','mulai','selesai']],
-     *   'sheets'=>[ ['lokasi'=>string, 'jadwal'=>[ 'Y-m-d'=>[shiftNo=>[nama,...]] ]], ... ],
+     *   'sheets'=>[ ['lokasi'=>string, 'jadwal'=>[ 'Y-m-d'=>[shiftNo=>[nama lengkap,...]] ], 'alias'=>[nama lengkap=>alias] (opsional)], ... ],
      *   'koordinator'=>['jabatan','nama','nip'], 'kabid'=>['jabatan','nama','nip'],
      * ]
      */
@@ -72,8 +72,8 @@ class JadwalExcel
         foreach ($d['sheets'] as $sh) {
             $s = $x->addSheet($sh['lokasi']);
             $widths = [1 => 11, 2 => 13];
-            for ($i = 0; $i < $nShift; $i++) $widths[3 + $i] = 20;
-            $widths[$colOp] = 28;
+            for ($i = 0; $i < $nShift; $i++) $widths[3 + $i] = 15;
+            $widths[$colOp] = 34;
             foreach ($widths as $c => $w) $s->colWidth($c, $w);
 
             // Kop
@@ -107,6 +107,11 @@ class JadwalExcel
             }
             $s->set(6, $colOp, 'OPERATOR '.mb_strtoupper($d['divisi_label']), $st['th'])->merge(6, $colOp, 7, $colOp)->fillStyle(6, $colOp, 7, $colOp, $st['th']);
 
+            // Alias (nama singkat) dipakai di kolom shift; nama lengkap di kolom keterangan (kanan)
+            $al   = $sh['alias'] ?? [];
+            $disp = fn(string $n) => mb_strtoupper($al[$n] ?? $n);
+            $cpl  = max(6, (int) floor($widths[3] * 0.85)); // perkiraan karakter per baris
+
             // Warna operator: urut nama, konsisten
             $names = [];
             foreach ($sh['jadwal'] as $perShift) foreach ($perShift as $list) foreach ($list as $n) $names[$n] = true;
@@ -132,9 +137,15 @@ class JadwalExcel
                 $per = $sh['jadwal'][$date->toDateString()] ?? [];
                 foreach ($shiftNos as $i => $no) {
                     $nm = $per[$no] ?? [];
-                    $s->set($r, 3 + $i, $nm ? mb_strtoupper(implode("\n", $nm)) : '', $namaStyle($nm));
+                    $s->set($r, 3 + $i, $nm ? implode("\n", array_map($disp, $nm)) : '', $namaStyle($nm));
                 }
-                $s->rowHeight($r, count(array_filter($per, fn($l) => count($l) > 1)) ? 30 : 17);
+                $maxLines = 1;
+                foreach ($per as $list) {
+                    $lines = 0;
+                    foreach ($list as $n) $lines += max(1, (int) ceil(mb_strlen($disp($n)) / $cpl));
+                    $maxLines = max($maxLines, $lines);
+                }
+                $s->rowHeight($r, $maxLines > 1 ? 15 * $maxLines + 2 : 17);
             }
             $rEnd = $r0 + $hariN - 1;
 
@@ -146,12 +157,13 @@ class JadwalExcel
                 $s->set($r0 + $i, $colOp, ($i + 1).'. '.$n, $ls);
             }
 
-            // Tempel gambar TTD di tengah blok kolom $c1..$c2, mulai baris $rowSpace (1-based, 4 baris kosong)
+            // Tempel gambar TTD di tengah blok kolom $c1..$c2, di dalam area 4 baris kosong ($rowSpace = baris 1-based pertama).
+            // Ukuran disesuaikan ke kotak 160x80 px (proporsi asli dijaga, kecil -> diperbesar maks 3x), diletakkan di tengah area.
             $tempelTtd = function(?array $ttd, int $rowSpace, int $c1, int $c2) use ($s, $widths) {
                 if (empty($ttd['bytes'])) return;
                 $info = @getimagesizefromstring($ttd['bytes']);
                 if (!$info || $info[0] < 1 || $info[1] < 1) return;
-                $scale = min(170 / $info[0], 85 / $info[1], 1.0);
+                $scale = min(160 / $info[0], 80 / $info[1], 3.0);
                 $w = max(1, (int) round($info[0] * $scale));
                 $h = max(1, (int) round($info[1] * $scale));
                 $px = fn($c) => (int) floor(($widths[$c] ?? 8.43) * 7 + 5);
@@ -159,7 +171,9 @@ class JadwalExcel
                 $x = max(0, (int) floor(($blok - $w) / 2));
                 $col = $c1;
                 while ($col < $c2 && $x >= $px($col)) { $x -= $px($col); $col++; }
-                $s->addImage($ttd['bytes'], $ttd['ext'] ?? 'png', $rowSpace - 1, $col - 1, $x, 4, $w, $h);
+                $areaH = 4 * 28; // 4 baris x 21pt (=28px)
+                $y = max(0, (int) floor(($areaH - $h) / 2));
+                $s->addImage($ttd['bytes'], $ttd['ext'] ?? 'png', $rowSpace - 1, $col - 1, $x, $y, $w, $h);
             };
 
             // Catatan

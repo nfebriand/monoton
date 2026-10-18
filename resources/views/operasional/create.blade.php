@@ -100,12 +100,14 @@
             <div class="pemancar-bdy open" id="bdy-{{ $pemancar->id }}">
                 <input type="hidden" name="pemancar[{{ $idx }}][id]" value="{{ $pemancar->id }}">
 
-                <div class="form-check form-switch mb-3 p-2" style="background:#fff7e6;border:1px solid #ffe4a0;border-radius:6px">
-                    <input class="form-check-input" type="checkbox" role="switch"
-                           id="status-off-{{ $idx }}"
-                           onchange="toggleStatusOff({{ $idx }}, this.checked)">
-                    <label class="form-check-label" for="status-off-{{ $idx }}" style="font-size:.8rem">
-                        Pemancar sedang <strong>OFF</strong> (rusak/bergantian dengan cadangan)
+                <div class="d-flex align-items-center gap-2 mb-3 px-2 py-1" style="background:#fff7e6;border:1px solid #ffe4a0;border-radius:6px">
+                    <div class="form-check form-switch m-0 flex-shrink-0" style="min-height:0">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               id="status-off-{{ $idx }}" style="cursor:pointer"
+                               onchange="toggleStatusOff({{ $idx }}, this.checked)">
+                    </div>
+                    <label for="status-off-{{ $idx }}" class="mb-0" style="font-size:.72rem;line-height:1.25;cursor:pointer">
+                        Pemancar sedang <strong>OFF</strong> <span class="text-muted">(rusak/bergantian dengan cadangan)</span>
                     </label>
                     <input type="hidden" name="pemancar[{{ $idx }}][status]" id="status-val-{{ $idx }}" value="on">
                 </div>

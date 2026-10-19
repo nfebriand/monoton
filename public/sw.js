@@ -1,5 +1,5 @@
 // MonOTOn Service Worker — v2 (full page caching for offline)
-const CACHE_VERSION = 'monoton-v8';
+const CACHE_VERSION = 'monoton-v10';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 const ASSET_CACHE   = `${CACHE_VERSION}-assets`;
@@ -93,6 +93,12 @@ self.addEventListener('fetch', event => {
 
     if (url.origin !== location.origin) return;
 
+    // Unduhan dinamis (export/cetak/pdf/download): langsung ke jaringan, tanpa cache HTTP browser maupun SW.
+    if (/\/(export|cetak|pdf|download|unduh)(\/|$|\?)|\.(xlsx|xls|pdf|csv|docx)$/i.test(url.pathname)) {
+        event.respondWith(fetch(request, { cache: 'no-store' }));
+        return;
+    }
+
     // Halaman navigasi (HTML) — network-first, fallback ke cache, lalu offline page
     if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
         event.respondWith(
@@ -110,6 +116,10 @@ self.addEventListener('fetch', event => {
         );
         return;
     }
+
+    // Hanya asset statis yang di-cache. Unduhan dinamis (export Excel/PDF, dll.) TIDAK boleh
+    // disajikan dari cache, kalau tidak hasil export lama terus diberikan walau data sudah berubah.
+    if (!/\.(?:js|css|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|json)$/i.test(url.pathname)) return;
 
     // Asset lokal lain (JS/CSS/gambar) — cache-first dengan update background
     event.respondWith(

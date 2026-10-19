@@ -154,9 +154,16 @@ class JadwalController extends Controller
         $x->save($tmp);
 
         $namaFile = 'Jadwal-'.ucfirst($divisi).'-'.sprintf('%04d-%02d', $tahun, $bulan).'.xlsx';
-        return response()->download($tmp, $namaFile, [
+        $resp = response()->download($tmp, $namaFile, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         ])->deleteFileAfterSend(true);
+        // Jangan pernah di-cache (browser/proxy/CDN): hasil export harus selalu dibuat ulang
+        $resp->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
+        $resp->headers->set('Pragma', 'no-cache');
+        $resp->headers->set('Expires', '0');
+        $resp->headers->remove('Last-Modified');
+        $resp->headers->remove('ETag');
+        return $resp;
     }
 
     /** Baca file TTD dari storage -> ['bytes'=>..., 'ext'=>'png|jpeg'] atau null */

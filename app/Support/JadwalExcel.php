@@ -137,13 +137,12 @@ class JadwalExcel
                 $per = $sh['jadwal'][$date->toDateString()] ?? [];
                 foreach ($shiftNos as $i => $no) {
                     $nm = $per[$no] ?? [];
-                    $s->set($r, 3 + $i, $nm ? implode("\n", array_map($disp, $nm)) : '', $namaStyle($nm));
+                    $s->set($r, 3 + $i, $nm ? implode(' - ', array_map($disp, $nm)) : '', $namaStyle($nm));
                 }
                 $maxLines = 1;
                 foreach ($per as $list) {
-                    $lines = 0;
-                    foreach ($list as $n) $lines += max(1, (int) ceil(mb_strlen($disp($n)) / $cpl));
-                    $maxLines = max($maxLines, $lines);
+                    $txt = implode(' - ', array_map($disp, $list));
+                    $maxLines = max($maxLines, max(1, (int) ceil(mb_strlen($txt) / $cpl)));
                 }
                 $s->rowHeight($r, $maxLines > 1 ? 15 * $maxLines + 2 : 17);
             }

@@ -158,6 +158,8 @@ Route::middleware(['auth'])->group(function(){
         Route::get('/jadwal/export',    [JadwalController::class,'exportExcel'])->name('jadwal.export');
         Route::post('/jadwal',          [JadwalController::class,'store'])->name('jadwal.store');
         Route::post('/jadwal/bulanan',  [JadwalController::class,'storeBulanan'])->name('jadwal.bulanan');
+        Route::post('/jadwal/cuti',     [JadwalController::class,'storeCuti'])->name('jadwal.cuti.store');
+        Route::delete('/jadwal/cuti/{cuti}',[JadwalController::class,'destroyCuti'])->name('jadwal.cuti.destroy');
         Route::delete('/jadwal/{jadwal}',[JadwalController::class,'destroy'])->name('jadwal.destroy');
 
         // Kelola Skema Shift (Admin + Admin Divisi)

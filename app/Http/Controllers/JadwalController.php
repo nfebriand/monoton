@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\JadwalShift;
+use App\Models\JadwalCuti;
 use App\Models\SkemaShift;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -80,8 +81,19 @@ class JadwalController extends Controller
         // Baca skema dari DB (fallback ke konstanta jika DB kosong)
         $skemaShift = SkemaShift::getAllForJs();
 
+        // Cuti / izin / sakit bulan ini (admin divisi hanya divisinya)
+        $adaTabelCuti = \Illuminate\Support\Facades\Schema::hasTable('jadwal_cuti'); // aman sebelum migrate
+        $cutiQuery = JadwalCuti::with('user')
+            ->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)
+            ->orderBy('tanggal');
+        if ($user->isAdminDivisi()) {
+            $cutiQuery->whereHas('user', fn($q) => $q->where('divisi', $user->divisi));
+        }
+        $cutiList  = $adaTabelCuti ? $cutiQuery->get() : collect();
+        $cutiByTgl = $cutiList->groupBy(fn($c) => Carbon::parse($c->tanggal)->toDateString());
+
         return view('jadwal.index', compact(
-            'jadwals', 'operators', 'bulan', 'tahun', 'hariKalender', 'skemaShift'
+            'jadwals', 'operators', 'bulan', 'tahun', 'hariKalender', 'skemaShift', 'cutiList', 'cutiByTgl'
         ));
     }
 
@@ -121,6 +133,18 @@ class JadwalController extends Controller
             if (trim((string) $j->user->alias) !== '') $aliasLokasi[$lok][$j->user->name] = trim($j->user->alias);
             $perLokasi[$lok][Carbon::parse($j->tanggal)->toDateString()][(int)$j->shift][] = $j->user->name;
         }
+        // Cuti/izin/sakit bulan ini per lokasi: [lokasi => [Y-m-d => [[nama, jenis_label, keterangan], ...]]]
+        $cutiLokasi = [];
+        $cutis = !\Illuminate\Support\Facades\Schema::hasTable('jadwal_cuti') ? collect() : JadwalCuti::with('user')
+            ->whereYear('tanggal', $tahun)->whereMonth('tanggal', $bulan)
+            ->whereHas('user', fn($q) => $q->where('divisi', $divisi))
+            ->orderBy('tanggal')->get();
+        foreach ($cutis as $c) {
+            $lok = $c->user->lokasi_dinas ?: 'Umum';
+            if ($request->filled('lokasi') && $request->lokasi !== $lok) continue;
+            if (trim((string) $c->user->alias) !== '') $aliasLokasi[$lok][$c->user->name] = trim($c->user->alias);
+            $cutiLokasi[$lok][Carbon::parse($c->tanggal)->toDateString()][] = [$c->user->name, $c->jenis_label, (string) $c->keterangan];
+        }
         ksort($perLokasi);
         $sheets = [];
         foreach ($perLokasi as $lok => $data) {
@@ -128,7 +152,7 @@ class JadwalController extends Controller
                 sort($list, SORT_NATURAL | SORT_FLAG_CASE);
                 $data[$tgl][$no] = $list;
             }
-            $sheets[] = ['lokasi' => $lok, 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? []];
+            $sheets[] = ['lokasi' => $lok, 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? [], 'cuti' => $cutiLokasi[$lok] ?? []];
         }
 
         $skema  = JadwalShift::getSkemaForDivisi($divisi);
@@ -283,6 +307,59 @@ class JadwalController extends Controller
 
         return back()->with('success',
             "Jadwal disimpan: {$dibuat} baru, {$lewat} diperbarui, {$hapus} dihapus.");
+    }
+
+    /**
+     * Catat cuti/izin/sakit untuk satu operator pada rentang tanggal (dari s.d sampai).
+     * Menimpa catatan cuti lama di tanggal yang sama. Jadwal shift pada tanggal itu dihapus
+     * supaya operator tidak tercatat dinas dan cuti sekaligus.
+     */
+    public function storeCuti(Request $request)
+    {
+        $this->checkAccess();
+
+        $v = $request->validate([
+            'user_id'        => 'required|exists:users,id',
+            'tanggal_mulai'  => 'required|date',
+            'tanggal_selesai'=> 'nullable|date|after_or_equal:tanggal_mulai',
+            'jenis'          => 'required|in:'.implode(',', array_keys(JadwalCuti::JENIS)),
+            'keterangan'     => 'nullable|string|max:200',
+        ]);
+
+        $op = User::findOrFail($v['user_id']);
+        if (!auth()->user()->canManageDivisi($op->divisi)) {
+            abort(403, 'Anda hanya dapat mengatur cuti operator divisi Anda sendiri.');
+        }
+
+        $mulai   = Carbon::parse($v['tanggal_mulai'])->startOfDay();
+        $selesai = Carbon::parse($v['tanggal_selesai'] ?? $v['tanggal_mulai'])->startOfDay();
+        if ($mulai->diffInDays($selesai) > 62) {
+            return back()->withErrors(['tanggal_selesai' => 'Rentang cuti maksimal 63 hari per input.']);
+        }
+
+        $n = 0; $shiftDihapus = 0;
+        for ($d = $mulai->copy(); $d <= $selesai; $d->addDay()) {
+            JadwalCuti::updateOrCreate(
+                ['user_id' => $op->id, 'tanggal' => $d->toDateString()],
+                ['jenis' => $v['jenis'], 'keterangan' => $v['keterangan'] ?? null]
+            );
+            $shiftDihapus += JadwalShift::where('user_id', $op->id)->whereDate('tanggal', $d->toDateString())->delete();
+            $n++;
+        }
+
+        $msg = "{$n} hari ".strtolower(JadwalCuti::JENIS[$v['jenis']])." dicatat untuk {$op->name}.";
+        if ($shiftDihapus) $msg .= " {$shiftDihapus} jadwal shift pada tanggal tersebut dihapus.";
+        return back()->with('success', $msg);
+    }
+
+    public function destroyCuti(JadwalCuti $cuti)
+    {
+        $this->checkAccess();
+        if (!auth()->user()->canManageDivisi($cuti->user->divisi)) {
+            abort(403, 'Anda hanya dapat menghapus cuti operator divisi Anda sendiri.');
+        }
+        $cuti->delete();
+        return back()->with('success', 'Catatan cuti dihapus.');
     }
 
     public function destroy(JadwalShift $jadwal)

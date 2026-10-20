@@ -109,6 +109,12 @@
                         {{ \Str::limit($sl,4,'') }} {{ \Str::limit($j->user->display_alias,8) }}
                     </div>
                     @endforeach
+                    @foreach(($cutiByTgl[$tgl] ?? collect()) as $c)
+                    <div class="kal-shift" style="background:#b2bec3;color:#2d3436"
+                         title="{{ $c->user->name }} — {{ $c->jenis_label }}{{ $c->keterangan ? ': '.$c->keterangan : '' }}">
+                        {{ \Str::limit($c->jenis_label,5,'') }} {{ \Str::limit($c->user->display_alias,8) }}
+                    </div>
+                    @endforeach
                 </div>
                 @endforeach
             </div>
@@ -137,7 +143,7 @@
     <div class="card">
         <div class="card-header d-flex align-items-center justify-content-between">
             <span><i class="bi bi-table me-1"></i>Detail Jadwal — {{ $namaBulan }}</span>
-            <span class="badge bg-secondary">{{ $jadwals->flatten()->count() }} shift</span>
+            <span class="badge bg-secondary">{{ $jadwals->flatten()->count() }} shift{{ (isset($cutiList) && $cutiList->isNotEmpty()) ? ' · '.$cutiList->count().' cuti' : '' }}</span>
         </div>
         <div class="table-responsive">
             <table class="table table-sm table-hover mb-0">
@@ -153,7 +159,35 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($jadwals->flatten()->sortBy('tanggal') as $j)
+                    @php
+                        // Gabungkan shift + cuti, urut tanggal (cuti setelah shift pada tanggal sama)
+                        $barisTabel = $jadwals->flatten()->map(fn($j) => ['tgl'=>\Carbon\Carbon::parse($j->tanggal)->toDateString(),'o'=>0,'j'=>$j,'c'=>null])
+                            ->concat(($cutiList ?? collect())->map(fn($c) => ['tgl'=>\Carbon\Carbon::parse($c->tanggal)->toDateString(),'o'=>1,'j'=>null,'c'=>$c]))
+                            ->sortBy(fn($b) => $b['tgl'].$b['o'])->values();
+                    @endphp
+                    @forelse($barisTabel as $br)
+                    @if($br['c'])
+                    @php $c = $br['c']; @endphp
+                    <tr style="background:#f1f3f5">
+                        <td class="ps-3 mono" style="font-size:.8rem">{{ $c->tanggal->format('d/m/Y') }}</td>
+                        <td style="font-size:.8rem">{{ $c->tanggal->translatedFormat('l') }}</td>
+                        <td style="font-size:.85rem;font-weight:600">{{ $c->user->name }}</td>
+                        <td><span class="badge bg-secondary" style="font-size:.62rem">—</span></td>
+                        <td><span class="badge" style="background:#636e72;font-size:.65rem">{{ $c->jenis_label }}</span></td>
+                        <td style="font-size:.75rem;color:#636e72">{{ $c->keterangan }}</td>
+                        <td class="pe-2">
+                            <form action="{{ route('jadwal.cuti.destroy',$c) }}" method="POST"
+                                  onsubmit="return confirm('Hapus catatan cuti ini?')">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-sm btn-outline-danger" style="padding:.1rem .35rem">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    @continue
+                    @endif
+                    @php $j = $br['j']; @endphp
                     @php
                         $skemaJ = $j->skema ?? 'default';
                         $sc     = $skemaColors[$skemaJ] ?? '#555';
@@ -344,6 +378,75 @@
                 </button>
                 </form>
             </div>
+        </div>
+    </div>
+
+    {{-- CUTI / IZIN / SAKIT --}}
+    <div class="card mt-3">
+        <div class="card-header fw-bold">
+            <i class="bi bi-person-dash me-2 text-secondary"></i>Cuti / Izin / Sakit
+        </div>
+        <div class="card-body">
+            <form action="{{ route('jadwal.cuti.store') }}" method="POST">
+            @csrf
+            <div class="mb-2">
+                <label class="form-label">Operator <span class="text-danger">*</span></label>
+                <select name="user_id" class="form-select form-select-sm" required>
+                    <option value="">— Pilih Operator —</option>
+                    @foreach($operators as $op)
+                    <option value="{{ $op->id }}">{{ $op->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-6">
+                    <label class="form-label">Dari <span class="text-danger">*</span></label>
+                    <input type="date" name="tanggal_mulai" class="form-control form-control-sm" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label">Sampai</label>
+                    <input type="date" name="tanggal_selesai" class="form-control form-control-sm">
+                </div>
+            </div>
+            <div class="row g-2 mb-2">
+                <div class="col-5">
+                    <label class="form-label">Jenis</label>
+                    <select name="jenis" class="form-select form-select-sm">
+                        @foreach(\App\Models\JadwalCuti::JENIS as $k => $lbl)
+                        <option value="{{ $k }}">{{ $lbl }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-7">
+                    <label class="form-label">Keterangan</label>
+                    <input type="text" name="keterangan" maxlength="200" class="form-control form-control-sm" placeholder="opsional">
+                </div>
+            </div>
+            <div class="text-muted mb-2" style="font-size:.68rem">
+                Kosongkan "Sampai" untuk 1 hari. Jadwal shift operator pada tanggal itu otomatis dihapus.
+            </div>
+            <button type="submit" class="btn btn-secondary btn-sm w-100">
+                <i class="bi bi-save me-1"></i>Simpan Cuti
+            </button>
+            </form>
+
+            @if(isset($cutiList) && $cutiList->isNotEmpty())
+            <hr class="my-3">
+            <div class="fw-semibold mb-1" style="font-size:.75rem">Bulan ini</div>
+            <div style="max-height:240px;overflow-y:auto">
+                @foreach($cutiList as $c)
+                <div class="d-flex align-items-center gap-2 py-1 border-bottom" style="font-size:.72rem">
+                    <span class="text-muted" style="width:46px">{{ $c->tanggal->format('d M') }}</span>
+                    <span class="flex-fill">{{ $c->user->display_alias }} <span class="badge bg-secondary">{{ $c->jenis_label }}</span>
+                        @if($c->keterangan)<span class="text-muted">— {{ $c->keterangan }}</span>@endif</span>
+                    <form action="{{ route('jadwal.cuti.destroy', $c) }}" method="POST" onsubmit="return confirm('Hapus catatan ini?')">
+                        @csrf @method('DELETE')
+                        <button class="btn btn-sm btn-outline-danger" style="padding:.05rem .3rem"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+                @endforeach
+            </div>
+            @endif
         </div>
     </div>
 

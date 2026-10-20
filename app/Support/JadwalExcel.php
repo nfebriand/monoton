@@ -40,7 +40,12 @@ class JadwalExcel
 
         // urut kolom shift berdasar jam mulai
         $shifts = $d['shifts'];
-        uasort($shifts, fn($a, $b) => strcmp($a['mulai'], $b['mulai']));
+        // MCR selalu di kolom paling kanan; sisanya urut jam mulai (lalu nomor shift)
+        $isMcr = fn($x) => strtoupper(trim($x['label'] ?? '')) === 'MCR';
+        uksort($shifts, function ($ka, $kb) use ($shifts, $isMcr) {
+            $a = $shifts[$ka]; $b = $shifts[$kb];
+            return [$isMcr($a) ? 1 : 0, $a['mulai'], $ka] <=> [$isMcr($b) ? 1 : 0, $b['mulai'], $kb];
+        });
         $shiftNos = array_keys($shifts);
         $nShift   = count($shiftNos);
         $colOp    = 3 + $nShift;            // kolom legenda operator
@@ -73,7 +78,7 @@ class JadwalExcel
             $s = $x->addSheet($sh['lokasi']);
             $widths = [1 => 11, 2 => 13];
             for ($i = 0; $i < $nShift; $i++) $widths[3 + $i] = 15;
-            $widths[$colOp] = 34;
+            $widths[$colOp] = 42;
             foreach ($widths as $c => $w) $s->colWidth($c, $w);
 
             // Kop
@@ -119,6 +124,26 @@ class JadwalExcel
             sort($names, SORT_NATURAL | SORT_FLAG_CASE);
             $warna = [];
             foreach ($names as $i => $n) $warna[$n] = self::PALETTE[$i % count(self::PALETTE)];
+            // Ringkasan cuti per operator untuk kolom kanan: "Cuti 6-8,12; Sakit 15"
+            $ringkasCuti = [];
+            $tmp = []; // [nama][jenis][] = tanggal(int)
+            foreach (($sh['cuti'] ?? []) as $tglC => $listC) foreach ($listC as $c) {
+                $tmp[$c[0]][$c[1]][] = (int) substr($tglC, 8, 2);
+            }
+            foreach ($tmp as $nmC => $perJenis) {
+                $bag = [];
+                foreach ($perJenis as $jenisC => $tg) {
+                    sort($tg);
+                    $rg = []; $st0 = $tg[0]; $pv = $tg[0];
+                    foreach (array_slice($tg, 1) as $t2) {
+                        if ($t2 === $pv + 1) { $pv = $t2; continue; }
+                        $rg[] = $st0 === $pv ? (string) $st0 : $st0.'-'.$pv; $st0 = $pv = $t2;
+                    }
+                    $rg[] = $st0 === $pv ? (string) $st0 : $st0.'-'.$pv;
+                    $bag[] = $jenisC.' '.implode(',', $rg);
+                }
+                $ringkasCuti[$nmC] = implode('; ', $bag);
+            }
             $stCache = [];
             $namaStyle = function(array $nm) use (&$stCache, $x, $warna, $st) {
                 if (count($nm) !== 1) return $st['kosong'];
@@ -154,6 +179,19 @@ class JadwalExcel
             foreach ($names as $i => $n) {
                 $ls = $x->style(['fill'=>$warna[$n][0],'color'=>$warna[$n][1],'border'=>true,'v'=>'center']);
                 $s->set($r0 + $i, $colOp, ($i + 1).'. '.$n, $ls);
+            }
+
+            // Daftar yang cuti/izin/sakit: di bawah daftar operator (kolom kanan)
+            if ($ringkasCuti) {
+                $rc = $r0 + count($names) + 1; // sisakan 1 baris kosong
+                $stCutiH = $x->style(['b'=>true,'border'=>true,'v'=>'center']);
+                $stCuti  = $x->style(['fill'=>'E9ECEF','border'=>true,'v'=>'center']);
+                if ($rc <= $rEnd) $s->set($rc++, $colOp, 'CUTI / IZIN / SAKIT:', $stCutiH);
+                ksort($ringkasCuti, SORT_NATURAL | SORT_FLAG_CASE);
+                foreach ($ringkasCuti as $nmC => $txtC) {
+                    if ($rc > $rEnd) break;
+                    $s->set($rc++, $colOp, $nmC.' ('.$txtC.')', $stCuti);
+                }
             }
 
             // Tempel gambar TTD di tengah blok kolom $c1..$c2, di dalam area 4 baris kosong ($rowSpace = baris 1-based pertama).

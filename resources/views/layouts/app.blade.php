@@ -343,6 +343,7 @@
         @if(auth()->user()->isAdmin())
         <a href="{{ route('setting.index') }}" class="nav-link {{ request()->routeIs('setting.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-gear"></i> Pengaturan App</a>
         <a href="{{ route('lokasi.index') }}" class="nav-link {{ request()->routeIs('lokasi.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-geo-alt"></i> Master Lokasi</a>
+        <a href="{{ route('backup.index') }}" class="nav-link {{ request()->routeIs('backup.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-database"></i> Backup Database</a>
         @endif
         @endif
         @if(file_exists(public_path('js/offline-db.js')))

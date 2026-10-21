@@ -187,6 +187,14 @@ Route::middleware(['auth'])->group(function(){
         Route::post('/setting/kredit',    [SettingController::class,'updateKredit'])->name('setting.kredit');
         Route::post('/setting/hapus-ttd', [SettingController::class,'removeTtd'])->name('setting.remove-ttd');
 
+        // Backup & Restore Database (Super Admin)
+        Route::get('/backup-db',                     [\App\Http\Controllers\BackupController::class,'index'])->name('backup.index');
+        Route::post('/backup-db',                    [\App\Http\Controllers\BackupController::class,'create'])->name('backup.create');
+        Route::post('/backup-db/upload',             [\App\Http\Controllers\BackupController::class,'upload'])->name('backup.upload');
+        Route::get('/backup-db/{file}/download',     [\App\Http\Controllers\BackupController::class,'download'])->where('file','[A-Za-z0-9._-]+')->name('backup.download');
+        Route::post('/backup-db/{file}/restore',     [\App\Http\Controllers\BackupController::class,'restore'])->where('file','[A-Za-z0-9._-]+')->name('backup.restore');
+        Route::delete('/backup-db/{file}',           [\App\Http\Controllers\BackupController::class,'destroy'])->where('file','[A-Za-z0-9._-]+')->name('backup.destroy');
+
         // Master Lokasi (Admin only)
         Route::get('/lokasi',             [LokasiController::class,'index'])->name('lokasi.index');
         Route::post('/lokasi',            [LokasiController::class,'store'])->name('lokasi.store');

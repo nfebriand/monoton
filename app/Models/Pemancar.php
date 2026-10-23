@@ -26,6 +26,18 @@ class Pemancar extends Model
     ];
 
     public function fotos()          { return $this->hasMany(PemancarFoto::class)->orderBy('urutan'); }
+    public function sistem()         { return $this->hasOne(PemancarSistem::class); }
+    public function audioSumber()    { return $this->hasMany(PemancarAudioSumber::class)->orderBy('urutan'); }
+    public function dokumen()        { return $this->hasMany(PemancarDokumen::class)->orderBy('kategori')->orderBy('judul'); }
+
+    protected static function booted(): void
+    {
+        // Hapus berkas dokumen dari disk saat pemancar dihapus (barisnya terhapus oleh cascade)
+        static::deleting(function (Pemancar $p) {
+            \Illuminate\Support\Facades\Storage::disk('local')->deleteDirectory('pemancar-dokumen/'.$p->id);
+        });
+    }
+
     public function jadwalShifts()   { return $this->hasMany(JadwalShift::class); }
     public function operasionalLogs(){ return $this->hasMany(OperasionalLog::class)->orderByDesc('dicatat_pada'); }
 

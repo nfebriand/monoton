@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Pemancar;
 use App\Models\PemancarFoto;
+use App\Models\PemancarSistem;
+use App\Models\PemancarAudioSumber;
 use App\Models\User;
 use App\Models\OperasionalLog;
 use Illuminate\Http\Request;
@@ -55,7 +57,7 @@ class PemancarController extends Controller
 
 	public function store(Request $request)
 	{
-		$v = $request->validate([
+		$v = $request->validate($this->sistemRules() + [
 			'nama_stasiun'            => 'required|string|max:150',
 			'lokasi'                  => 'nullable|string|max:100',
 			'modulasi'                => 'required|in:FM,AM',
@@ -77,8 +79,10 @@ class PemancarController extends Controller
 		        ]);
 
 		$v['is_active'] = $request->boolean('is_active', true);
+		unset($v['sistem'], $v['audio']);
 
 		$pemancar = Pemancar::create($v);
+		$this->simpanSistem($request, $pemancar);
 
 		if ($request->hasFile('fotos')) {
 
@@ -100,9 +104,73 @@ class PemancarController extends Controller
 			->with('success','Pemancar berhasil ditambahkan.');
 	}
 
+    /** Aturan validasi untuk blok "Sistem Pemancar" (semua opsional). */
+    private function sistemRules(): array
+    {
+        return [
+            'sistem.antena_merk'   => 'nullable|string|max:100',
+            'sistem.antena_jenis'  => 'nullable|string|max:100',
+            'sistem.antena_bay'    => 'nullable|integer|min:1|max:65000',
+            'sistem.antena_max_power' => 'nullable|numeric|min:0|max:99999999',
+            'sistem.antena_gain'   => 'nullable|numeric|min:-50|max:100',
+            'sistem.antena_tinggi' => 'nullable|numeric|min:0|max:9999',
+            'audio'                => 'nullable|array|max:8',
+            'audio.*.peran'        => 'nullable|string|max:30',
+            'audio.*.sumber'       => 'nullable|in:'.implode(',', array_keys(PemancarSistem::AUDIO_SUMBER)),
+            'audio.*.konektor'     => 'nullable|string|max:60',
+            'audio.*.merk'         => 'nullable|string|max:100',
+            'audio.*.tipe'         => 'nullable|string|max:100',
+            'audio.*.stl_frekuensi'=> 'nullable|numeric|min:0|max:99999999',
+            'audio.*.catatan'      => 'nullable|string|max:200',
+            'sistem.kabel_jenis'   => 'nullable|string|max:100',
+            'sistem.kabel_panjang' => 'nullable|numeric|min:0|max:999999',
+            'sistem.konektor_exciter_driver' => 'nullable|string|max:60',
+            'sistem.konektor_driver_final'   => 'nullable|string|max:60',
+            'sistem.konektor_final_antena'   => 'nullable|string|max:60',
+            'sistem.ap_terpasang'  => 'nullable|in:0,1',
+            'sistem.ap_merk'       => 'nullable|string|max:100',
+            'sistem.ap_tipe'       => 'nullable|string|max:100',
+            'sistem.ap_spek'       => 'nullable|string|max:2000',
+            'sistem.catatan'       => 'nullable|string|max:2000',
+        ];
+    }
+
+    /** Simpan/hapus data sistem; jika semua kolom kosong, baris dihapus. */
+    private function simpanSistem(Request $request, Pemancar $pemancar): void
+    {
+        $in = (array) $request->input('sistem', []);
+        $data = [];
+        foreach (PemancarSistem::formFields() as $f) {
+            $v = $in[$f] ?? null;
+            if (is_string($v)) $v = trim($v);
+            $data[$f] = ($v === '' || $v === null) ? null : $v;
+        }
+        if ($data['ap_terpasang'] !== null) $data['ap_terpasang'] = (bool) (int) $data['ap_terpasang'];
+
+        if (count(array_filter($data, fn($v) => $v !== null)) === 0) {
+            $pemancar->sistem()->delete();
+        } else {
+            $pemancar->sistem()->updateOrCreate([], $data);
+        }
+
+        // Sumber audio (beberapa baris): ganti seluruhnya sesuai isian form; baris kosong dilewati
+        $pemancar->audioSumber()->delete();
+        $i = 0;
+        foreach ((array) $request->input('audio', []) as $row) {
+            $r = [];
+            foreach (['peran', 'sumber', 'konektor', 'merk', 'tipe', 'stl_frekuensi', 'catatan'] as $f) {
+                $v = isset($row[$f]) ? trim((string) $row[$f]) : '';
+                $r[$f] = $v === '' ? null : $v;
+            }
+            $isi = $r; unset($isi['peran']);
+            if (count(array_filter($isi, fn($v) => $v !== null)) === 0) continue;
+            PemancarAudioSumber::create($r + ['pemancar_id' => $pemancar->id, 'urutan' => $i++]);
+        }
+    }
+
     public function show(Pemancar $pemancar)
     {
-        $pemancar->load('fotos');
+        $pemancar->load('fotos', 'sistem', 'audioSumber', 'dokumen');
 
         if (auth()->user()->isOperator() && auth()->user()->lokasi_dinas
             && $pemancar->lokasi !== auth()->user()->lokasi_dinas) {
@@ -180,7 +248,7 @@ class PemancarController extends Controller
 
     public function update(Request $request, Pemancar $pemancar)
     {
-        $v = $request->validate([
+        $v = $request->validate($this->sistemRules() + [
             'nama_stasiun'            => 'required|string|max:150',
             'lokasi'                  => 'nullable|string|max:100',
             'modulasi'                => 'required|in:FM,AM',
@@ -201,7 +269,9 @@ class PemancarController extends Controller
             'fotos.*.max'      => 'Ukuran tiap foto maksimal 8 MB.',
         ]);
         $v['is_active'] = $request->boolean('is_active', true);
+        unset($v['sistem'], $v['audio']);
         $pemancar->update($v);
+        $this->simpanSistem($request, $pemancar);
 
         if ($request->hasFile('fotos')) {
 		$last = $pemancar->fotos()->max('urutan') ?? -1;

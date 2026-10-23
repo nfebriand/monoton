@@ -118,6 +118,215 @@
             </div>
         </div>
 
+        {{-- ── Sistem & Instalasi (antena, kabel, konektor, audio) ── --}}
+        @php
+            $sis = $pemancar->sistem;
+            $fmtN = fn($v, $d = 2) => \App\Models\PemancarSistem::num($v, $d);
+            $baris = [];
+            if ($sis) {
+                $add = function (string $grup, string $label, $val) use (&$baris) {
+                    if ($val !== null && $val !== '') $baris[$grup][] = [$label, $val];
+                };
+                $add('Antena', 'Merk', $sis->antena_merk);
+                $add('Antena', 'Jenis', $sis->antena_jenis);
+                $add('Antena', 'Jumlah Bay', $sis->antena_bay);
+                $add('Antena', 'Daya Maks.', $sis->antena_max_power !== null ? $fmtN($sis->antena_max_power).' W' : null);
+                $add('Antena', 'Gain', $sis->antena_gain !== null ? $fmtN($sis->antena_gain).' dBd' : null);
+                $add('Antena', 'Tinggi', $sis->antena_tinggi !== null ? $fmtN($sis->antena_tinggi).' m' : null);
+                $add('Kabel & Konektor', 'Kabel pemancar → antena', implode(' · ', array_filter([$sis->kabel_jenis, $sis->kabel_panjang !== null ? $fmtN($sis->kabel_panjang).' m' : null])));
+                $add('Kabel & Konektor', 'Konektor Exciter → Driver', $sis->konektor_exciter_driver);
+                $add('Kabel & Konektor', 'Konektor Driver → Final', $sis->konektor_driver_final);
+                $add('Kabel & Konektor', 'Konektor Final → Antena', $sis->konektor_final_antena);
+                if ($sis->ap_terpasang === false) {
+                    $add('Audio Processor', 'Status', 'Tidak terpasang');
+                } else {
+                    $add('Audio Processor', 'Status', $sis->ap_terpasang === true ? 'Terpasang' : null);
+                    $add('Audio Processor', 'Merk / Tipe', trim(($sis->ap_merk ?? '').' '.($sis->ap_tipe ?? '')));
+                    $add('Audio Processor', 'Spesifikasi', $sis->ap_spek);
+                }
+            }
+            // Sumber audio (bisa lebih dari satu)
+            foreach ($pemancar->audioSumber as $as) {
+                $judulAs = 'Sumber Audio'.($as->peran ? ' — '.$as->peran : '');
+                $pf = function ($l, $v) use (&$baris, $judulAs) {
+                    if ($v !== null && $v !== '') $baris[$judulAs][] = [$l, $v];
+                };
+                $pf('Sumber', $as->sumber ? (\App\Models\PemancarSistem::AUDIO_SUMBER[$as->sumber] ?? $as->sumber) : null);
+                $pf('Konektor', $as->konektor);
+                $pf('Perangkat', trim(($as->merk ?? '').' '.($as->tipe ?? '')));
+                $pf('Frekuensi kerja STL', $as->stl_frekuensi !== null ? $fmtN($as->stl_frekuensi, 3).' MHz' : null);
+                $pf('Catatan', $as->catatan);
+            }
+        @endphp
+        @if(!empty($baris) || ($sis && $sis->catatan))
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-diagram-3 me-2 text-primary"></i>Sistem &amp; Instalasi</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach($baris as $grup => $items)
+                    <div class="col-12 col-md-6">
+                        <div class="fw-bold mb-1" style="font-size:.78rem;color:var(--primary)">{{ $grup }}</div>
+                        @foreach($items as [$lbl, $val])
+                        <div class="d-flex gap-2 py-1 border-bottom" style="font-size:.8rem">
+                            <span class="text-muted" style="min-width:150px">{{ $lbl }}</span>
+                            <span class="fw-semibold" style="white-space:pre-line">{{ $val }}</span>
+                        </div>
+                        @endforeach
+                    </div>
+                    @endforeach
+                </div>
+                @if($sis && $sis->catatan)
+                <div class="mt-3 p-2 rounded" style="background:var(--bg);border:1px solid var(--border);font-size:.8rem;white-space:pre-line">{{ $sis->catatan }}</div>
+                @endif
+            </div>
+        </div>
+        @endif
+
+        {{-- ── Diagram Koneksi (otomatis dari data) ── --}}
+        @php
+            $adaDiagram = $sis || $pemancar->audioSumber->isNotEmpty();
+            $fmtW = fn($v) => \App\Models\PemancarSistem::num($v, 2);
+        @endphp
+        @if($adaDiagram)
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-share me-2 text-primary"></i>Diagram Koneksi <small class="text-muted fw-normal">(otomatis dari data di atas)</small></div>
+            <div class="card-body">
+                <div class="d-flex align-items-stretch flex-wrap gap-2" style="font-size:.76rem">
+                    @if($pemancar->audioSumber->isNotEmpty())
+                    <div class="d-flex flex-column gap-1 justify-content-center">
+                        @foreach($pemancar->audioSumber as $as)
+                        <div class="p-2 rounded text-center" style="background:#e8f4fd;border:1px solid #b6dcf5;min-width:120px">
+                            <div class="fw-bold">{{ $as->sumber ?: 'Audio' }}{{ $as->peran ? ' ('.$as->peran.')' : '' }}</div>
+                            @if($as->merk || $as->tipe)<div>{{ trim($as->merk.' '.$as->tipe) }}</div>@endif
+                            @if($as->stl_frekuensi !== null)<div class="mono">{{ \App\Models\PemancarSistem::num($as->stl_frekuensi, 3) }} MHz</div>@endif
+                        </div>
+                        @endforeach
+                    </div>
+                    <div class="d-flex flex-column justify-content-center text-center text-muted" style="min-width:60px">
+                        <i class="bi bi-arrow-right fs-5"></i>
+                        <small>{{ $pemancar->audioSumber->pluck('konektor')->filter()->unique()->implode(' / ') ?: '—' }}</small>
+                    </div>
+                    @endif
+
+                    @php
+                        $rantai = [
+                            ['Exciter', $pemancar->kapasitas_output_exciter ? $fmtW($pemancar->kapasitas_output_exciter).' W' : null, $sis->konektor_exciter_driver ?? null],
+                            ['Driver',  $pemancar->kapasitas_output_driver  ? $fmtW($pemancar->kapasitas_output_driver).' W'  : null, $sis->konektor_driver_final ?? null],
+                            ['Final PA', $pemancar->kapasitas_output_final ? $fmtW($pemancar->kapasitas_output_final).' W' : null, $sis->konektor_final_antena ?? null],
+                        ];
+                    @endphp
+                    @foreach($rantai as [$nm, $w, $kon])
+                    <div class="p-2 rounded text-center d-flex flex-column justify-content-center" style="background:#fff3e0;border:1px solid #ffd699;min-width:90px">
+                        <div class="fw-bold">{{ $nm }}</div>
+                        @if($w)<div class="mono">{{ $w }}</div>@endif
+                    </div>
+                    <div class="d-flex flex-column justify-content-center text-center text-muted" style="min-width:60px">
+                        <i class="bi bi-arrow-right fs-5"></i>
+                        <small>{{ $kon ?: '—' }}</small>
+                    </div>
+                    @endforeach
+
+                    @if($sis && ($sis->kabel_jenis || $sis->kabel_panjang !== null))
+                    <div class="p-2 rounded text-center d-flex flex-column justify-content-center" style="background:#f3e5f5;border:1px solid #d9b3e6;min-width:100px">
+                        <div class="fw-bold">Kabel</div>
+                        <div>{{ $sis->kabel_jenis }}</div>
+                        @if($sis->kabel_panjang !== null)<div class="mono">{{ \App\Models\PemancarSistem::num($sis->kabel_panjang) }} m</div>@endif
+                    </div>
+                    <div class="d-flex flex-column justify-content-center text-muted" style="min-width:30px"><i class="bi bi-arrow-right fs-5"></i></div>
+                    @endif
+
+                    <div class="p-2 rounded text-center d-flex flex-column justify-content-center" style="background:#e8f5e9;border:1px solid #a5d6a7;min-width:110px">
+                        <div class="fw-bold"><i class="bi bi-broadcast-pin me-1"></i>Antena</div>
+                        @if($sis)
+                        @if($sis->antena_merk || $sis->antena_jenis)<div>{{ trim($sis->antena_merk.' '.$sis->antena_jenis) }}</div>@endif
+                        @if($sis->antena_bay)<div>{{ $sis->antena_bay }} bay</div>@endif
+                        @if($sis->antena_gain !== null)<div class="mono">{{ \App\Models\PemancarSistem::num($sis->antena_gain) }} dBd</div>@endif
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        {{-- ── Dokumen & Manual ── --}}
+        @php $dokGroup = $pemancar->dokumen->groupBy('kategori'); @endphp
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-journal-bookmark me-2 text-primary"></i>Dokumen &amp; Manual</span>
+                <span class="badge bg-secondary">{{ $pemancar->dokumen->count() }} berkas</span>
+            </div>
+            <div class="card-body">
+                @forelse(\App\Models\PemancarDokumen::KATEGORI as $kk => $kl)
+                    @continue(!isset($dokGroup[$kk]))
+                    <div class="fw-bold mb-1 mt-2" style="font-size:.78rem;color:var(--primary)">{{ $kl }}</div>
+                    @if($kk === 'skematik_koneksi')
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        @foreach($dokGroup[$kk] as $d)
+                            @if($d->is_image)
+                            <a href="{{ route('pemancar.dokumen.show', [$pemancar, $d]) }}" target="_blank" title="{{ $d->judul }}">
+                                <img src="{{ route('pemancar.dokumen.show', [$pemancar, $d]) }}" alt="{{ $d->judul }}"
+                                     style="max-width:100%;max-height:260px;border:1px solid var(--border);border-radius:6px">
+                            </a>
+                            @endif
+                        @endforeach
+                    </div>
+                    @endif
+                    @foreach($dokGroup[$kk] as $d)
+                    <div class="d-flex align-items-center gap-2 py-1 border-bottom" style="font-size:.8rem">
+                        <i class="bi {{ $d->is_pdf ? 'bi-file-earmark-pdf text-danger' : ($d->is_image ? 'bi-file-earmark-image text-success' : 'bi-file-earmark text-secondary') }} fs-5"></i>
+                        <div class="flex-fill text-truncate">
+                            <div class="fw-semibold text-truncate">{{ $d->judul }}</div>
+                            <div class="text-muted" style="font-size:.68rem">{{ $d->nama_asli }} · {{ $d->ukuran_label }} · {{ $d->created_at?->format('d/m/Y') }}</div>
+                        </div>
+                        @if($d->is_pdf || $d->is_image)
+                        <a href="{{ route('pemancar.dokumen.show', [$pemancar, $d]) }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Buka"><i class="bi bi-eye"></i></a>
+                        @endif
+                        <a href="{{ route('pemancar.dokumen.show', [$pemancar, $d, 'unduh' => 1]) }}" class="btn btn-sm btn-outline-secondary" title="Unduh"><i class="bi bi-download"></i></a>
+                        @if(auth()->user()->isAdmin())
+                        <form action="{{ route('pemancar.dokumen.destroy', [$pemancar, $d]) }}" method="POST" onsubmit="return confirm('Hapus berkas ini?')">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger" title="Hapus"><i class="bi bi-trash"></i></button>
+                        </form>
+                        @endif
+                    </div>
+                    @endforeach
+                @empty
+                @endforelse
+                @if($pemancar->dokumen->isEmpty())
+                <div class="text-muted text-center py-3" style="font-size:.8rem"><i class="bi bi-folder2-open d-block fs-3 mb-1"></i>Belum ada dokumen.</div>
+                @endif
+
+                @if(auth()->user()->isAdmin())
+                <hr>
+                <form action="{{ route('pemancar.dokumen.store', $pemancar) }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="row g-2 align-items-end">
+                        <div class="col-12 col-md-4">
+                            <label class="form-label">Kategori</label>
+                            <select name="kategori" class="form-select form-select-sm" required>
+                                @foreach(\App\Models\PemancarDokumen::KATEGORI as $kk => $kl)
+                                <option value="{{ $kk }}">{{ $kl }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-8">
+                            <label class="form-label">Judul <small class="text-muted">(opsional, untuk 1 berkas)</small></label>
+                            <input type="text" name="judul" class="form-control form-control-sm" maxlength="150" placeholder="mis. Manual Book Exciter XYZ">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Berkas <small class="text-muted">(PDF, JPG, PNG, WEBP, DOC/DOCX, XLS/XLSX, ZIP · maks. 50 MB per berkas · bisa pilih banyak)</small></label>
+                            <input type="file" name="berkas[]" class="form-control form-control-sm" multiple required
+                                   accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.zip">
+                        </div>
+                        <div class="col-12">
+                            <button class="btn btn-sm btn-primary"><i class="bi bi-upload me-1"></i>Unggah</button>
+                        </div>
+                    </div>
+                </form>
+                @endif
+            </div>
+        </div>
+
         {{-- ── Statistik 30 Hari ── --}}
         <div class="card mb-3">
             <div class="card-header d-flex align-items-center justify-content-between">

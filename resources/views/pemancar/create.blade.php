@@ -75,6 +75,8 @@
         </div>
     </div>
 
+    @include('pemancar._sistem-form', ['sistem' => null])
+
     <div class="mb-4">
         <label class="form-label">Keterangan</label>
         <textarea name="keterangan" class="form-control" rows="3">{{ old('keterangan') }}</textarea>

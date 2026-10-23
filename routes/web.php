@@ -38,6 +38,9 @@ Route::middleware(['auth'])->group(function(){
     Route::get('/pemancar/{pemancar}/edit',    [PemancarController::class,'edit'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.edit');
     Route::put('/pemancar/{pemancar}',         [PemancarController::class,'update'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.update');
     Route::delete('/pemancar/{pemancar}',      [PemancarController::class,'destroy'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.destroy');
+    Route::post('/pemancar/{pemancar}/dokumen',                  [\App\Http\Controllers\PemancarDokumenController::class,'store'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.dokumen.store');
+    Route::get('/pemancar/{pemancar}/dokumen/{dokumen}',         [\App\Http\Controllers\PemancarDokumenController::class,'show'])->name('pemancar.dokumen.show');
+    Route::delete('/pemancar/{pemancar}/dokumen/{dokumen}',      [\App\Http\Controllers\PemancarDokumenController::class,'destroy'])->middleware('App\Http\Middleware\AdminOnly')->name('pemancar.dokumen.destroy');
 
     // Operasional
     Route::get('/operasional',                  [OperasionalController::class,'index'])->name('operasional.index');

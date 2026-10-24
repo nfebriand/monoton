@@ -180,7 +180,7 @@ class PemancarController extends Controller
         // Operator bertugas di lokasi yang sama
         $operatorLokasi = collect();
         if ($pemancar->lokasi) {
-            $operatorLokasi = User::where('role','operator')
+            $operatorLokasi = User::whereIn('role', [User::ROLE_OPERATOR, User::ROLE_ADMIN_DIVISI])
                 ->where('lokasi_dinas', $pemancar->lokasi)
                 ->orderBy('name')
                 ->get();

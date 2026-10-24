@@ -118,6 +118,79 @@
             </div>
         </div>
 
+        {{-- ── Statistik 30 Hari ── --}}
+        <div class="card mb-3">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <span><i class="bi bi-bar-chart-line me-2 text-success"></i>Statistik 30 Hari Terakhir</span>
+                <span class="badge bg-secondary">{{ $statistik['total_log'] }} pencatatan</span>
+            </div>
+            <div class="card-body">
+                @if($statistik['total_log'] > 0)
+                <div class="row g-2">
+                    <div class="col-6 col-md-3">
+                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
+                            <div class="text-muted" style="font-size:.62rem">RATA OUTPUT FINAL</div>
+                            <div class="fw-bold mono" style="font-size:1rem">
+                                {{ $statistik['rata_output'] ? number_format($statistik['rata_output'],1).' W' : '–' }}
+                            </div>
+                            @if($statistik['min_output'] && $statistik['max_output'])
+                            <div class="text-muted" style="font-size:.6rem">
+                                {{ number_format($statistik['min_output'],0) }} – {{ number_format($statistik['max_output'],0) }} W
+                            </div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        @php
+                            $rv = $statistik['rata_vswr'];
+                            $vc = $rv ? ($rv<=1.5?'vswr-baik':($rv<=2?'vswr-sedang':'vswr-buruk')) : '';
+                        @endphp
+                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
+                            <div class="text-muted" style="font-size:.62rem">RATA VSWR FINAL</div>
+                            <div class="fw-bold mono {{ $vc }}" style="font-size:1rem">
+                                {{ $rv ? number_format($rv,3) : '–' }}
+                            </div>
+                            @if($statistik['max_vswr'])
+                            <div class="text-muted" style="font-size:.6rem">max: {{ number_format($statistik['max_vswr'],3) }}</div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
+                            <div class="text-muted" style="font-size:.62rem">RATA SUHU PEMANCAR</div>
+                            <div class="fw-bold mono" style="font-size:1rem">
+                                {{ $statistik['rata_suhu_pmcr'] ? number_format($statistik['rata_suhu_pmcr'],1).'°C' : '–' }}
+                            </div>
+                            @if($statistik['max_suhu_pmcr'])
+                            <div class="text-muted" style="font-size:.6rem">max: {{ number_format($statistik['max_suhu_pmcr'],1) }}°C</div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
+                            <div class="text-muted" style="font-size:.62rem">VSWR BERMASALAH</div>
+                            <div class="fw-bold mono" style="font-size:1rem;color:{{ $statistik['jumlah_vswr_buruk']>0?'var(--danger)':'var(--success)' }}">
+                                {{ $statistik['jumlah_vswr_buruk'] }}x
+                            </div>
+                            <div class="text-muted" style="font-size:.6rem">VSWR ≥ 2.0</div>
+                        </div>
+                    </div>
+                </div>
+                @if($statistik['rata_suhu_ruang'])
+                <div class="text-muted mt-2" style="font-size:.72rem">
+                    <i class="bi bi-thermometer-half me-1"></i>Rata-rata suhu ruangan: <strong>{{ number_format($statistik['rata_suhu_ruang'],1) }}°C</strong>
+                </div>
+                @endif
+                @else
+                <div class="text-center text-muted py-3 small">
+                    <i class="bi bi-bar-chart d-block fs-3 mb-1"></i>Belum ada data 30 hari terakhir
+                </div>
+                @endif
+            </div>
+        </div>
+
+        {{-- Foto --}}
+
         {{-- ── Sistem & Instalasi (antena, kabel, konektor, audio) ── --}}
         @php
             $sis = $pemancar->sistem;
@@ -327,78 +400,6 @@
             </div>
         </div>
 
-        {{-- ── Statistik 30 Hari ── --}}
-        <div class="card mb-3">
-            <div class="card-header d-flex align-items-center justify-content-between">
-                <span><i class="bi bi-bar-chart-line me-2 text-success"></i>Statistik 30 Hari Terakhir</span>
-                <span class="badge bg-secondary">{{ $statistik['total_log'] }} pencatatan</span>
-            </div>
-            <div class="card-body">
-                @if($statistik['total_log'] > 0)
-                <div class="row g-2">
-                    <div class="col-6 col-md-3">
-                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
-                            <div class="text-muted" style="font-size:.62rem">RATA OUTPUT FINAL</div>
-                            <div class="fw-bold mono" style="font-size:1rem">
-                                {{ $statistik['rata_output'] ? number_format($statistik['rata_output'],1).' W' : '–' }}
-                            </div>
-                            @if($statistik['min_output'] && $statistik['max_output'])
-                            <div class="text-muted" style="font-size:.6rem">
-                                {{ number_format($statistik['min_output'],0) }} – {{ number_format($statistik['max_output'],0) }} W
-                            </div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        @php
-                            $rv = $statistik['rata_vswr'];
-                            $vc = $rv ? ($rv<=1.5?'vswr-baik':($rv<=2?'vswr-sedang':'vswr-buruk')) : '';
-                        @endphp
-                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
-                            <div class="text-muted" style="font-size:.62rem">RATA VSWR FINAL</div>
-                            <div class="fw-bold mono {{ $vc }}" style="font-size:1rem">
-                                {{ $rv ? number_format($rv,3) : '–' }}
-                            </div>
-                            @if($statistik['max_vswr'])
-                            <div class="text-muted" style="font-size:.6rem">max: {{ number_format($statistik['max_vswr'],3) }}</div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
-                            <div class="text-muted" style="font-size:.62rem">RATA SUHU PEMANCAR</div>
-                            <div class="fw-bold mono" style="font-size:1rem">
-                                {{ $statistik['rata_suhu_pmcr'] ? number_format($statistik['rata_suhu_pmcr'],1).'°C' : '–' }}
-                            </div>
-                            @if($statistik['max_suhu_pmcr'])
-                            <div class="text-muted" style="font-size:.6rem">max: {{ number_format($statistik['max_suhu_pmcr'],1) }}°C</div>
-                            @endif
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3">
-                        <div class="p-2 rounded text-center" style="background:var(--bg);border:1px solid var(--border)">
-                            <div class="text-muted" style="font-size:.62rem">VSWR BERMASALAH</div>
-                            <div class="fw-bold mono" style="font-size:1rem;color:{{ $statistik['jumlah_vswr_buruk']>0?'var(--danger)':'var(--success)' }}">
-                                {{ $statistik['jumlah_vswr_buruk'] }}x
-                            </div>
-                            <div class="text-muted" style="font-size:.6rem">VSWR ≥ 2.0</div>
-                        </div>
-                    </div>
-                </div>
-                @if($statistik['rata_suhu_ruang'])
-                <div class="text-muted mt-2" style="font-size:.72rem">
-                    <i class="bi bi-thermometer-half me-1"></i>Rata-rata suhu ruangan: <strong>{{ number_format($statistik['rata_suhu_ruang'],1) }}°C</strong>
-                </div>
-                @endif
-                @else
-                <div class="text-center text-muted py-3 small">
-                    <i class="bi bi-bar-chart d-block fs-3 mb-1"></i>Belum ada data 30 hari terakhir
-                </div>
-                @endif
-            </div>
-        </div>
-
-        {{-- Foto --}}
         @if($pemancar->fotos->isNotEmpty())
         <div class="card mb-3">
             <div class="card-header"><i class="bi bi-images me-2"></i>Foto Pemancar ({{ $pemancar->fotos->count() }})</div>
@@ -484,9 +485,11 @@
                         {{ strtoupper(substr($op->name,0,2)) }}
                     </div>
                     <div class="flex-fill" style="min-width:0">
-                        <div style="font-size:.84rem;font-weight:600">{{ $op->name }}</div>
+                        <div style="font-size:.84rem;font-weight:600">{{ $op->name }}
+                            @if($op->isAdminDivisi())<span class="badge bg-warning text-dark ms-1" style="font-size:.55rem">Admin Divisi</span>@endif
+                        </div>
                         <div class="text-muted" style="font-size:.68rem">
-                            {{ $op->nip ? 'NIP. '.$op->nip : 'Operator' }}
+                            {{ $op->nip ? 'NIP. '.$op->nip.' · ' : '' }}{{ $op->isAdminDivisi() ? 'Admin Divisi' : 'Operator' }}
                         </div>
                     </div>
                     <span class="badge {{ $op->is_active?'bg-success':'bg-secondary' }}" style="font-size:.6rem">
@@ -507,7 +510,7 @@
             </div>
             @if($operatorLokasi->isNotEmpty())
             <div class="card-footer py-2 text-center" style="border-color:var(--border)">
-                <small class="text-muted">{{ $operatorLokasi->count() }} operator terdaftar</small>
+                <small class="text-muted">{{ $operatorLokasi->count() }} personil terdaftar</small>
             </div>
             @endif
         </div>

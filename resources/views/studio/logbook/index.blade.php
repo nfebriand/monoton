@@ -4,10 +4,12 @@
 
 @section('content')
 
+@include('studio._lokasi-tabs', ['lokasiAktif' => $lokasiAktif, 'hitung' => $hitung, 'labelHitung' => 'jumlah logbook sesuai filter'])
+
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-2">
         <div class="card text-center"><div class="card-body py-2">
-            <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">Total Bulan Ini</div>
+            <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">Total Bulan Ini{{ $lokasiAktif ? ' · '.$lokasiAktif : '' }}</div>
             <div class="mono fw-bold" style="font-size:1.5rem;color:var(--primary)">{{ $ringkasan['total'] }}</div>
         </div></div>
     </div>
@@ -40,6 +42,7 @@
 <div class="card mb-3">
     <div class="card-body py-2">
         <form method="GET" class="row g-2 align-items-end">
+            <input type="hidden" name="lokasi" value="{{ $lokasiAktif }}">
             @php
                 $__a1 = now()->subMonthNoOverflow(1)->startOfMonth();
                 $__a3 = now()->subMonthNoOverflow(3)->startOfMonth();
@@ -91,7 +94,7 @@
             </div>
             <div class="col-12 col-md-2 d-flex gap-2">
                 <button class="btn btn-sm btn-primary-custom flex-fill"><i class="bi bi-funnel me-1"></i>Filter</button>
-                <a href="{{ route('studio.logbook.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                <a href="{{ route('studio.logbook.index', ['lokasi' => $lokasiAktif]) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
             </div>
         </form>
     </div>
@@ -103,6 +106,7 @@
         <a href="{{ route('studio.logbook.cetak-harian', array_filter([
                 'tanggal' => request('tanggal_dari', now()->toDateString()),
                 'user_id' => request('user_id'),
+                'lokasi'  => $lokasiAktif,
             ])) }}"
            class="btn btn-sm btn-outline-secondary" target="_blank">
             <i class="bi bi-printer me-1"></i>Cetak Harian
@@ -111,6 +115,7 @@
         <a href="{{ route('studio.logbook.cetak-bulanan', array_filter([
                 'bulan'   => request('tanggal_dari') ? substr(request('tanggal_dari'),0,7) : now()->format('Y-m'),
                 'user_id' => request('user_id'),
+                'lokasi'  => $lokasiAktif,
             ])) }}"
            class="btn btn-sm btn-outline-secondary" target="_blank">
             <i class="bi bi-file-earmark-pdf me-1"></i>Rekap Bulanan
@@ -126,6 +131,7 @@
 {{-- Baris Bulk Cetak + Isi Logbook --}}
 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
     <form action="{{ route('studio.logbook.bulk-cetak') }}" method="GET" target="_blank" id="form-bulk-cetak">
+        <input type="hidden" name="lokasi" value="{{ $lokasiAktif }}">
         @if(request('tanggal_dari'))
         <input type="hidden" name="tanggal_dari" value="{{ request('tanggal_dari') }}">
         @endif
@@ -144,7 +150,7 @@
             <span class="badge bg-white text-danger ms-1">{{ $logs->total() }}</span>
         </button>
     </form>
-    <a href="{{ route('studio.logbook.create') }}" class="btn btn-primary-custom">
+    <a href="{{ route('studio.logbook.create', ['lokasi' => $lokasiAktif]) }}" class="btn btn-primary-custom">
         <i class="bi bi-plus-circle me-1"></i>Isi Logbook Shift
     </a>
 </div>
@@ -157,6 +163,7 @@
                 <thead>
                     <tr>
                         <th class="ps-3">Tanggal</th>
+                        <th>Lokasi</th>
                         <th>Shift</th>
                         <th>Jam Dinas</th>
                         <th>Kondisi Umum</th>
@@ -169,6 +176,7 @@
                     @forelse($logs as $log)
                     <tr>
                         <td class="ps-3 mono fw-bold" style="font-size:.8rem">{{ $log->tanggal->format('d/m/Y') }}</td>
+                        <td>@include('studio._lokasi-badge', ['lokasi' => $log->lokasi])</td>
                         <td>
                             <span class="badge" style="font-size:.68rem;background:{{ $log->shift=='pagi'?'#f39c12':($log->shift=='siang'?'#27ae60':'#2c3e50') }}">
                                 {{ ucfirst($log->shift) }}
@@ -196,7 +204,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center text-muted py-4">
+                    <tr><td colspan="8" class="text-center text-muted py-4">
                         <i class="bi bi-journal-text d-block fs-2 mb-1"></i>Belum ada logbook studio
                     </td></tr>
                     @endforelse

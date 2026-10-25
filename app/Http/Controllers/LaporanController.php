@@ -36,11 +36,17 @@ class LaporanController extends Controller
 
         // Pemancar & lokasi Transmisi
         $pemancarQuery = Pemancar::orderBy('lokasi')->orderBy('nama_stasiun');
-        if ($user->isOperator() && $user->isDivisi('transmisi') && $user->lokasi_dinas) {
+        $lokasiQuery   = Pemancar::whereNotNull('lokasi')->distinct()->orderBy('lokasi');
+        $lokasiTerkunci = null;
+        if ($user->isOperator() && $user->lokasi_dinas) {
+            // Operator hanya melihat pemancar & lokasi sesuai lokasi tugasnya
+            $lokasiTerkunci = $user->lokasi_dinas;
             $pemancarQuery->where('lokasi', $user->lokasi_dinas);
+            $lokasiQuery->where('lokasi', $user->lokasi_dinas);
         }
         $pemancars       = $pemancarQuery->get();
-        $lokasiTransmisi = Pemancar::whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
+        $lokasiTransmisi = $lokasiQuery->pluck('lokasi');
+        $lokasiStudioTerkunci = \App\Support\StudioLokasi::restricted($user) ? 'Way Kanan' : null;
 
         // Lokasi eviden (dari tabel evidens)
         $lokasiEviden = \App\Models\Eviden::whereNotNull('lokasi')
@@ -73,6 +79,8 @@ class LaporanController extends Controller
         return view('laporan.index', [
             'pemancars'          => $pemancars,
             'lokasiTransmisi'    => $lokasiTransmisi,
+            'lokasiTerkunci'     => $lokasiTerkunci,
+            'lokasiStudioTerkunci' => $lokasiStudioTerkunci,
             'lokasiEviden'       => $lokasiEviden,
             'operatorPerDivisi'  => $operatorPerDivisi,
             'lokasiPerDivisi'    => $lokasiPerDivisi,
@@ -185,7 +193,11 @@ class LaporanController extends Controller
             $pemancarQuery->where('lokasi', $user->lokasi_dinas);
         }
         $pemancars  = $pemancarQuery->get();
-        $lokasiList = Pemancar::whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
+        $lokasiQuery = Pemancar::whereNotNull('lokasi')->distinct()->orderBy('lokasi');
+        if ($user->isOperator() && $user->lokasi_dinas) {
+            $lokasiQuery->where('lokasi', $user->lokasi_dinas);
+        }
+        $lokasiList = $lokasiQuery->pluck('lokasi');
 
         $query = OperasionalLog::with('pemancar')
             ->whereYear('dicatat_pada', $tahun)
@@ -197,7 +209,13 @@ class LaporanController extends Controller
         if ($user->isOperator() && $user->lokasi_dinas) {
             $query->whereHas('pemancar', fn($q) => $q->where('lokasi', $user->lokasi_dinas));
         }
-        if ($request->filled('pemancar_id')) $query->where('pemancar_id', $request->pemancar_id);
+        // Lokasi dipilih lebih dulu; pemancar yang tidak berada di lokasi tsb diabaikan
+        $pemancarId = $request->input('pemancar_id');
+        if ($pemancarId && $request->filled('lokasi')) {
+            $pm = $pemancars->firstWhere('id', (int) $pemancarId);
+            if (!$pm || $pm->lokasi !== $request->lokasi) $pemancarId = null;
+        }
+        if ($pemancarId) $query->where('pemancar_id', $pemancarId);
         if ($request->filled('lokasi')) $query->whereHas('pemancar', fn($q) => $q->where('lokasi', $request->lokasi));
 
         $logs = $query->get();

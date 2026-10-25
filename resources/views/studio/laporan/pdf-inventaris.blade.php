@@ -21,7 +21,7 @@ tr:nth-child(even) td { background:#f8f9fa; }
 <div class="page">
 <div class="header">
     <h2>{{ $settings['satuan_kerja'] ?? 'RRI/LPPL Lampung' }}</h2>
-    <h3>Inventaris Perangkat Studio</h3>
+    <h3>Inventaris Perangkat Studio{{ !empty($lokasiFilter) ? ' — '.\App\Support\StudioLokasi::label($lokasiFilter) : '' }}</h3>
     <p>Per tanggal: {{ now()->translatedFormat('d F Y') }}</p>
 </div>
 
@@ -53,7 +53,7 @@ tr:nth-child(even) td { background:#f8f9fa; }
         <tr>
             <td>{{ $no++ }}</td>
             <td class="mono">{{ $p->kode_inventaris ?? '-' }}</td>
-            <td>{{ $p->nama }}</td>
+            <td>{{ $p->nama }}@if(empty($lokasiFilter) && !empty($p->lokasi))<br><small style="color:#666">{{ \App\Support\StudioLokasi::label($p->lokasi) }}</small>@endif</td>
 			<td>{{ ($p->merk ?? '') . (!empty($p->tipe) ? ' '.$p->tipe : '') ?: '-' }}</td>
     		<td class="mono" style="font-size:7.5pt">{{ $p->no_seri ?? '-' }}</td>
             <td>{{ $p->tahun_pengadaan ?? '-' }}</td>

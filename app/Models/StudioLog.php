@@ -9,7 +9,7 @@ class StudioLog extends Model
     protected $table = 'studio_logs';
 
     protected $fillable = [
-        'user_id','tanggal','shift','jam_mulai','jam_selesai',
+        'user_id','lokasi','tanggal','shift','jam_mulai','jam_selesai',
         'alih_tugas','alih_tugas_ket',
         'kondisi_audio','kondisi_audio_ket',
         'kondisi_video','kondisi_video_ket',

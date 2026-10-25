@@ -5,6 +5,7 @@ use App\Models\StudioMaintenance;
 use App\Models\StudioPerangkat;
 use App\Models\AppSetting;
 use Illuminate\Http\Request;
+use App\Support\StudioLokasi;
 
 class StudioMaintenanceController extends Controller
 {
@@ -26,6 +27,7 @@ class StudioMaintenanceController extends Controller
     {
         $this->checkAccess();
 
+        $lokasiAktif = StudioLokasi::aktif($request, auth()->user());
         $query = StudioMaintenance::with(['perangkat','user'])->orderByDesc('tanggal');
 
         if ($request->filled('studio_perangkat_id')) $query->where('studio_perangkat_id', $request->studio_perangkat_id);
@@ -33,20 +35,30 @@ class StudioMaintenanceController extends Controller
         if ($request->filled('tanggal_dari'))        $query->where('tanggal', '>=', $request->tanggal_dari);
         if ($request->filled('tanggal_sampai'))      $query->where('tanggal', '<=', $request->tanggal_sampai);
 
-        $logs      = $query->paginate(15)->withQueryString();
-        $perangkats = StudioPerangkat::where('status', 'aktif')->orderBy('nama')->get();
+        // Jumlah log per lokasi (mengikuti filter lain) untuk tab pembeda lokasi
+        $hitung = [];
+        foreach (StudioLokasi::LIST as $l) {
+            $hitung[$l] = (clone $query)->whereHas('perangkat', fn($q) => $q->where('lokasi', $l))->count();
+        }
+        if ($lokasiAktif) $query->whereHas('perangkat', fn($q) => $q->where('lokasi', $lokasiAktif));
 
-        $perluPerhatian = StudioPerangkat::where('status', 'aktif')->get()
+        $logs      = $query->paginate(15)->withQueryString();
+        $perangkats = StudioPerangkat::where('status', 'aktif')
+            ->when($lokasiAktif, fn($q) => $q->where('lokasi', $lokasiAktif))
+            ->orderBy('lokasi')->orderBy('nama')->get();
+
+        $perluPerhatian = StudioPerangkat::where('status', 'aktif')
+            ->when($lokasiAktif, fn($q) => $q->where('lokasi', $lokasiAktif))->get()
             ->filter(fn($p) => in_array($p->status_maintenance, ['jatuh_tempo', 'terlambat']))
             ->sortBy(fn($p) => $p->jatuh_tempo_maintenance);
 
-        return view('studio.maintenance.index', compact('logs', 'perangkats', 'perluPerhatian'));
+        return view('studio.maintenance.index', compact('logs', 'perangkats', 'perluPerhatian', 'lokasiAktif', 'hitung'));
     }
 
     public function create(Request $request)
     {
         $this->checkAccess();
-        $perangkats      = StudioPerangkat::where('status', 'aktif')->orderBy('nama')->get();
+        $perangkats      = StudioPerangkat::where('status', 'aktif')->orderBy('lokasi')->orderBy('nama')->get();
         $perangkatTerpilih = $request->filled('studio_perangkat_id')
             ? StudioPerangkat::find($request->studio_perangkat_id)
             : null;
@@ -125,14 +137,16 @@ class StudioMaintenanceController extends Controller
         $this->checkAccess();
         $tanggalDari   = $request->get('tanggal_dari', now()->startOfMonth()->toDateString());
         $tanggalSampai = $request->get('tanggal_sampai', now()->toDateString());
+        $lokasiFilter = StudioLokasi::aktif($request, auth()->user());
         $logs = StudioMaintenance::with(['perangkat','user'])
                     ->whereBetween('tanggal', [$tanggalDari, $tanggalSampai])
+                    ->when($lokasiFilter, fn($q) => $q->whereHas('perangkat', fn($p) => $p->where('lokasi', $lokasiFilter)))
                     ->orderBy('tanggal')->get();
         $settings    = AppSetting::allKeyed();
         $koordinator = AppSetting::getKoordinator('studio');
         $kabid       = AppSetting::getKabid();
-        $html = view('studio.laporan.pdf-maintenance', compact('logs','tanggalDari','tanggalSampai','settings','koordinator','kabid'))->render();
-        return $this->streamPdf($html, 'laporan-maintenance-studio-'.now()->format('Ymd'));
+        $html = view('studio.laporan.pdf-maintenance', compact('logs','tanggalDari','tanggalSampai','settings','koordinator','kabid','lokasiFilter'))->render();
+        return $this->streamPdf($html, 'laporan-maintenance-studio'.($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').'-'.now()->format('Ymd'));
     }
 
     private function streamPdf(string $html, string $filename)

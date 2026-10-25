@@ -23,22 +23,22 @@
             <input type="hidden" name="bulan" value="{{ $bulan }}">
             <input type="hidden" name="tahun" value="{{ $tahun }}">
             <div class="col-12 col-md-4">
-                <label class="form-label mb-1" style="font-size:.7rem">Pemancar</label>
-                <select name="pemancar_id" class="form-select form-select-sm">
-                    <option value="">Semua Pemancar</option>
-                    @foreach($pemancars as $p)
-                    <option value="{{ $p->id }}" {{ request('pemancar_id')==$p->id?'selected':'' }}>
-                        {{ $p->nama_stasiun }}{{ $p->lokasi ? ' ('.$p->lokasi.')':'' }}
-                    </option>
+                <label class="form-label mb-1" style="font-size:.7rem">Lokasi</label>
+                <select name="lokasi" id="sel-lokasi" class="form-select form-select-sm">
+                    <option value="">Semua Lokasi</option>
+                    @foreach($lokasiList as $l)
+                    <option value="{{ $l }}" {{ request('lokasi')===$l?'selected':'' }}>{{ $l }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="col-12 col-md-4">
-                <label class="form-label mb-1" style="font-size:.7rem">Lokasi</label>
-                <select name="lokasi" class="form-select form-select-sm">
-                    <option value="">Semua Lokasi</option>
-                    @foreach($lokasiList as $l)
-                    <option value="{{ $l }}" {{ request('lokasi')===$l?'selected':'' }}>{{ $l }}</option>
+                <label class="form-label mb-1" style="font-size:.7rem">Pemancar</label>
+                <select name="pemancar_id" id="sel-pemancar" class="form-select form-select-sm">
+                    <option value="">Semua Pemancar</option>
+                    @foreach($pemancars as $p)
+                    <option value="{{ $p->id }}" data-lokasi="{{ $p->lokasi }}" {{ request('pemancar_id')==$p->id?'selected':'' }}>
+                        {{ $p->nama_stasiun }}{{ $p->lokasi ? ' ('.$p->lokasi.')':'' }}
+                    </option>
                     @endforeach
                 </select>
             </div>
@@ -145,6 +145,24 @@
 </div>
 @endif
 @endsection
+
+@push('scripts')
+<script>
+(function(){
+    const selL=document.getElementById('sel-lokasi'), selP=document.getElementById('sel-pemancar');
+    if(!selL||!selP) return;
+    const semua=Array.from(selP.options).filter(o=>o.value!=='').map(o=>({v:o.value,t:o.textContent.trim(),l:o.dataset.lokasi||'',s:o.selected}));
+    function bangun(pertahankan){
+        const cur=pertahankan?selP.value:'';
+        selP.innerHTML=''; selP.add(new Option('Semua Pemancar',''));
+        semua.forEach(o=>{ if(!selL.value||o.l===selL.value){ const x=new Option(o.t,o.v); x.dataset.lokasi=o.l; selP.add(x);} });
+        selP.value=cur; if(selP.value!==cur) selP.value='';
+    }
+    const awal=selP.value; bangun(false); selP.value=awal; if(selP.value!==awal) selP.value='';
+    selL.addEventListener('change',()=>bangun(true));
+})();
+</script>
+@endpush
 
 @push('scripts')
 <script>

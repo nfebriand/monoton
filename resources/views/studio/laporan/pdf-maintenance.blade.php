@@ -21,7 +21,7 @@ tr:nth-child(even) td { background:#f8f9fa; }
 <div class="page">
 <div class="header">
     <h2>{{ $settings['satuan_kerja'] ?? 'RRI/LPPL Lampung' }}</h2>
-    <h3>Laporan Maintenance Perangkat Studio</h3>
+    <h3>Laporan Maintenance Perangkat Studio{{ !empty($lokasiFilter) ? ' — '.\App\Support\StudioLokasi::label($lokasiFilter) : '' }}</h3>
     <p>Periode: {{ \Carbon\Carbon::parse($tanggalDari)->format('d/m/Y') }} s/d {{ \Carbon\Carbon::parse($tanggalSampai)->format('d/m/Y') }}</p>
 </div>
 
@@ -48,7 +48,7 @@ tr:nth-child(even) td { background:#f8f9fa; }
         <tr>
             <td>{{ $i+1 }}</td>
             <td class="mono">{{ $log->tanggal->format('d/m/Y') }}</td>
-            <td>{{ $log->perangkat->nama }}</td>
+            <td>{{ $log->perangkat->nama }}@if(empty($lokasiFilter) && !empty($log->perangkat->lokasi))<br><small style="color:#666">{{ \App\Support\StudioLokasi::label($log->perangkat->lokasi) }}</small>@endif</td>
             <td>{{ $log->jenis_label }}</td>
             <td>
                 {{ $log->uraian_pekerjaan }}

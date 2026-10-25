@@ -13,6 +13,7 @@
             <h6 class="mb-0">
                 <i class="bi bi-journal-text me-2"></i>
                 Logbook {{ ucfirst($studioLog->shift) }}   {{ $studioLog->tanggal->translatedFormat('l, d F Y') }}
+                @include('studio._lokasi-badge', ['lokasi' => $studioLog->lokasi])
             </h6>
             <small class="text-muted">
                 {{ substr($studioLog->jam_mulai,0,5) }}{{ $studioLog->jam_selesai?'   '.substr($studioLog->jam_selesai,0,5):'' }}

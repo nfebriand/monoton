@@ -10,6 +10,21 @@
     <div class="card-header"><h6 class="mb-0"><i class="bi bi-clock me-2"></i>Informasi Shift</h6></div>
     <div class="card-body">
         <div class="row g-3">
+            <div class="col-12">
+                <label class="form-label">Lokasi Studio <span class="text-danger">*</span></label>
+                @php
+                    $__lokCur = old('lokasi', $studioLog->lokasi);
+                    $__lokPilih = \App\Support\StudioLokasi::restricted(auth()->user()) ? ['Way Kanan'] : \App\Support\StudioLokasi::LIST;
+                @endphp
+                <div class="d-flex gap-2 flex-wrap">
+                    @foreach($__lokPilih as $__l)
+                    <label class="btn btn-sm" style="border:2px solid {{ \App\Support\StudioLokasi::color($__l) }};cursor:pointer">
+                        <input type="radio" name="lokasi" value="{{ $__l }}" class="form-check-input me-1" {{ $__lokCur === $__l ? 'checked' : '' }} required>
+                        {{ \App\Support\StudioLokasi::label($__l) }}
+                    </label>
+                    @endforeach
+                </div>
+            </div>
             <div class="col-md-3">
                 <label class="form-label">Tanggal <span class="text-danger">*</span></label>
                 <input type="date" name="tanggal" class="form-control" value="{{ old('tanggal',$studioLog->tanggal->format('Y-m-d')) }}" required>

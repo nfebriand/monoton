@@ -8,6 +8,7 @@ use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use App\Support\StudioLokasi;
 
 class StudioPerangkatController extends Controller
 {
@@ -78,23 +79,25 @@ class StudioPerangkatController extends Controller
         if ($request->filled('kategori')) $query->where('kategori', $request->kategori);
         if ($request->filled('kondisi'))  $query->where('kondisi', $request->kondisi);
         if ($request->filled('status'))   $query->where('status', $request->status);
-        if ($request->filled('lokasi'))   $query->where('lokasi', $request->lokasi);
-        // Way Kanan: default filter lokasi Way Kanan
-        if (!$request->filled('lokasi') && $user->isWayKanan() && !$user->isAdmin() && !$user->isDivisi('studio')) {
-            $query->where('lokasi', 'Way Kanan');
-        }
+        // Jumlah per lokasi (mengikuti filter lain) untuk tab pembeda lokasi
+        $hitung = (clone $query)->reorder()->toBase()
+            ->selectRaw('lokasi, COUNT(*) AS n')->groupBy('lokasi')->pluck('n', 'lokasi')->all();
+        // Way Kanan (non-Studio): default tampilan lokasi Way Kanan; "Semua Lokasi" tetap bisa dipilih
+        $lokasiAktif = StudioLokasi::aktif($request, $user);
+        if ($lokasiAktif) $query->where('lokasi', $lokasiAktif);
         $perangkats     = $query->paginate(20)->withQueryString();
-        $perluPerhatian = StudioPerangkat::where('status','aktif')->get()
+        $scope = fn($q) => $q->when($lokasiAktif, fn($qq) => $qq->where('lokasi', $lokasiAktif));
+        $perluPerhatian = $scope(StudioPerangkat::where('status','aktif'))->get()
             ->filter(fn($p) => in_array($p->status_maintenance, ['jatuh_tempo','terlambat']))
             ->sortBy(fn($p) => $p->jatuh_tempo_maintenance);
         $ringkasan = [
-            'total'     => StudioPerangkat::count(),
-            'aktif'     => StudioPerangkat::where('status','aktif')->count(),
-            'baik'      => StudioPerangkat::where('kondisi','baik')->count(),
+            'total'     => $scope(StudioPerangkat::query())->count(),
+            'aktif'     => $scope(StudioPerangkat::where('status','aktif'))->count(),
+            'baik'      => $scope(StudioPerangkat::where('kondisi','baik'))->count(),
             'perhatian' => $perluPerhatian->count(),
         ];
         $lokasisStudio = ['Pahoman', 'Way Kanan'];
-        return view('studio.perangkat.index', compact('perangkats','perluPerhatian','ringkasan','lokasisStudio'));
+        return view('studio.perangkat.index', compact('perangkats','perluPerhatian','ringkasan','lokasisStudio','lokasiAktif','hitung'));
     }
 
     public function create()
@@ -208,15 +211,17 @@ class StudioPerangkatController extends Controller
         return redirect()->route('studio.perangkat.index')->with('success', 'Perangkat berhasil dihapus.');
     }
 
-    public function cetakInventaris()
+    public function cetakInventaris(Request $request)
     {
         $this->checkAccess();
-        $perangkats  = StudioPerangkat::orderBy('kategori')->orderBy('nama')->get();
+        $lokasiFilter = StudioLokasi::aktif($request, auth()->user());
+        $perangkats  = StudioPerangkat::when($lokasiFilter, fn($q) => $q->where('lokasi', $lokasiFilter))
+                        ->orderBy('lokasi')->orderBy('kategori')->orderBy('nama')->get();
         $settings    = AppSetting::allKeyed();
         $koordinator = AppSetting::getKoordinator('studio');
         $kabid       = AppSetting::getKabid();
-        $html = view('studio.laporan.pdf-inventaris', compact('perangkats','settings','koordinator','kabid'))->render();
-        return $this->streamPdf($html, 'inventaris-perangkat-studio-'.now()->format('Ymd'));
+        $html = view('studio.laporan.pdf-inventaris', compact('perangkats','settings','koordinator','kabid','lokasiFilter'))->render();
+        return $this->streamPdf($html, 'inventaris-perangkat-studio'.($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').'-'.now()->format('Ymd'));
     }
 
     private function streamPdf(string $html, string $filename)

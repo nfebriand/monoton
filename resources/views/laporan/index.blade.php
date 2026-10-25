@@ -132,10 +132,21 @@
     </div>
     <div class="card-body">
         <div class="row g-3">
+            <div id="filter-lokasi-studio" class="col-12 col-md-4 d-none">
+                <label class="form-label" style="font-size:.8rem">Lokasi Studio</label>
+                <select name="lokasi" id="sel-lokasi-studio" class="form-select" disabled>
+                    @if(!$lokasiStudioTerkunci)<option value="">Semua Lokasi</option>@endif
+                    @foreach(\App\Support\StudioLokasi::LIST as $lok)
+                    @if(!$lokasiStudioTerkunci || $lokasiStudioTerkunci === $lok)
+                    <option value="{{ $lok }}">{{ \App\Support\StudioLokasi::label($lok) }}</option>
+                    @endif
+                    @endforeach
+                </select>
+            </div>
             <div id="filter-lokasi-transmisi" class="col-12 col-md-4 d-none">
                 <label class="form-label" style="font-size:.8rem">Lokasi Pemancar</label>
                 <select name="lokasi" id="sel-lokasi-transmisi" class="form-select">
-                    <option value="">Semua Lokasi</option>
+                    @if(!$lokasiTerkunci)<option value="">Semua Lokasi</option>@endif
                     @foreach($lokasiTransmisi as $lok)
                     <option value="{{ $lok }}">{{ $lok }}</option>
                     @endforeach
@@ -216,9 +227,9 @@ const jenisConfig = {
     operasional:         { action:'{{ route('laporan.generate') }}',              method:'POST', periode:'rentang', filter:['lokasi_transmisi','pemancar','operator'], showDivisi:false },
     suhu:                { action:'{{ route('laporan.suhu.pdf') }}',              method:'GET',  periode:'bulanan', filter:['lokasi_transmisi','pemancar'],             showDivisi:false },
     eviden:              { action:'{{ route('laporan.eviden-rekap-pdf') }}',      method:'GET',  periode:'rentang', filter:['lokasi_eviden','operator'],                showDivisi:true  },
-    logbook_studio:      { action:'{{ route('studio.logbook.cetak-bulanan') }}',  method:'GET',  periode:'bulanan', filter:['operator'],                               showDivisi:false },
-    maintenance_studio:  { action:'{{ route('studio.maintenance.cetak') }}',      method:'GET',  periode:'rentang', filter:['operator'],                                showDivisi:false },
-    inventaris_studio:   { action:'{{ route('studio.perangkat.cetak-inventaris') }}', method:'GET', periode:'none', filter:[],                                          showDivisi:false },
+    logbook_studio:      { action:'{{ route('studio.logbook.cetak-bulanan') }}',  method:'GET',  periode:'bulanan', filter:['lokasi_studio','operator'],                 showDivisi:false },
+    maintenance_studio:  { action:'{{ route('studio.maintenance.cetak') }}',      method:'GET',  periode:'rentang', filter:['lokasi_studio','operator'],                  showDivisi:false },
+    inventaris_studio:   { action:'{{ route('studio.perangkat.cetak-inventaris') }}', method:'GET', periode:'none', filter:['lokasi_studio'],                           showDivisi:false },
 };
 
 const jenisLabel = {
@@ -264,10 +275,16 @@ function applyConfig(jenis) {
     const stepFilter = document.getElementById('step-filter');
     const anyFilter  = cfg.filter.length > 0;
     stepFilter.classList.toggle('d-none', !anyFilter);
-    ['lokasi_transmisi','pemancar','lokasi_eviden','operator'].forEach(f => {
+    ['lokasi_studio','lokasi_transmisi','pemancar','lokasi_eviden','operator'].forEach(f => {
         const el = document.getElementById('filter-' + f);
-        if (el) el.classList.toggle('d-none', !cfg.filter.includes(f));
+        if (!el) return;
+        const tampil = cfg.filter.includes(f);
+        el.classList.toggle('d-none', !tampil);
+        // input di filter yang disembunyikan dinonaktifkan agar tidak ikut terkirim
+        // (mis. dua <select name="lokasi"> berbeda untuk transmisi & studio)
+        el.querySelectorAll('select,input').forEach(i => { i.disabled = !tampil; });
     });
+    rebuildPemancar();
     updateOperatorDropdown(jenis);
 
     // Generate
@@ -289,11 +306,22 @@ function updateOperatorDropdown(jenis) {
     sel.value = '';
 }
 
-document.getElementById('sel-lokasi-transmisi')?.addEventListener('change', function(){
-    const lok = this.value;
-    document.querySelectorAll('#sel-pemancar option[data-lokasi]').forEach(o => { o.style.display = (!lok || o.dataset.lokasi===lok)?'':'none'; });
-    document.getElementById('sel-pemancar').value = '';
-});
+// Cascade Lokasi Pemancar -> Pemancar (opsi dibangun ulang agar andal di semua browser)
+const semuaOpsiPemancar = Array.from(document.querySelectorAll('#sel-pemancar option[data-lokasi]'))
+    .map(o => ({ value:o.value, text:o.textContent, lokasi:o.dataset.lokasi }));
+function rebuildPemancar() {
+    const selP = document.getElementById('sel-pemancar'); if (!selP) return;
+    const selL = document.getElementById('sel-lokasi-transmisi');
+    const lok  = selL ? selL.value : '';
+    selP.innerHTML = '';
+    selP.add(new Option('Semua Pemancar', ''));
+    semuaOpsiPemancar.forEach(o => {
+        if (!lok || o.lokasi === lok) {
+            const opt = new Option(o.text, o.value); opt.dataset.lokasi = o.lokasi; selP.add(opt);
+        }
+    });
+}
+document.getElementById('sel-lokasi-transmisi')?.addEventListener('change', rebuildPemancar);
 document.getElementById('sel-divisi')?.addEventListener('change', function(){
     if (selectedJenis === 'eviden') updateOperatorDropdown('eviden');
 });

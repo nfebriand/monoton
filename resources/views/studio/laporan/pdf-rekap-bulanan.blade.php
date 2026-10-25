@@ -24,7 +24,7 @@ tr:nth-child(even) td { background:#f8f9fa; }
 <div class="page">
 <div class="header">
     <h2>{{ $settings['satuan_kerja'] ?? 'RRI/LPPL Lampung' }}</h2>
-    <h3>Rekap Logbook Studio Bulanan</h3>
+    <h3>Rekap Logbook Studio Bulanan{{ !empty($lokasiFilter) ? ' — '.\App\Support\StudioLokasi::label($lokasiFilter) : '' }}</h3>
     <p>Periode: {{ \Carbon\Carbon::createFromDate($year,$month,1)->translatedFormat('F Y') }}</p>
 </div>
 
@@ -72,7 +72,7 @@ tr:nth-child(even) td { background:#f8f9fa; }
         <tr>
             <td>{{ $i+1 }}</td>
             <td>{{ optional($log->tanggal)->format('d/m/Y') }}</td>
-            <td>{{ ucfirst((string) $log->shift) }}</td>
+            <td>{{ ucfirst((string) $log->shift) }}@if(empty($lokasiFilter) && !empty($log->lokasi))<br><small style="color:#666">{{ $log->lokasi }}</small>@endif</td>
             <td>{{ substr((string) $log->jam_mulai,0,5) }}{{ $log->jam_selesai ? ' – '.substr((string) $log->jam_selesai,0,5) : '' }}</td>
             <td>{{ optional($log->user)->name ?? '-' }}</td>
             <td style="color:{{ count($gangguan) ? '#c0392b' : '#27ae60' }}">{{ count($gangguan) ? 'Gangguan' : 'Normal' }}</td>

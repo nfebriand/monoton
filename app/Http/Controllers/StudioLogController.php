@@ -5,6 +5,7 @@ use App\Models\StudioLog;
 use App\Models\StudioLogFoto;
 use App\Models\AppSetting;
 use App\Helpers\ImageHelper;
+use App\Support\StudioLokasi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -46,6 +47,7 @@ class StudioLogController extends Controller
     {
         $this->checkAccess();
 
+        $lokasiAktif = StudioLokasi::aktif($request, auth()->user());
         $query = StudioLog::with('user')->orderByDesc('tanggal')->orderByDesc('jam_mulai');
 
         if ($request->filled('tanggal_dari'))   $query->where('tanggal', '>=', $request->tanggal_dari);
@@ -61,9 +63,16 @@ class StudioLogController extends Controller
 
             if ($request->filled('user_id')) $query->where('user_id', $request->user_id);
 
+        // Jumlah per lokasi (mengikuti filter lain) untuk tab pembeda lokasi
+        $hitung = (clone $query)->reorder()->toBase()
+            ->selectRaw('lokasi, COUNT(*) AS n')->groupBy('lokasi')->pluck('n', 'lokasi')->all();
+
+        if ($lokasiAktif) $query->where('lokasi', $lokasiAktif);
+
         $logs = $query->paginate(15)->withQueryString();
 
-        $bulanIni  = StudioLog::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year);
+        $bulanIni  = StudioLog::whereMonth('tanggal', now()->month)->whereYear('tanggal', now()->year)
+            ->when($lokasiAktif, fn($q) => $q->where('lokasi', $lokasiAktif));
         $ringkasan = [
             'total'    => (clone $bulanIni)->count(),
             'gangguan' => (clone $bulanIni)->get()->filter(fn($l) => $l->ada_gangguan)->count(),
@@ -82,13 +91,14 @@ class StudioLogController extends Controller
             })
             ->orderBy('name')->get();
 
-        return view('studio.logbook.index', compact('logs', 'ringkasan', 'operators'));
+        return view('studio.logbook.index', compact('logs', 'ringkasan', 'operators', 'lokasiAktif', 'hitung'));
     }
 
     public function create()
     {
         $this->checkAccess();
-        return view('studio.logbook.create');
+        $defaultLokasi = in_array(request('lokasi'), StudioLokasi::LIST, true) ? request('lokasi') : StudioLokasi::default(auth()->user());
+        return view('studio.logbook.create', compact('defaultLokasi'));
     }
 
     public function store(Request $request)
@@ -96,6 +106,7 @@ class StudioLogController extends Controller
         $this->checkAccess();
 
         $rules = [
+            'lokasi'          => 'required|in:'.implode(',', StudioLokasi::LIST),
             'tanggal'         => 'required|date',
             'shift'           => 'required|in:pagi,siang,sore,malam,mcr',
             'jam_mulai'       => 'required|date_format:H:i',
@@ -112,6 +123,7 @@ class StudioLogController extends Controller
 
         $v            = $request->validate($rules);
         $v['user_id'] = auth()->id();
+        $v['lokasi']  = StudioLokasi::untukSimpan($v['lokasi'], auth()->user());
 
         // Hapus key foto dari data yang masuk ke model
         unset($v['fotos'], $v['foto_keterangan']);
@@ -144,6 +156,7 @@ class StudioLogController extends Controller
         if (!$this->canEdit($studioLog)) abort(403);
 
         $rules = [
+            'lokasi'          => 'required|in:'.implode(',', StudioLokasi::LIST),
             'tanggal'         => 'required|date',
             'shift'           => 'required|in:pagi,siang,sore,malam,mcr',
             'jam_mulai'       => 'required|date_format:H:i',
@@ -161,6 +174,7 @@ class StudioLogController extends Controller
 
         $v = $request->validate($rules);
         unset($v['fotos'], $v['foto_keterangan'], $v['hapus_foto']);
+        $v['lokasi'] = StudioLokasi::untukSimpan($v['lokasi'], auth()->user());
 
         $studioLog->update($v);
 
@@ -199,6 +213,8 @@ class StudioLogController extends Controller
         if ($request->filled('tanggal_dari'))   $query->where('tanggal', '>=', $request->tanggal_dari);
         if ($request->filled('tanggal_sampai')) $query->where('tanggal', '<=', $request->tanggal_sampai);
         if ($request->filled('shift'))          $query->where('shift', $request->shift);
+        $lokasiFilter = StudioLokasi::aktif($request, $user);
+        if ($lokasiFilter) $query->where('lokasi', $lokasiFilter);
 
         // Operator biasa (bukan admin/admin divisi) HANYA boleh mencetak
         // logbook miliknya sendiri, berapa pun parameter user_id yang dikirim.
@@ -224,10 +240,10 @@ class StudioLogController extends Controller
         $dari   = $request->filled('tanggal_dari')   ? '-'.$request->tanggal_dari   : '';
         $sampai = $request->filled('tanggal_sampai') ? 's'.$request->tanggal_sampai : '';
         $opName = $operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '';
-        $filename = 'bulk-logbook-studio'.$dari.$sampai.$opName.'('.$logs->count().'log)';
+        $filename = 'bulk-logbook-studio'.($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').$dari.$sampai.$opName.'('.$logs->count().'log)';
 
         $html = view('studio.laporan.pdf-logbook-harian',
-            compact('logs','settings','koordinator','kabid','operatorFilter')
+            compact('logs','settings','koordinator','kabid','operatorFilter','lokasiFilter')
         )->with('tanggal', $request->get('tanggal_dari', now()->toDateString()))
          ->render();
 
@@ -240,6 +256,8 @@ class StudioLogController extends Controller
         $user = auth()->user();
         $tanggal     = $request->get('tanggal', now()->toDateString());
         $query = StudioLog::with(['user','fotos'])->where('tanggal', $tanggal)->orderBy('jam_mulai');
+        $lokasiFilter = StudioLokasi::aktif($request, $user);
+        if ($lokasiFilter) $query->where('lokasi', $lokasiFilter);
 
         if (!$user->isAdmin() && !$user->isAdminDivisi()) {
             $query->where('user_id', $user->id);
@@ -253,8 +271,8 @@ class StudioLogController extends Controller
         $settings    = AppSetting::allKeyed();
         $koordinator = AppSetting::getKoordinator('studio');
         $kabid       = AppSetting::getKabid();
-        $html   = view('studio.laporan.pdf-logbook-harian', compact('logs','tanggal','settings','koordinator','kabid','operatorFilter'))->render();
-        $suffix = $operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '';
+        $html   = view('studio.laporan.pdf-logbook-harian', compact('logs','tanggal','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
+        $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');
         return $this->streamPdf($html, 'logbook-harian-studio-'.$tanggal.$suffix, 'portrait');
     }
 
@@ -266,6 +284,8 @@ class StudioLogController extends Controller
         [$year, $month] = explode('-', $bulan);
         $qBulanan = StudioLog::with('user')->whereYear('tanggal', $year)->whereMonth('tanggal', $month)
                         ->orderBy('tanggal')->orderBy('jam_mulai');
+        $lokasiFilter = StudioLokasi::aktif($request, $user);
+        if ($lokasiFilter) $qBulanan->where('lokasi', $lokasiFilter);
 
         if (!$user->isAdmin() && !$user->isAdminDivisi()) {
             $qBulanan->where('user_id', $user->id);
@@ -279,8 +299,8 @@ class StudioLogController extends Controller
         $settings    = AppSetting::allKeyed();
         $koordinator = AppSetting::getKoordinator('studio');
         $kabid       = AppSetting::getKabid();
-        $html   = view('studio.laporan.pdf-rekap-bulanan', compact('logs','bulan','year','month','settings','koordinator','kabid','operatorFilter'))->render();
-        $suffix = $operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '';
+        $html   = view('studio.laporan.pdf-rekap-bulanan', compact('logs','bulan','year','month','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
+        $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');
         return $this->streamPdf($html, 'rekap-bulanan-studio-'.$bulan.$suffix, 'landscape');
     }
 

@@ -40,7 +40,7 @@ table.checklist td { padding:5px 8px; font-size:8pt; border:1px solid #ccc; vert
 <div class="header-box">
     <div class="header-top">
         <div class="header-left">
-            <h3>Logbook Laporan Harian Teknik Studio</h3>
+            <h3>Logbook Laporan Harian Teknik Studio{{ !empty($log->lokasi) ? ' — '.\App\Support\StudioLokasi::label($log->lokasi) : '' }}</h3>
             <p>Periode Laporan ({{ $log->tanggal->translatedFormat('F Y') }})</p>
             <p>{{ $settings['satuan_kerja'] ?? 'LPP RRI Bandarlampung' }}</p>
         </div>

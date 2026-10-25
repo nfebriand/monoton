@@ -39,7 +39,7 @@
                     <div class="col-6 col-md-4">
                         <div class="text-muted" style="font-size:.7rem">Jam Operasi</div>
                         <div class="fw-bold mono">
-                            {{ substr($genset->jam_mulai,0,5) }}{{ $genset->jam_selesai ? ' – '.substr($genset->jam_selesai,0,5) : ' (berjalan)' }}
+                            {{ substr($genset->jam_mulai,0,5) }}{{ $genset->jam_selesai ? ' '."\u{2013}".' '.substr($genset->jam_selesai,0,5) : ' (berjalan)' }}
                         </div>
                     </div>
                     <div class="col-6 col-md-4">
@@ -54,7 +54,7 @@
                     @endif
                     <div class="col-6 col-md-4">
                         <div class="text-muted" style="font-size:.7rem">Lokasi</div>
-                        <div class="fw-bold">{{ $genset->gensetUnit->lokasi ?? '–' }}</div>
+                        <div class="fw-bold">{{ $genset->gensetUnit->lokasi ?? ''."\u{2013}".'' }}</div>
                     </div>
                     <div class="col-6 col-md-4">
                         <div class="text-muted" style="font-size:.7rem">Dicatat Oleh</div>
@@ -80,16 +80,16 @@
                         <div class="row g-2 text-center">
                             <div class="col-4">
                                 <div class="text-muted" style="font-size:.65rem">HM AWAL</div>
-                                <div class="mono fw-bold">{{ $genset->hm_awal !== null ? number_format($genset->hm_awal,1) : '–' }}</div>
+                                <div class="mono fw-bold">{{ $genset->hm_awal !== null ? number_format($genset->hm_awal,1) : ''."\u{2013}".'' }}</div>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted" style="font-size:.65rem">HM AKHIR</div>
-                                <div class="mono fw-bold">{{ $genset->hm_akhir !== null ? number_format($genset->hm_akhir,1) : '–' }}</div>
+                                <div class="mono fw-bold">{{ $genset->hm_akhir !== null ? number_format($genset->hm_akhir,1) : ''."\u{2013}".'' }}</div>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted" style="font-size:.65rem">JAM OPERASI</div>
                                 <div class="mono fw-bold" style="color:var(--primary)">
-                                    {{ $genset->jam_operasi_hm !== null ? number_format($genset->jam_operasi_hm,1) : '–' }}
+                                    {{ $genset->jam_operasi_hm !== null ? number_format($genset->jam_operasi_hm,1) : ''."\u{2013}".'' }}
                                 </div>
                             </div>
                         </div>
@@ -103,15 +103,15 @@
                         <div class="row g-2 text-center mb-2">
                             <div class="col-4">
                                 <div class="text-muted" style="font-size:.65rem">AWAL</div>
-                                <div class="mono fw-bold">{{ $genset->bbm_awal !== null ? number_format($genset->bbm_awal,1).'L' : '–' }}</div>
+                                <div class="mono fw-bold">{{ $genset->bbm_awal !== null ? number_format($genset->bbm_awal,1).'L' : ''."\u{2013}".'' }}</div>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted" style="font-size:.65rem">ISI</div>
-                                <div class="mono fw-bold" style="color:var(--success)">{{ $genset->bbm_isi ? '+'.number_format($genset->bbm_isi,1).'L' : '–' }}</div>
+                                <div class="mono fw-bold" style="color:var(--success)">{{ $genset->bbm_isi ? '+'.number_format($genset->bbm_isi,1).'L' : ''."\u{2013}".'' }}</div>
                             </div>
                             <div class="col-4">
                                 <div class="text-muted" style="font-size:.65rem">AKHIR</div>
-                                <div class="mono fw-bold">{{ $genset->bbm_akhir !== null ? number_format($genset->bbm_akhir,1).'L' : '–' }}</div>
+                                <div class="mono fw-bold">{{ $genset->bbm_akhir !== null ? number_format($genset->bbm_akhir,1).'L' : ''."\u{2013}".'' }}</div>
                             </div>
                         </div>
                         @if($genset->pemakaian_bbm !== null)
@@ -119,7 +119,7 @@
                             <div class="text-muted" style="font-size:.65rem">TOTAL PEMAKAIAN</div>
                             <div class="mono fw-bold" style="font-size:1.1rem;color:var(--warning)">{{ number_format($genset->pemakaian_bbm,1) }} L</div>
                             @if($genset->rasio_bbm_per_jam)
-                            <div class="text-muted" style="font-size:.65rem">≈ {{ number_format($genset->rasio_bbm_per_jam,2) }} L/jam</div>
+                            <div class="text-muted" style="font-size:.65rem">&#x2248; {{ number_format($genset->rasio_bbm_per_jam,2) }} L/jam</div>
                             @endif
                         </div>
                         @endif
@@ -138,19 +138,19 @@
                 <div class="row g-2 mt-2">
                     <div class="col-6">
                         <div class="text-muted" style="font-size:.7rem">Merk</div>
-                        <div class="fw-bold">{{ $genset->gensetUnit->merk ?? '–' }}</div>
+                        <div class="fw-bold">{{ $genset->gensetUnit->merk ?? ''."\u{2013}".'' }}</div>
                     </div>
                     <div class="col-6">
                         <div class="text-muted" style="font-size:.7rem">Tipe</div>
-                        <div class="fw-bold">{{ $genset->gensetUnit->tipe ?? '–' }}</div>
+                        <div class="fw-bold">{{ $genset->gensetUnit->tipe ?? ''."\u{2013}".'' }}</div>
                     </div>
                     <div class="col-6">
                         <div class="text-muted" style="font-size:.7rem">Kapasitas</div>
-                        <div class="fw-bold mono">{{ $genset->gensetUnit->kapasitas_kva ? $genset->gensetUnit->kapasitas_kva.' kVA' : '–' }}</div>
+                        <div class="fw-bold mono">{{ $genset->gensetUnit->kapasitas_kva ? $genset->gensetUnit->kapasitas_kva.' kVA' : ''."\u{2013}".'' }}</div>
                     </div>
                     <div class="col-6">
                         <div class="text-muted" style="font-size:.7rem">Tangki BBM</div>
-                        <div class="fw-bold mono">{{ $genset->gensetUnit->kapasitas_tangki_liter ? number_format($genset->gensetUnit->kapasitas_tangki_liter,0).' L' : '–' }}</div>
+                        <div class="fw-bold mono">{{ $genset->gensetUnit->kapasitas_tangki_liter ? number_format($genset->gensetUnit->kapasitas_tangki_liter,0).' L' : ''."\u{2013}".'' }}</div>
                     </div>
                 </div>
             </div>

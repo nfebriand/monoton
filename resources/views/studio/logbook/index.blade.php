@@ -4,12 +4,10 @@
 
 @section('content')
 
-@include('studio._lokasi-tabs', ['lokasiAktif' => $lokasiAktif, 'hitung' => $hitung, 'labelHitung' => 'jumlah logbook sesuai filter'])
-
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-2">
         <div class="card text-center"><div class="card-body py-2">
-            <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">Total Bulan Ini{{ $lokasiAktif ? ' · '.$lokasiAktif : '' }}</div>
+            <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">Total Bulan Ini</div>
             <div class="mono fw-bold" style="font-size:1.5rem;color:var(--primary)">{{ $ringkasan['total'] }}</div>
         </div></div>
     </div>
@@ -42,23 +40,6 @@
 <div class="card mb-3">
     <div class="card-body py-2">
         <form method="GET" class="row g-2 align-items-end">
-            <input type="hidden" name="lokasi" value="{{ $lokasiAktif }}">
-            @php
-                $__a1 = now()->subMonthNoOverflow(1)->startOfMonth();
-                $__a3 = now()->subMonthNoOverflow(3)->startOfMonth();
-                $__akhir = now()->subMonthNoOverflow(1)->endOfMonth();
-                $__r1 = [$__a1->toDateString(), $__akhir->toDateString()];
-                $__r3 = [$__a3->toDateString(), $__akhir->toDateString()];
-                $__cur = [request('tanggal_dari'), request('tanggal_sampai')];
-            @endphp
-            <div class="col-12 col-sm-6 col-md-3">
-                <label class="form-label mb-1" style="font-size:.7rem">Rentang Cepat</label>
-                <select class="form-select form-select-sm" onchange="setRentangCepat(this)">
-                    <option value="">Pilih rentang...</option>
-                    <option value="{{ $__r1[0] }}|{{ $__r1[1] }}" {{ $__cur===$__r1?'selected':'' }}>1 bulan lalu ({{ $__a1->format('d/m') }} - {{ $__akhir->format('d/m/Y') }})</option>
-                    <option value="{{ $__r3[0] }}|{{ $__r3[1] }}" {{ $__cur===$__r3?'selected':'' }}>3 bulan lalu ({{ $__a3->format('d/m') }} - {{ $__akhir->format('d/m/Y') }})</option>
-                </select>
-            </div>
             <div class="col-6 col-md-2">
                 <label class="form-label mb-1" style="font-size:.7rem">Dari Tanggal</label>
                 <input type="date" name="tanggal_dari" class="form-control form-control-sm" value="{{ request('tanggal_dari') }}">
@@ -94,7 +75,7 @@
             </div>
             <div class="col-12 col-md-2 d-flex gap-2">
                 <button class="btn btn-sm btn-primary-custom flex-fill"><i class="bi bi-funnel me-1"></i>Filter</button>
-                <a href="{{ route('studio.logbook.index', ['lokasi' => $lokasiAktif]) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                <a href="{{ route('studio.logbook.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
             </div>
         </form>
     </div>
@@ -106,7 +87,6 @@
         <a href="{{ route('studio.logbook.cetak-harian', array_filter([
                 'tanggal' => request('tanggal_dari', now()->toDateString()),
                 'user_id' => request('user_id'),
-                'lokasi'  => $lokasiAktif,
             ])) }}"
            class="btn btn-sm btn-outline-secondary" target="_blank">
             <i class="bi bi-printer me-1"></i>Cetak Harian
@@ -115,7 +95,6 @@
         <a href="{{ route('studio.logbook.cetak-bulanan', array_filter([
                 'bulan'   => request('tanggal_dari') ? substr(request('tanggal_dari'),0,7) : now()->format('Y-m'),
                 'user_id' => request('user_id'),
-                'lokasi'  => $lokasiAktif,
             ])) }}"
            class="btn btn-sm btn-outline-secondary" target="_blank">
             <i class="bi bi-file-earmark-pdf me-1"></i>Rekap Bulanan
@@ -131,7 +110,6 @@
 {{-- Baris Bulk Cetak + Isi Logbook --}}
 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
     <form action="{{ route('studio.logbook.bulk-cetak') }}" method="GET" target="_blank" id="form-bulk-cetak">
-        <input type="hidden" name="lokasi" value="{{ $lokasiAktif }}">
         @if(request('tanggal_dari'))
         <input type="hidden" name="tanggal_dari" value="{{ request('tanggal_dari') }}">
         @endif
@@ -150,7 +128,7 @@
             <span class="badge bg-white text-danger ms-1">{{ $logs->total() }}</span>
         </button>
     </form>
-    <a href="{{ route('studio.logbook.create', ['lokasi' => $lokasiAktif]) }}" class="btn btn-primary-custom">
+    <a href="{{ route('studio.logbook.create') }}" class="btn btn-primary-custom">
         <i class="bi bi-plus-circle me-1"></i>Isi Logbook Shift
     </a>
 </div>
@@ -163,7 +141,6 @@
                 <thead>
                     <tr>
                         <th class="ps-3">Tanggal</th>
-                        <th>Lokasi</th>
                         <th>Shift</th>
                         <th>Jam Dinas</th>
                         <th>Kondisi Umum</th>
@@ -176,14 +153,13 @@
                     @forelse($logs as $log)
                     <tr>
                         <td class="ps-3 mono fw-bold" style="font-size:.8rem">{{ $log->tanggal->format('d/m/Y') }}</td>
-                        <td>@include('studio._lokasi-badge', ['lokasi' => $log->lokasi])</td>
                         <td>
                             <span class="badge" style="font-size:.68rem;background:{{ $log->shift=='pagi'?'#f39c12':($log->shift=='siang'?'#27ae60':'#2c3e50') }}">
                                 {{ ucfirst($log->shift) }}
                             </span>
                         </td>
                         <td class="mono" style="font-size:.8rem">
-                            {{ substr($log->jam_mulai,0,5) }}{{ $log->jam_selesai?' - '.substr($log->jam_selesai,0,5):'' }}
+                            {{ substr($log->jam_mulai,0,5) }}{{ $log->jam_selesai?' – '.substr($log->jam_selesai,0,5):'' }}
                         </td>
                         <td>
                             @if($log->ada_gangguan)
@@ -204,7 +180,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="8" class="text-center text-muted py-4">
+                    <tr><td colspan="7" class="text-center text-muted py-4">
                         <i class="bi bi-journal-text d-block fs-2 mb-1"></i>Belum ada logbook studio
                     </td></tr>
                     @endforelse
@@ -218,20 +194,16 @@
 </div>
 @push('scripts')
 <script>
-function setRentangCepat(sel) {
-    if (!sel.value) return;
-    const p = sel.value.split('|');
-    const f = sel.form;
-    f.querySelector('[name=tanggal_dari]').value = p[0];
-    f.querySelector('[name=tanggal_sampai]').value = p[1];
-    f.submit();
-}
 function konfirmasiBulkCetak() {
     const total = {{ $logs->total() }};
     if (total === 0) { alert('Tidak ada data logbook untuk dicetak.'); return; }
     let msg = 'Akan mencetak ' + total + ' logbook dalam 1 file PDF.';
-    if (total > 50) msg += '\n(Maksimal 50 logbook per cetak, sisanya tidak tercetak)';
-    msg += '\n\nProses ini membutuhkan beberapa detik.\nLanjutkan?';
+    if (total > 50) msg += '
+(Maksimal 50 logbook per cetak, sisanya tidak tercetak)';
+    msg += '
+
+Proses ini membutuhkan beberapa detik.
+Lanjutkan?';
     if (confirm(msg)) document.getElementById('form-bulk-cetak').submit();
 }
 </script>

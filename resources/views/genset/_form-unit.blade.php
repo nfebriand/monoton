@@ -8,7 +8,7 @@
         <label class="form-label">Lokasi</label>
         <select name="lokasi" id="selectLokasiUnit{{ $u->id ?? 'baru' }}" class="form-select"
                 onchange="toggleLokasiCustomUnit(this, '{{ $u->id ?? 'baru' }}')">
-            <option value="">— Pilih Lokasi —</option>
+            <option value="">&#x2014; Pilih Lokasi &#x2014;</option>
             @foreach($lokasiList as $lok)
             <option value="{{ $lok->nama }}" {{ ($u->lokasi ?? '')===$lok->nama?'selected':'' }}>{{ $lok->nama }}</option>
             @endforeach

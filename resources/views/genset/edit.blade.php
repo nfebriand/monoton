@@ -22,7 +22,7 @@
             <select name="genset_unit_id" class="form-select" required>
                 @foreach($units as $u)
                 <option value="{{ $u->id }}" {{ old('genset_unit_id',$genset->genset_unit_id)==$u->id?'selected':'' }}>
-                    {{ $u->nama_unit }}{{ $u->lokasi ? ' — '.$u->lokasi : '' }}
+                    {{ $u->nama_unit }}{{ $u->lokasi ? ' '."\u{2014}".' '.$u->lokasi : '' }}
                 </option>
                 @endforeach
             </select>
@@ -49,7 +49,7 @@
         </div>
     </div>
 
-    <h6 class="section-title mb-3">⏱️ Hour Meter (HM)</h6>
+    <h6 class="section-title mb-3">&#x23F1;&#xFE0F; Hour Meter (HM)</h6>
     <div class="row g-3 mb-4">
         <div class="col-6">
             <label class="form-label">HM Awal (jam)</label>
@@ -61,7 +61,7 @@
         </div>
     </div>
 
-    <h6 class="section-title mb-3">⛽ Bahan Bakar (Liter)</h6>
+    <h6 class="section-title mb-3">&#x26FD; Bahan Bakar (Liter)</h6>
     <div class="row g-3 mb-4">
         <div class="col-4">
             <label class="form-label">BBM Awal</label>
@@ -77,7 +77,7 @@
         </div>
     </div>
 
-    <h6 class="section-title mb-3">📋 Kondisi & Keterangan</h6>
+    <h6 class="section-title mb-3">&#x1F4CB; Kondisi & Keterangan</h6>
     <div class="row g-3 mb-4">
         <div class="col-12 col-md-4">
             <label class="form-label">Kondisi Mesin <span class="text-danger">*</span></label>

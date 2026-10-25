@@ -9,7 +9,7 @@
     </a>
     <span class="fw-bold">Log #{{ $operasional->id }}</span>
     @if($operasional->status === 'off')
-    <span class="badge bg-warning text-dark"><i class="bi bi-power me-1"></i>OFF — tidak dihitung rata-rata</span>
+    <span class="badge bg-warning text-dark"><i class="bi bi-power me-1"></i>OFF &#x2014; tidak dihitung rata-rata</span>
     @endif
     <span class="badge bg-secondary ms-auto mono">{{ $operasional->dicatat_pada->format('d/m/Y H:i') }}</span>
     @if(auth()->user()->isAdmin() || auth()->id() === $operasional->user_id)
@@ -39,9 +39,9 @@
                     @if($operasional->jadwalShift)
                         Shift {{ $operasional->jadwalShift->shift }}
                         <span class="mono text-muted" style="font-size:.75rem">
-                            {{ $operasional->jadwalShift->jam_mulai }}–{{ $operasional->jadwalShift->jam_selesai }}
+                            {{ $operasional->jadwalShift->jam_mulai }}&#x2013;{{ $operasional->jadwalShift->jam_selesai }}
                         </span>
-                    @else <span class="text-muted">–</span> @endif
+                    @else <span class="text-muted">&#x2013;</span> @endif
                 </div>
             </div>
             <div class="col-6 col-md-3">
@@ -93,7 +93,7 @@
                     ] as [$lbl,$val])
                     <tr>
                         <td class="ps-3 text-muted">{{ $lbl }}</td>
-                        <td class="pe-3 text-end mono fw-bold">{{ $val ? number_format($val,2).' W':'–' }}</td>
+                        <td class="pe-3 text-end mono fw-bold">{{ $val ? number_format($val,2).' W':''."\u{2013}".'' }}</td>
                     </tr>
                     @endforeach
                 </table>
@@ -113,7 +113,7 @@
                     ] as [$lbl,$val])
                     <tr>
                         <td class="ps-3 text-muted">{{ $lbl }}</td>
-                        <td class="pe-3 text-end mono fw-bold">{{ $val ? number_format($val,2).' W':'–' }}</td>
+                        <td class="pe-3 text-end mono fw-bold">{{ $val ? number_format($val,2).' W':''."\u{2013}".'' }}</td>
                     </tr>
                     @endforeach
                 </table>
@@ -129,15 +129,15 @@
                 <table class="table table-sm mb-0">
                     <tr>
                         <td class="ps-3 text-muted">Suhu Pemancar</td>
-                        <td class="pe-3 text-end mono fw-bold">{{ $operasional->suhu_pemancar!==null?$operasional->suhu_pemancar.'°C':'–' }}</td>
+                        <td class="pe-3 text-end mono fw-bold">{{ $operasional->suhu_pemancar!==null?$operasional->suhu_pemancar.''."\u{B0}".'C':''."\u{2013}".'' }}</td>
                     </tr>
                     <tr>
                         <td class="ps-3 text-muted">Suhu Ruangan</td>
-                        <td class="pe-3 text-end mono fw-bold">{{ $operasional->suhu_ruangan!==null?$operasional->suhu_ruangan.'°C':'–' }}</td>
+                        <td class="pe-3 text-end mono fw-bold">{{ $operasional->suhu_ruangan!==null?$operasional->suhu_ruangan.''."\u{B0}".'C':''."\u{2013}".'' }}</td>
                     </tr>
                     <tr>
                         <td class="ps-3 text-muted">Kelembaban</td>
-                        <td class="pe-3 text-end mono fw-bold">{{ $operasional->kelembaban!==null?$operasional->kelembaban.'%':'–' }}</td>
+                        <td class="pe-3 text-end mono fw-bold">{{ $operasional->kelembaban!==null?$operasional->kelembaban.'%':''."\u{2013}".'' }}</td>
                     </tr>
                 </table>
             </div>
@@ -156,7 +156,7 @@
                 @endif
             </div>
             <div class="card-body" style="font-size:.88rem">
-                {{ $operasional->keterangan ?: '–' }}
+                {{ $operasional->keterangan ?: ''."\u{2013}".'' }}
             </div>
         </div>
     </div>

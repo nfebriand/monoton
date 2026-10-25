@@ -107,7 +107,7 @@
                         <td class="ps-3">
                             <div class="mono fw-bold" style="font-size:.8rem">{{ $log->tanggal->format('d/m/Y') }}</div>
                             <div class="text-muted mono" style="font-size:.7rem">
-                                {{ substr($log->jam_mulai,0,5) }}{{ $log->jam_selesai ? ' – '.substr($log->jam_selesai,0,5) : ' (berjalan)' }}
+                                {{ substr($log->jam_mulai,0,5) }}{{ $log->jam_selesai ? ' '."\u{2013}".' '.substr($log->jam_selesai,0,5) : ' (berjalan)' }}
                             </div>
                         </td>
                         <td style="font-size:.82rem">
@@ -118,10 +118,10 @@
                             <span class="badge" style="background:#7b1fa2;font-size:.68rem">{{ $log->alasan_label }}</span>
                         </td>
                         <td class="mono" style="font-size:.8rem">
-                            {{ $log->jam_operasi_hm ? number_format($log->jam_operasi_hm,1).' jam (HM)' : ($log->durasi ?? '–') }}
+                            {{ $log->jam_operasi_hm ? number_format($log->jam_operasi_hm,1).' jam (HM)' : ($log->durasi ?? ''."\u{2013}".'') }}
                         </td>
                         <td class="mono" style="font-size:.8rem">
-                            {{ $log->pemakaian_bbm !== null ? number_format($log->pemakaian_bbm,1).' L' : '–' }}
+                            {{ $log->pemakaian_bbm !== null ? number_format($log->pemakaian_bbm,1).' L' : ''."\u{2013}".'' }}
                             @if($log->rasio_bbm_per_jam)
                             <div class="text-muted" style="font-size:.65rem">{{ number_format($log->rasio_bbm_per_jam,2) }} L/jam</div>
                             @endif

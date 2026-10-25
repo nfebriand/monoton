@@ -28,7 +28,7 @@
         <div class="col-12">
             <label class="form-label">Lokasi</label>
             <select name="lokasi" class="form-select form-select-sm">
-                <option value="">— Pilih Lokasi —</option>
+                <option value="">&#x2014; Pilih Lokasi &#x2014;</option>
                 @foreach($lokasis as $lok)
                 <option value="{{ $lok->nama }}" {{ old('lokasi')===$lok->nama?'selected':'' }}>
                     {{ $lok->nama }}
@@ -147,7 +147,7 @@
             <div class="col-12">
                 <label class="form-label">Lokasi</label>
                 <select name="lokasi" id="edit_lokasi" class="form-select form-select-sm">
-                    <option value="">— Pilih Lokasi —</option>
+                    <option value="">&#x2014; Pilih Lokasi &#x2014;</option>
                     @foreach($lokasis as $lok)
                     <option value="{{ $lok->nama }}">{{ $lok->nama }}</option>
                     @endforeach

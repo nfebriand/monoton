@@ -9,7 +9,7 @@
 <div id="offline-notice" class="alert alert-warning d-flex align-items-center gap-2 py-2 mb-3" style="display:none!important">
     <i class="bi bi-cloud-slash fs-5 flex-shrink-0"></i>
     <div>
-        <strong>Mode Offline</strong> — Data akan disimpan lokal dan disinkronkan otomatis saat online.
+        <strong>Mode Offline</strong> &#x2014; Data akan disimpan lokal dan disinkronkan otomatis saat online.
     </div>
 </div>
 
@@ -33,11 +33,11 @@
                        value="{{ old('dicatat_pada', now()->format('Y-m-d\TH:i')) }}" required>
             </div>
             <div class="col-6 col-md-3">
-                <label class="form-label">Suhu Ruangan (°C) <span class="text-danger">*</span></label>
+                <label class="form-label">Suhu Ruangan (&#xB0;C) <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <input type="number" name="suhu_ruangan" id="suhu_ruangan" class="form-control mono"
                            step="0.1" value="{{ old('suhu_ruangan', $suhuTerakhir) }}" required>
-                    <span class="input-group-text">°C</span>
+                    <span class="input-group-text">&#xB0;C</span>
                 </div>
             </div>
             <div class="col-6 col-md-3">
@@ -53,7 +53,7 @@
                 <div class="w-100 p-2 rounded text-center" style="background:#e8f4fd;border:1px solid #b3d7f0">
                     <div style="font-size:.6rem;color:#0a3d62;font-weight:600">SHIFT AKTIF</div>
                     <div class="fw-bold" style="color:#0a3d62">Shift {{ $shiftAktif->shift }}</div>
-                    <div class="mono" style="font-size:.65rem;color:#555">{{ $shiftAktif->jam_mulai }}–{{ $shiftAktif->jam_selesai }}</div>
+                    <div class="mono" style="font-size:.65rem;color:#555">{{ $shiftAktif->jam_mulai }}&#x2013;{{ $shiftAktif->jam_selesai }}</div>
                 </div>
             </div>
             @endif
@@ -66,7 +66,7 @@
     <div class="px-3 py-2 rounded d-flex align-items-center gap-2"
          style="background:#f0fff4;border:1px solid #c8e6c9;font-size:.8rem">
         <i class="bi bi-geo-alt-fill text-success"></i>
-        @if($user->isAdmin())<span>Administrator — Semua pemancar</span>
+        @if($user->isAdmin())<span>Administrator &#x2014; Semua pemancar</span>
         @else<span>Lokasi: <strong>{{ $user->lokasi_dinas }}</strong></span>@endif
     </div>
     <span class="badge bg-primary ms-auto">{{ $pemancars->count() }} Pemancar</span>
@@ -113,7 +113,7 @@
                 </div>
 
                 <div class="param-fields" id="fields-{{ $idx }}">
-                <div class="param-lbl mb-2">⚡ Output Power</div>
+                <div class="param-lbl mb-2">&#x26A1; Output Power</div>
                 <div class="row g-2 mb-3">
                     <div class="col-4">
                         <label class="form-label">Final PA</label>
@@ -139,7 +139,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="param-lbl mb-2">↩ Reflected & Reject</div>
+                <div class="param-lbl mb-2">&#x21A9; Reflected & Reject</div>
                 <div class="row g-2 mb-3">
                     <div class="col-4">
                         <label class="form-label">Reflect Final</label>
@@ -160,16 +160,16 @@
                         <label class="form-label">Suhu Pemancar</label>
                         <div class="input-group input-group-sm">
                             <input type="number" name="pemancar[{{ $idx }}][suhu_pemancar]" class="form-control mono" step="0.1">
-                            <span class="input-group-text">°C</span>
+                            <span class="input-group-text">&#xB0;C</span>
                         </div>
                     </div>
                 </div>
                 <div class="vswr-bar mb-3">
                     <i class="bi bi-calculator text-primary me-1"></i>
                     <span style="font-size:.73rem">VSWR Final:</span>
-                    <strong class="mono ms-1 vswr-val" id="vv-{{ $idx }}" style="font-size:.9rem">—</strong>
+                    <strong class="mono ms-1 vswr-val" id="vv-{{ $idx }}" style="font-size:.9rem">&#x2014;</strong>
                     <span class="vswr-st ms-2" id="vs-{{ $idx }}" style="font-size:.73rem"></span>
-                    <span class="text-muted ms-auto" style="font-size:.7rem">RL: <span id="rl-{{ $idx }}">—</span> dB</span>
+                    <span class="text-muted ms-auto" style="font-size:.7rem">RL: <span id="rl-{{ $idx }}">&#x2014;</span> dB</span>
                 </div>
                 </div> {{-- /param-fields --}}
                 <textarea name="pemancar[{{ $idx }}][keterangan]" class="form-control form-control-sm" rows="2"
@@ -230,16 +230,16 @@ function calcVswr(idx){
     const fwd=parseFloat(document.querySelector(`.out-final[data-idx="${idx}"]`)?.value)||0;
     const ref=parseFloat(document.querySelector(`.ref-final[data-idx="${idx}"]`)?.value)||0;
     const vEl=document.getElementById('vv-'+idx),sEl=document.getElementById('vs-'+idx),rEl=document.getElementById('rl-'+idx);
-    if(!fwd){vEl.textContent='—';vEl.style.color='';sEl.textContent='';rEl.textContent='—';return;}
+    if(!fwd){vEl.textContent='\u2014';vEl.style.color='';sEl.textContent='';rEl.textContent='\u2014';return;}
     const ratio=Math.min(ref,fwd)/fwd;const g=Math.sqrt(ratio);
-    if(g>=1){vEl.textContent='∞';return;}
+    if(g>=1){vEl.textContent='\u221E';return;}
     const v=(1+g)/(1-g);
     vEl.textContent=v.toFixed(3);
-    if(v<=1.5){vEl.style.color='#10ac84';sEl.textContent='✅ Baik';}
-    else if(v<=2){vEl.style.color='#ff9f43';sEl.textContent='⚠️ Sedang';}
-    else if(v<=3){vEl.style.color='#ee5a24';sEl.textContent='❌ Buruk';}
-    else{vEl.style.color='#d63031';sEl.textContent='🚨 Kritis';}
-    rEl.textContent=ratio>0?(-10*Math.log10(ratio)).toFixed(2):'∞';
+    if(v<=1.5){vEl.style.color='#10ac84';sEl.textContent='\u2705 Baik';}
+    else if(v<=2){vEl.style.color='#ff9f43';sEl.textContent='\u26A0\uFE0F Sedang';}
+    else if(v<=3){vEl.style.color='#ee5a24';sEl.textContent='\u274C Buruk';}
+    else{vEl.style.color='#d63031';sEl.textContent='\uD83D\uDEA8 Kritis';}
+    rEl.textContent=ratio>0?(-10*Math.log10(ratio)).toFixed(2):'\u221E';
 }
 document.querySelectorAll('.out-final').forEach(el=>{
     el.addEventListener('input',()=>{
@@ -250,7 +250,7 @@ document.querySelectorAll('.out-final').forEach(el=>{
 });
 document.querySelectorAll('.ref-final').forEach(el=>el.addEventListener('input',()=>calcVswr(el.dataset.idx)));
 
-// ── OFFLINE SUPPORT ──
+// \u2500\u2500 OFFLINE SUPPORT \u2500\u2500
 function updateOfflineUI(){
     const isOnline = navigator.onLine;
     document.getElementById('offline-notice')?.style.setProperty('display', isOnline ? 'none' : 'flex', 'important');
@@ -285,7 +285,7 @@ async function simpanOffline(){
 
     const localId = await OfflineDB.add('pending_logs', { data });
     await SyncManager.updateBadge();
-    SyncManager.showToast('✅ Log disimpan offline! Akan sync saat online.', 'success');
+    SyncManager.showToast('\u2705 Log disimpan offline! Akan sync saat online.', 'success');
 
     // Reset form
     form.reset();

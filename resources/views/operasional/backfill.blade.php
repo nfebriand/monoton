@@ -10,7 +10,7 @@
     <div style="font-size:.85rem">
         <strong>Menu ini untuk melengkapi log operasional yang terlewat belum diisi.</strong><br>
         Data disimpan atas nama Anda sendiri (<strong>{{ $user->name }}</strong>). Isi nilai parameter
-        sesuai catatan asli Anda (buku log, catatan WA, dll) — bukan perkiraan. Waktu pencatatan
+        sesuai catatan asli Anda (buku log, catatan WA, dll) &#x2014; bukan perkiraan. Waktu pencatatan
         di bawah hanya isian awal yang bisa Anda ubah sesuai waktu sebenarnya.
     </div>
 </div>
@@ -35,9 +35,9 @@
                 <label class="form-label">Shift</label>
                 <select name="shift" class="form-select" required>
                     <option value="">Pilih Shift</option>
-                    <option value="1" {{ $shift=='1'?'selected':'' }}>Shift 1 (00:15–07:45)</option>
-                    <option value="2" {{ $shift=='2'?'selected':'' }}>Shift 2 (07:45–15:45)</option>
-                    <option value="3" {{ $shift=='3'?'selected':'' }}>Shift 3 (15:45–23:45)</option>
+                    <option value="1" {{ $shift=='1'?'selected':'' }}>Shift 1 (00:15&#x2013;07:45)</option>
+                    <option value="2" {{ $shift=='2'?'selected':'' }}>Shift 2 (07:45&#x2013;15:45)</option>
+                    <option value="3" {{ $shift=='3'?'selected':'' }}>Shift 3 (15:45&#x2013;23:45)</option>
                 </select>
             </div>
             <div class="col-12 col-md-3">
@@ -68,7 +68,7 @@
                        value="{{ old("checkpoint.$cpIdx.jam", $jamDefault) }}" required>
             </div>
             <div class="col-6 col-md-3">
-                <label class="form-label">Suhu Ruangan (°C)</label>
+                <label class="form-label">Suhu Ruangan (&#xB0;C)</label>
                 <input type="number" step="0.1" name="checkpoint[{{ $cpIdx }}][suhu_ruangan]"
                        class="form-control mono" value="{{ old("checkpoint.$cpIdx.suhu_ruangan") }}" required>
             </div>
@@ -90,7 +90,7 @@
                         <th>Exciter (W)</th>
                         <th>Reflect (W)</th>
                         <th>Reject (W)</th>
-                        <th>Suhu Pmc (°C)</th>
+                        <th>Suhu Pmc (&#xB0;C)</th>
                         <th style="min-width:160px">Keterangan</th>
                     </tr>
                 </thead>
@@ -132,7 +132,7 @@
             </table>
         </div>
         <div class="text-muted" style="font-size:.72rem">
-            Kosongkan baris pemancar yang memang tidak ada catatannya pada checkpoint ini — baris kosong tidak akan disimpan.
+            Kosongkan baris pemancar yang memang tidak ada catatannya pada checkpoint ini &#x2014; baris kosong tidak akan disimpan.
         </div>
     </div>
 </div>

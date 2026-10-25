@@ -26,6 +26,17 @@ class StudioLogController extends Controller
         return auth()->id() === $log->user_id;
     }
 
+    /**
+     * Lokasi penentu penandatangan: filter lokasi bila ada; bila tidak, lokasi
+     * dari data yang dicetak jika seragam (semua Way Kanan -> koordinator SP Way Kanan).
+     */
+    private function lokasiTtd(?string $lokasiFilter, $logs): ?string
+    {
+        if ($lokasiFilter) return $lokasiFilter;
+        $u = collect($logs)->pluck('lokasi')->filter()->unique()->values();
+        return $u->count() === 1 ? $u->first() : null;
+    }
+
     private function saveFotos(StudioLog $log, Request $request, string $field = 'fotos', int $startUrutan = 0): void
     {
         if (!$request->hasFile($field)) return;
@@ -231,7 +242,7 @@ class StudioLogController extends Controller
         }
 
         $settings       = AppSetting::allKeyed();
-        $koordinator    = AppSetting::getKoordinatorStudio($lokasiFilter);
+        $koordinator    = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs));
         $kabid          = AppSetting::getKabid();
         $operatorFilter = (!$user->isAdmin() && !$user->isAdminDivisi())
             ? $user
@@ -269,7 +280,7 @@ class StudioLogController extends Controller
 
         $logs = $query->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinatorStudio($lokasiFilter);
+        $koordinator = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs));
         $kabid       = AppSetting::getKabid();
         $html   = view('studio.laporan.pdf-logbook-harian', compact('logs','tanggal','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
         $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');
@@ -297,7 +308,7 @@ class StudioLogController extends Controller
 
         $logs = $qBulanan->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinatorStudio($lokasiFilter);
+        $koordinator = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs));
         $kabid       = AppSetting::getKabid();
         $html   = view('studio.laporan.pdf-rekap-bulanan', compact('logs','bulan','year','month','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
         $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');

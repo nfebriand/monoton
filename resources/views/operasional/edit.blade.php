@@ -44,7 +44,7 @@
                 <div class="fw-bold">{{ $operasional->user->name }}</div>
                 @if($operasional->jadwalShift)
                 <div class="text-muted mt-1">Shift {{ $operasional->jadwalShift->shift }}
-                    — {{ $operasional->jadwalShift->jam_mulai }}–{{ $operasional->jadwalShift->jam_selesai }}</div>
+                    &#x2014; {{ $operasional->jadwalShift->jam_mulai }}&#x2013;{{ $operasional->jadwalShift->jam_selesai }}</div>
                 @endif
             </div>
         </div>
@@ -63,7 +63,7 @@
     </div>
 
     {{-- Output Power --}}
-    <h6 class="section-title mb-3">⚡ Output Power</h6>
+    <h6 class="section-title mb-3">&#x26A1; Output Power</h6>
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-4">
             <label class="form-label">
@@ -100,7 +100,7 @@
     </div>
 
     {{-- Reflected & Reject --}}
-    <h6 class="section-title mb-3">↩ Reflected & Reject Power</h6>
+    <h6 class="section-title mb-3">&#x21A9; Reflected & Reject Power</h6>
     <div class="row g-3 mb-3">
         <div class="col-6 col-md-4">
             <label class="form-label">Reflect Final</label>
@@ -124,7 +124,7 @@
             <div class="p-2 rounded text-center" style="background:#f0f4f8;border:1px solid #dfe6e9">
                 <div style="font-size:.68rem;color:#636e72">VSWR FINAL</div>
                 <div class="mono fw-bold" id="vswrPreview" style="font-size:1.3rem">
-                    {{ $operasional->vswr_final ? number_format($operasional->vswr_final,3) : '—' }}
+                    {{ $operasional->vswr_final ? number_format($operasional->vswr_final,3) : ''."\u{2014}".'' }}
                 </div>
                 <div id="vswrStatus" style="font-size:.72rem"></div>
             </div>
@@ -132,14 +132,14 @@
     </div>
 
     {{-- Suhu & Kelembaban --}}
-    <h6 class="section-title mb-3">🌡️ Suhu & Kelembaban</h6>
+    <h6 class="section-title mb-3">&#x1F321;&#xFE0F; Suhu & Kelembaban</h6>
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-4">
             <label class="form-label">Suhu Pemancar</label>
             <div class="input-group input-group-sm">
                 <input type="number" name="suhu_pemancar" class="form-control mono op-numeric"
                        step="0.1" value="{{ old('suhu_pemancar', $operasional->suhu_pemancar) }}" placeholder="0.0">
-                <span class="input-group-text">°C</span>
+                <span class="input-group-text">&#xB0;C</span>
             </div>
         </div>
         <div class="col-6 col-md-4">
@@ -147,7 +147,7 @@
             <div class="input-group input-group-sm">
                 <input type="number" name="suhu_ruangan" class="form-control mono"
                        step="0.1" value="{{ old('suhu_ruangan', $operasional->suhu_ruangan) }}" placeholder="0.0">
-                <span class="input-group-text">°C</span>
+                <span class="input-group-text">&#xB0;C</span>
             </div>
         </div>
         <div class="col-6 col-md-4">
@@ -208,19 +208,19 @@ function updateVswr(){
     const el  = document.getElementById('vswrPreview');
     const es  = document.getElementById('vswrStatus');
 
-    if (!fwd || fwd <= 0){ el.textContent='—'; el.style.color=''; es.textContent=''; return; }
+    if (!fwd || fwd <= 0){ el.textContent='\u2014'; el.style.color=''; es.textContent=''; return; }
 
     const ratio = Math.min(ref,fwd)/fwd;
     const gamma = Math.sqrt(ratio);
-    if(gamma>=1){ el.textContent='∞'; return; }
+    if(gamma>=1){ el.textContent='\u221E'; return; }
 
     const vswr = (1+gamma)/(1-gamma);
     el.textContent = vswr.toFixed(3);
 
-    if(vswr<=1.5){el.style.color='#10ac84';es.textContent='✅ Baik';}
-    else if(vswr<=2.0){el.style.color='#ff9f43';es.textContent='⚠️ Sedang';}
-    else if(vswr<=3.0){el.style.color='#ee5a24';es.textContent='❌ Buruk';}
-    else{el.style.color='#d63031';es.textContent='🚨 Kritis';}
+    if(vswr<=1.5){el.style.color='#10ac84';es.textContent='\u2705 Baik';}
+    else if(vswr<=2.0){el.style.color='#ff9f43';es.textContent='\u26A0\uFE0F Sedang';}
+    else if(vswr<=3.0){el.style.color='#ee5a24';es.textContent='\u274C Buruk';}
+    else{el.style.color='#d63031';es.textContent='\uD83D\uDEA8 Kritis';}
 }
 
 // Validasi output vs kapasitas

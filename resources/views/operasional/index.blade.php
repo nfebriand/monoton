@@ -109,23 +109,23 @@
                     <td>
                         @if($log->pemancar->lokasi)
                         <span class="badge bg-secondary" style="font-size:.65rem">{{ $log->pemancar->lokasi }}</span>
-                        @else <span class="text-muted">–</span> @endif
+                        @else <span class="text-muted">&#x2013;</span> @endif
                     </td>
                     <td style="font-size:.83rem">{{ $log->user->name }}</td>
                     <td class="text-end mono" style="font-size:.8rem">
-                        {{ $log->output_final_pa ? number_format($log->output_final_pa,1).' W':'–' }}
+                        {{ $log->output_final_pa ? number_format($log->output_final_pa,1).' W':''."\u{2013}".'' }}
                     </td>
                     <td class="text-center">
                         @if($log->vswr_final)
                             @php $v=$log->vswr_final;$cls=$v<=1.5?'vswr-baik':($v<=2?'vswr-sedang':'vswr-buruk'); @endphp
                             <span class="mono {{ $cls }}" style="font-size:.8rem">{{ number_format($v,3) }}</span>
-                        @else <span class="text-muted">–</span> @endif
+                        @else <span class="text-muted">&#x2013;</span> @endif
                     </td>
                     <td class="text-end mono" style="font-size:.8rem">
-                        {{ $log->suhu_ruangan!==null?$log->suhu_ruangan.'°C':'–' }}
+                        {{ $log->suhu_ruangan!==null?$log->suhu_ruangan.''."\u{B0}".'C':''."\u{2013}".'' }}
                     </td>
                     <td class="text-end mono" style="font-size:.8rem">
-                        {{ $log->kelembaban!==null?$log->kelembaban.'%':'–' }}
+                        {{ $log->kelembaban!==null?$log->kelembaban.'%':''."\u{2013}".'' }}
                     </td>
                     <td class="pe-2">
                         <div class="d-flex gap-1">
@@ -159,7 +159,7 @@
     </div>
     @if($logs->hasPages())
     <div class="card-footer d-flex align-items-center justify-content-between">
-        <small class="text-muted">{{ $logs->firstItem() }}–{{ $logs->lastItem() }} dari {{ $logs->total() }}</small>
+        <small class="text-muted">{{ $logs->firstItem() }}&#x2013;{{ $logs->lastItem() }} dari {{ $logs->total() }}</small>
         {{ $logs->links() }}
     </div>
     @endif
@@ -192,8 +192,8 @@
                         <span><i class="bi bi-clock me-1"></i>{{ $log->dicatat_pada->format('d/m H:i') }}</span>
                         <span><i class="bi bi-person me-1"></i>{{ $log->user->name }}</span>
                         @if($log->output_final_pa)<span><i class="bi bi-lightning me-1"></i>{{ number_format($log->output_final_pa,1) }} W</span>@endif
-                        @if($log->suhu_ruangan!==null)<span>🌡 {{ $log->suhu_ruangan }}°C</span>@endif
-                        @if($log->kelembaban!==null)<span>💧 {{ $log->kelembaban }}%</span>@endif
+                        @if($log->suhu_ruangan!==null)<span>&#x1F321; {{ $log->suhu_ruangan }}&#xB0;C</span>@endif
+                        @if($log->kelembaban!==null)<span>&#x1F4A7; {{ $log->kelembaban }}%</span>@endif
                     </div>
                 </div>
                 <div class="d-flex flex-column gap-1 flex-shrink-0">

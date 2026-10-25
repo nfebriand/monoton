@@ -231,7 +231,7 @@ class StudioLogController extends Controller
         }
 
         $settings       = AppSetting::allKeyed();
-        $koordinator    = AppSetting::getKoordinator('studio');
+        $koordinator    = AppSetting::getKoordinatorStudio($lokasiFilter);
         $kabid          = AppSetting::getKabid();
         $operatorFilter = (!$user->isAdmin() && !$user->isAdminDivisi())
             ? $user
@@ -269,7 +269,7 @@ class StudioLogController extends Controller
 
         $logs = $query->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinator('studio');
+        $koordinator = AppSetting::getKoordinatorStudio($lokasiFilter);
         $kabid       = AppSetting::getKabid();
         $html   = view('studio.laporan.pdf-logbook-harian', compact('logs','tanggal','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
         $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');
@@ -297,7 +297,7 @@ class StudioLogController extends Controller
 
         $logs = $qBulanan->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinator('studio');
+        $koordinator = AppSetting::getKoordinatorStudio($lokasiFilter);
         $kabid       = AppSetting::getKabid();
         $html   = view('studio.laporan.pdf-rekap-bulanan', compact('logs','bulan','year','month','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
         $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');

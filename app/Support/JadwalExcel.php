@@ -226,22 +226,26 @@ class JadwalExcel
             $kananMulai = $kiriAkhir + 1;
             $s->set($r, $kananMulai, 'Bandar Lampung, '.$tglTtd, $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
             $r++;
-            $k = $d['koordinator']; $b = $d['kabid'];
+            // Penandatangan bisa diganti per sheet (mis. Studio Way Kanan: pencetak + koordinator SP Way Kanan + kepala stasiun)
+            $ov = $sh['ttd'] ?? [];
+            $k = $ov['kiri']  ?? $d['koordinator'];
+            $b = $ov['kanan'] ?? $d['kabid'];
+            $kepalaSheet = array_key_exists('kepala', $ov) ? $ov['kepala'] : ($d['kepala'] ?? null);
             $s->set($r, $kiriMulai, $k['jabatan'], $st['ttdc'])->merge($r, $kiriMulai, $r, $kiriAkhir);
             $s->set($r, $kananMulai, $b['jabatan'], $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
             for ($i = 1; $i <= 4; $i++) $s->rowHeight($r + $i, 21);
             $tempelTtd($k['ttd'] ?? null, $r + 1, $kiriMulai, $kiriAkhir);
             $tempelTtd($b['ttd'] ?? null, $r + 1, $kananMulai, $lastCol);
             $r += 5; // ruang tanda tangan
-            $s->set($r, $kiriMulai, $k['nama'] ?: '(................................)', $st['ttdnm'])->merge($r, $kiriMulai, $r, $kiriAkhir);
-            $s->set($r, $kananMulai, $b['nama'] ?: '(................................)', $st['ttdnm'])->merge($r, $kananMulai, $r, $lastCol);
+            $s->set($r, $kiriMulai, ($k['nama'] ?? '') ?: '(................................)', $st['ttdnm'])->merge($r, $kiriMulai, $r, $kiriAkhir);
+            $s->set($r, $kananMulai, ($b['nama'] ?? '') ?: '(................................)', $st['ttdnm'])->merge($r, $kananMulai, $r, $lastCol);
             $r++;
-            $s->set($r, $kiriMulai, $k['nip'] ? 'NIP. '.$k['nip'] : '', $st['ttdc'])->merge($r, $kiriMulai, $r, $kiriAkhir);
-            $s->set($r, $kananMulai, $b['nip'] ? 'NIP. '.$b['nip'] : '', $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
+            $s->set($r, $kiriMulai, !empty($k['nip']) ? 'NIP. '.$k['nip'] : '', $st['ttdc'])->merge($r, $kiriMulai, $r, $kiriAkhir);
+            $s->set($r, $kananMulai, !empty($b['nip']) ? 'NIP. '.$b['nip'] : '', $st['ttdc'])->merge($r, $kananMulai, $r, $lastCol);
 
             // Mengetahui: Kepala Stasiun (opsional, tampil bila ada di Pengaturan)
-            if (!empty($d['kepala']) && ($d['kepala']['nama'] ?? '') !== '') {
-                $kp = $d['kepala'];
+            if (!empty($kepalaSheet) && ($kepalaSheet['nama'] ?? '') !== '') {
+                $kp = $kepalaSheet;
                 $r += 2;
                 $s->set($r++, 1, 'Mengetahui', $st['ttdc'])->merge($r - 1, 1, $r - 1, $lastCol);
                 $s->set($r, 1, $kp['jabatan'], $st['ttdc'])->merge($r, 1, $r, $lastCol);

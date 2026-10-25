@@ -222,7 +222,7 @@ class StudioPerangkatController extends Controller
         $perangkats  = StudioPerangkat::when($lokasiFilter, fn($q) => $q->where('lokasi', $lokasiFilter))
                         ->orderBy('lokasi')->orderBy('kategori')->orderBy('nama')->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinator('studio');
+        $koordinator = AppSetting::getKoordinatorStudio($lokasiFilter);
         $kabid       = AppSetting::getKabid();
         $html = view('studio.laporan.pdf-inventaris', compact('perangkats','settings','koordinator','kabid','lokasiFilter'))->render();
         return $this->streamPdf($html, 'inventaris-perangkat-studio'.($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').'-'.now()->format('Ymd'));

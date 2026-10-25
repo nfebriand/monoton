@@ -152,7 +152,18 @@ class JadwalController extends Controller
                 sort($list, SORT_NATURAL | SORT_FLAG_CASE);
                 $data[$tgl][$no] = $list;
             }
-            $sheets[] = ['lokasi' => $lok, 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? [], 'cuti' => $cutiLokasi[$lok] ?? []];
+            $sheet = ['lokasi' => $lok, 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? [], 'cuti' => $cutiLokasi[$lok] ?? []];
+            // Studio Produksi Way Kanan: penandatangan = pencetak (kiri), Koordinator SP Way Kanan (kanan), Kepala Stasiun (mengetahui)
+            if ($divisi === 'studio' && strcasecmp(trim((string) $lok), 'Way Kanan') === 0) {
+                $korWk  = AppSetting::getKoordinatorStudio('Way Kanan');
+                $kepWk  = AppSetting::getKepalaStasiun();
+                $sheet['ttd'] = [
+                    'kiri'   => ['jabatan' => 'Dicetak oleh', 'nama' => (string) $user->name, 'nip' => (string) ($user->nip ?? ''), 'ttd' => null],
+                    'kanan'  => ['jabatan' => $korWk['jabatan'], 'nama' => $korWk['nama'], 'nip' => $korWk['nip'], 'ttd' => $this->ttdGambar($korWk['ttd_path'] ?? null)],
+                    'kepala' => ['jabatan' => $kepWk['jabatan'], 'nama' => $kepWk['nama'], 'nip' => $kepWk['nip'], 'ttd' => $this->ttdGambar($kepWk['ttd_path'] ?? null)],
+                ];
+            }
+            $sheets[] = $sheet;
         }
 
         $skema  = JadwalShift::getSkemaForDivisi($divisi);

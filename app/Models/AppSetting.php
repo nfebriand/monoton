@@ -47,12 +47,14 @@ class AppSetting extends Model
      */
     public static function getKoordinator(string $divisi): array
     {
-        $divisi = in_array($divisi, ['transmisi','studio','sarana']) ? $divisi : 'transmisi';
+        // 'studio_wk' = Koordinator Studio Produksi Way Kanan
+        $divisi = in_array($divisi, ['transmisi','studio','sarana','studio_wk']) ? $divisi : 'transmisi';
         $s = self::allKeyed();
 
         $nama    = $s["koordinator_{$divisi}_nama"]    ?? '';
         $nip     = $s["koordinator_{$divisi}_nip"]     ?? '';
-        $jabatan = $s["koordinator_{$divisi}_jabatan"] ?? 'Koordinator '.ucfirst($divisi);
+        $jabDef  = $divisi === 'studio_wk' ? 'Koordinator Studio Produksi Way Kanan' : 'Koordinator '.ucfirst($divisi);
+        $jabatan = ($s["koordinator_{$divisi}_jabatan"] ?? '') !== '' ? $s["koordinator_{$divisi}_jabatan"] : $jabDef;
         $ttd     = $s["koordinator_{$divisi}_ttd"]     ?? '';
 
         // Fallback ke key lama 'koordinator' untuk divisi transmisi (backward compat)
@@ -68,6 +70,20 @@ class AppSetting extends Model
             'ttd_url' => $ttd ? \App\Helpers\ImageHelper::url($ttd) : null,
             'ttd_base64' => self::ttdBase64($ttd),
         ];
+    }
+
+    /**
+     * Koordinator penandatangan laporan Studio sesuai lokasi.
+     * Lokasi 'Way Kanan' -> Koordinator Studio Produksi Way Kanan (bila sudah diisi),
+     * selain itu / bila belum diisi -> Koordinator Studio (Pahoman).
+     */
+    public static function getKoordinatorStudio(?string $lokasi = null): array
+    {
+        if ($lokasi !== null && strcasecmp(trim($lokasi), 'Way Kanan') === 0) {
+            $wk = self::getKoordinator('studio_wk');
+            if (!empty($wk['nama'])) return $wk;
+        }
+        return self::getKoordinator('studio');
     }
 
     /**

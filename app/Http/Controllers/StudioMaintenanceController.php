@@ -143,7 +143,7 @@ class StudioMaintenanceController extends Controller
                     ->when($lokasiFilter, fn($q) => $q->whereHas('perangkat', fn($p) => $p->where('lokasi', $lokasiFilter)))
                     ->orderBy('tanggal')->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinator('studio');
+        $koordinator = AppSetting::getKoordinatorStudio($lokasiFilter);
         $kabid       = AppSetting::getKabid();
         $html = view('studio.laporan.pdf-maintenance', compact('logs','tanggalDari','tanggalSampai','settings','koordinator','kabid','lokasiFilter'))->render();
         return $this->streamPdf($html, 'laporan-maintenance-studio'.($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').'-'.now()->format('Ymd'));

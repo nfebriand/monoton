@@ -109,7 +109,8 @@
 @php
     $divisiList = [
         'transmisi' => '📡 Koordinator Transmisi',
-        'studio'    => '🎙️ Koordinator Studio',
+        'studio'    => '🎙️ Koordinator Studio (Pahoman)',
+        'studio_wk' => '🎙️ Koordinator Studio Produksi Way Kanan',
         'sarana'    => '🛠️ Koordinator Sarana & Prasarana',
     ];
 @endphp
@@ -119,7 +120,9 @@
     Nama, jabatan, dan tanda tangan di sini akan otomatis muncul pada kolom
     "Mengetahui" di laporan PDF — <strong>sesuai divisi laporan tersebut</strong>.
     Laporan Operasional & Suhu memakai Koordinator Transmisi; laporan Eviden
-    memakai koordinator sesuai divisi kegiatan.
+    memakai koordinator sesuai divisi kegiatan. Laporan Studio (logbook, maintenance,
+    inventaris) berlokasi Way Kanan memakai Koordinator Studio Produksi Way Kanan;
+    bila belum diisi, otomatis memakai Koordinator Studio.
 </div>
 
 <div class="row g-3 mb-3">
@@ -147,8 +150,8 @@
             <div class="mb-2">
                 <label class="form-label">Jabatan</label>
                 <input type="text" name="koordinator_{{ $kode }}_jabatan" class="form-control"
-                       value="{{ old('koordinator_'.$kode.'_jabatan', $settings['koordinator_'.$kode.'_jabatan'] ?? 'Koordinator '.ucfirst($kode)) }}"
-                       placeholder="Koordinator {{ ucfirst($kode) }}">
+                       value="{{ old('koordinator_'.$kode.'_jabatan', $settings['koordinator_'.$kode.'_jabatan'] ?? ($kode==='studio_wk' ? 'Koordinator Studio Produksi Way Kanan' : 'Koordinator '.ucfirst($kode))) }}"
+                       placeholder="{{ $kode==='studio_wk' ? 'Koordinator Studio Produksi Way Kanan' : 'Koordinator '.ucfirst($kode) }}">
             </div>
 
             {{-- Tanda Tangan --}}
@@ -493,7 +496,7 @@
 </div>
 </div>
 {{-- Form tersembunyi hapus TTD --}}
-@foreach(['transmisi','studio','sarana'] as $kode)
+@foreach(['transmisi','studio','sarana','studio_wk'] as $kode)
 <form id="formHapusTtd_{{ $kode }}" action="{{ route('setting.remove-ttd') }}" method="POST" class="d-none">
     @csrf
     <input type="hidden" name="target" value="koordinator_{{ $kode }}_ttd">

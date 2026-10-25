@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Storage;
 class SettingController extends Controller
 {
     /** Daftar divisi yang punya koordinator masing-masing */
-    private const DIVISI = ['transmisi','studio','sarana'];
+    private const DIVISI = ['transmisi','studio','sarana','studio_wk'];
 
     public function index()
     {

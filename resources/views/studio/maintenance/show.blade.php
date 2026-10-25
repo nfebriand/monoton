@@ -7,7 +7,7 @@
 <div class="col-12 col-lg-8">
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h6 class="mb-0"><i class="bi bi-tools me-2"></i>{{ $studioMaintenance->perangkat->nama }}</h6>
+        <h6 class="mb-0"><i class="bi bi-tools me-2"></i>{{ $studioMaintenance->perangkat->nama }} @include('studio._lokasi-badge', ['lokasi' => $studioMaintenance->perangkat->lokasi])</h6>
         <span class="badge {{ $studioMaintenance->hasil=='selesai'?'bg-success':($studioMaintenance->hasil=='sebagian'?'bg-warning':'bg-secondary') }}">{{ $studioMaintenance->hasil_label }}</span>
     </div>
     <div class="card-body">

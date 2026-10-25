@@ -103,8 +103,10 @@ class StudioPerangkatController extends Controller
     public function create()
     {
         $this->checkAdminAccess();
-        $lokasisStudio = ['Pahoman', 'Way Kanan'];
-        $defaultLokasi = auth()->user()->isWayKanan() ? 'Way Kanan' : 'Pahoman';
+        $user = auth()->user();
+        $terbatas = $user->isAdminDivisi() && $user->isWayKanan() && !$user->isDivisi('studio');
+        $lokasisStudio = $terbatas ? ['Way Kanan'] : ['Pahoman', 'Way Kanan'];
+        $defaultLokasi = $user->isWayKanan() ? 'Way Kanan' : 'Pahoman';
         return view('studio.perangkat.create', compact('lokasisStudio', 'defaultLokasi'));
     }
 
@@ -152,7 +154,9 @@ class StudioPerangkatController extends Controller
     {
         $this->checkAdminAccessFor($studioPerangkat);
         $studioPerangkat->load('fotos');
-        $lokasisStudio = ['Pahoman', 'Way Kanan'];
+        $user = auth()->user();
+        $terbatas = $user->isAdminDivisi() && $user->isWayKanan() && !$user->isDivisi('studio');
+        $lokasisStudio = $terbatas ? ['Way Kanan'] : ['Pahoman', 'Way Kanan'];
         return view('studio.perangkat.edit', compact('studioPerangkat', 'lokasisStudio'));
     }
 

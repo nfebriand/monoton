@@ -18,10 +18,14 @@
         <label class="form-label">Perangkat <span class="text-danger">*</span></label>
         <select name="studio_perangkat_id" class="form-select" required>
             <option value="">-- Pilih Perangkat --</option>
-            @foreach($perangkats as $p)
-            <option value="{{ $p->id }}" {{ (old('studio_perangkat_id', $perangkatTerpilih?->id)==$p->id)?'selected':'' }}>
-                {{ $p->nama }} {{ $p->kode_inventaris ? '['.$p->kode_inventaris.']' : '' }}
-            </option>
+            @foreach($perangkats->groupBy(fn($x) => $x->lokasi ?: 'Lainnya') as $__lok => $__items)
+            <optgroup label="{{ \App\Support\StudioLokasi::label($__lok) }}">
+                @foreach($__items as $p)
+                <option value="{{ $p->id }}" {{ (old('studio_perangkat_id', $perangkatTerpilih?->id)==$p->id)?'selected':'' }}>
+                    {{ $p->nama }} {{ $p->kode_inventaris ? '['.$p->kode_inventaris.']' : '' }}
+                </option>
+                @endforeach
+            </optgroup>
             @endforeach
         </select>
     </div>

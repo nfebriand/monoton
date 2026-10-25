@@ -4,6 +4,8 @@
 
 @section('content')
 
+@include('studio._lokasi-tabs', ['lokasiAktif' => $lokasiAktif, 'hitung' => $hitung, 'labelHitung' => 'jumlah perangkat sesuai filter'])
+
 {{-- Ringkasan --}}
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-3">
@@ -54,6 +56,7 @@
 <div class="card mb-3">
     <div class="card-body py-2">
         <form method="GET" class="row g-2 align-items-end">
+            <input type="hidden" name="lokasi" value="{{ $lokasiAktif }}">
             <div class="col-6 col-md-3">
                 <label class="form-label mb-1" style="font-size:.7rem">Kategori</label>
                 <select name="kategori" class="form-select form-select-sm">
@@ -61,14 +64,6 @@
                     @foreach(\App\Models\StudioPerangkat::KATEGORI_LABEL as $val=>$label)
                     <option value="{{ $val }}" {{ request('kategori')==$val?'selected':'' }}>{{ $label }}</option>
                     @endforeach
-                </select>
-            </div>
-            <div class="col-6 col-md-2">
-                <label class="form-label mb-1" style="font-size:.7rem">Lokasi</label>
-                <select name="lokasi" class="form-select form-select-sm">
-                    <option value="">Semua Lokasi</option>
-                    <option value="Pahoman" {{ request('lokasi')==='Pahoman'?'selected':'' }}>Studio Pahoman</option>
-                    <option value="Way Kanan" {{ request('lokasi')==='Way Kanan'?'selected':'' }}>Studio Way Kanan</option>
                 </select>
             </div>
             <div class="col-6 col-md-2">
@@ -99,10 +94,10 @@
 
 {{-- Tombol Aksi --}}
 <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
-    <a href="{{ route('studio.perangkat.cetak-inventaris') }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+    <a href="{{ route('studio.perangkat.cetak-inventaris', array_filter(['lokasi' => $lokasiAktif])) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
         <i class="bi bi-file-earmark-pdf me-1"></i>Cetak Inventaris
     </a>
-    @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && auth()->user()->isDivisi('studio')))
+    @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && (auth()->user()->isDivisi('studio') || auth()->user()->isWayKanan())))
     <a href="{{ route('studio.perangkat.create') }}" class="btn btn-primary-custom">
         <i class="bi bi-plus-circle me-1"></i>Tambah Perangkat
     </a>
@@ -135,9 +130,7 @@
                         </td>
                         <td>
                             @if($p->lokasi)
-                            <span class="badge" style="font-size:.65rem;background:{{ $p->lokasi=='Way Kanan'?'#8e44ad':'#0a3d62' }}">
-                                {{ $p->lokasi }}
-                            </span>
+                            @include('studio._lokasi-badge', ['lokasi' => $p->lokasi])
                             @else<span class="text-muted" style="font-size:.75rem">-</span>@endif
                         </td>
                         <td style="font-size:.8rem">{{ \App\Models\StudioPerangkat::KATEGORI_LABEL[$p->kategori] ?? ($p->kategori ?? '-') }}</td>
@@ -155,7 +148,7 @@
                         </td>
                         <td class="text-end pe-3">
                             <a href="{{ route('studio.perangkat.show',$p) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
-                            @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && auth()->user()->isDivisi('studio')))
+                            @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && (auth()->user()->isDivisi('studio') || (auth()->user()->isWayKanan() && $p->lokasi === 'Way Kanan'))))
                             <a href="{{ route('studio.perangkat.edit',$p) }}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i></a>
                             @endif
                         </td>

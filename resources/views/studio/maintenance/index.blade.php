@@ -4,6 +4,8 @@
 
 @section('content')
 
+@include('studio._lokasi-tabs', ['lokasiAktif' => $lokasiAktif, 'hitung' => $hitung, 'labelHitung' => 'jumlah log maintenance sesuai filter'])
+
 @if($perluPerhatian->count())
 <div class="alert alert-warning py-2 mb-3">
     <strong><i class="bi bi-exclamation-triangle me-1"></i>Perlu Perhatian:</strong>
@@ -22,12 +24,13 @@
 <div class="card mb-3">
     <div class="card-body py-2">
         <form method="GET" class="row g-2 align-items-end">
+            <input type="hidden" name="lokasi" value="{{ $lokasiAktif }}">
             <div class="col-6 col-md-3">
                 <label class="form-label mb-1" style="font-size:.7rem">Perangkat</label>
                 <select name="studio_perangkat_id" class="form-select form-select-sm">
                     <option value="">Semua Perangkat</option>
                     @foreach($perangkats as $p)
-                    <option value="{{ $p->id }}" {{ request('studio_perangkat_id')==$p->id?'selected':'' }}>{{ $p->nama }}</option>
+                    <option value="{{ $p->id }}" {{ request('studio_perangkat_id')==$p->id?'selected':'' }}>{{ $p->nama }}{{ !$lokasiAktif && $p->lokasi ? ' ('.$p->lokasi.')' : '' }}</option>
                     @endforeach
                 </select>
             </div>
@@ -50,14 +53,14 @@
             </div>
             <div class="col-12 col-md-3 d-flex gap-2">
                 <button class="btn btn-sm btn-primary-custom flex-fill"><i class="bi bi-funnel me-1"></i>Filter</button>
-                <a href="{{ route('studio.maintenance.index') }}" class="btn btn-sm btn-outline-secondary">Reset</a>
+                <a href="{{ route('studio.maintenance.index', ['lokasi' => $lokasiAktif]) }}" class="btn btn-sm btn-outline-secondary">Reset</a>
             </div>
         </form>
     </div>
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-2 gap-2 flex-wrap">
-    <a href="{{ route('studio.maintenance.cetak', ['tanggal_dari'=>now()->startOfMonth()->toDateString(),'tanggal_sampai'=>now()->toDateString()]) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
+    <a href="{{ route('studio.maintenance.cetak', array_filter(['tanggal_dari'=>now()->startOfMonth()->toDateString(),'tanggal_sampai'=>now()->toDateString(),'lokasi'=>$lokasiAktif])) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
         <i class="bi bi-file-earmark-pdf me-1"></i>Cetak Laporan
     </a>
     <a href="{{ route('studio.maintenance.create') }}" class="btn btn-primary-custom">
@@ -72,6 +75,7 @@
                 <thead>
                     <tr>
                         <th class="ps-3">Tanggal</th>
+                        <th>Lokasi</th>
                         <th>Perangkat</th>
                         <th>Jenis</th>
                         <th>Uraian</th>
@@ -84,6 +88,7 @@
                     @forelse($logs as $log)
                     <tr>
                         <td class="ps-3 mono" style="font-size:.8rem">{{ $log->tanggal->format('d/m/Y') }}</td>
+                        <td>@include('studio._lokasi-badge', ['lokasi' => $log->perangkat->lokasi ?? null])</td>
                         <td style="font-size:.82rem">{{ $log->perangkat->nama }}</td>
                         <td><span class="badge bg-info" style="font-size:.68rem">{{ $log->jenis_label }}</span></td>
                         <td style="font-size:.8rem;max-width:200px">{{ Str::limit($log->uraian_pekerjaan,50) }}</td>
@@ -100,7 +105,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="7" class="text-center text-muted py-4">
+                    <tr><td colspan="8" class="text-center text-muted py-4">
                         <i class="bi bi-tools d-block fs-2 mb-1"></i>Belum ada log maintenance studio
                     </td></tr>
                     @endforelse

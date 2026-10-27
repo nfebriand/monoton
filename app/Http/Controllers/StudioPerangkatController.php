@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\StudioPerangkat;
+use App\Support\Akses;
 use App\Models\StudioPerangkatFoto;
 use App\Models\AppSetting;
 use App\Helpers\ImageHelper;
@@ -14,20 +15,15 @@ class StudioPerangkatController extends Controller
 {
     private function checkAccess(): void
     {
-        $user = auth()->user();
-        if (!$user->canAccessStudio()) {
+        if (!Akses::studioMasuk(auth()->user())) {
             abort(403, 'Menu ini hanya untuk Divisi Studio atau Operator Way Kanan.');
         }
     }
 
     private function checkAdminAccess(): void
     {
-        $user = auth()->user();
-        // Izinkan: Super Admin, Admin Divisi Studio, atau Admin Divisi Way Kanan
-        $boleh = $user->isAdmin()
-            || ($user->isAdminDivisi() && $user->isDivisi('studio'))
-            || ($user->isAdminDivisi() && $user->isWayKanan());
-        if (!$boleh) {
+        // Aturan: App\Support\Akses::perangkatTambah (Super Admin, Admin Divisi Studio, Admin Divisi Way Kanan)
+        if (!Akses::perangkatTambah(auth()->user())) {
             abort(403, 'Hanya Admin Divisi Studio atau Admin Way Kanan yang dapat mengelola master perangkat.');
         }
     }
@@ -41,16 +37,11 @@ class StudioPerangkatController extends Controller
     private function checkAdminAccessFor(StudioPerangkat $perangkat): void
     {
         $user = auth()->user();
+        if (Akses::perangkatUbah($user, $perangkat->lokasi)) return;
 
-        if ($user->isAdmin()) return;
-
-        if ($user->isAdminDivisi() && $user->isDivisi('studio')) return;
-
-        if ($user->isAdminDivisi() && $user->isWayKanan()) {
-            if (strcasecmp(trim($perangkat->lokasi ?? ''), 'Way Kanan') === 0) return;
+        if (Akses::adminTerbatasWayKanan($user)) {
             abort(403, 'Admin Way Kanan hanya dapat mengelola perangkat yang berlokasi di Way Kanan.');
         }
-
         abort(403, 'Hanya Admin Divisi Studio atau Admin Way Kanan yang dapat mengelola master perangkat.');
     }
 

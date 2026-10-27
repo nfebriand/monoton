@@ -31,15 +31,15 @@
                        placeholder="LPPL Radio Lampung">
             </div>
             <div class="col-md-6">
-                <label class="form-label">Kepala Bidang</label>
+                <label class="form-label">Ketua Tim Kerja</label>
                 <input type="text" name="kepala_bidang" class="form-control"
                        value="{{ old('kepala_bidang', $settings['kepala_bidang']??'') }}">
             </div>
             <div class="col-12">
-                <label class="form-label">Koordinator / Pengelola</label>
+                <label class="form-label">Pengelola</label>
                 <input type="text" name="koordinator" class="form-control"
                        value="{{ old('koordinator', $settings['koordinator']??'') }}"
-                       placeholder="Nama koordinator teknik">
+                       placeholder="Nama pengelola transmisi dan distribusi">
                 <div class="form-text">Tampil di kolom "Mengetahui" pada semua laporan PDF.</div>
             </div>
         </div>
@@ -108,10 +108,10 @@
         </div>
 @php
     $divisiList = [
-        'transmisi' => '📡 Koordinator Transmisi',
-        'studio'    => '🎙️ Koordinator Studio (Pahoman)',
+        'transmisi' => '📡 Pengelola Transmisi dan Distribusi',
+        'studio'    => '🎙️ Pengelola Teknik Studio & Media Baru (Pahoman)',
         'studio_wk' => '🎙️ Koordinator Studio Produksi Way Kanan',
-        'sarana'    => '🛠️ Koordinator Sarana & Prasarana',
+        'sarana'    => '🛠️ Pengelola Teknik Sarana & Prasarana',
     ];
 @endphp
 
@@ -119,10 +119,10 @@
 <div class="form-text mb-3" style="font-size:.75rem">
     Nama, jabatan, dan tanda tangan di sini akan otomatis muncul pada kolom
     "Mengetahui" di laporan PDF — <strong>sesuai divisi laporan tersebut</strong>.
-    Laporan Operasional & Suhu memakai Koordinator Transmisi; laporan Eviden
+    Laporan Operasional & Suhu memakai Pengelola Transmisi dan Distribusi; laporan Eviden
     memakai koordinator sesuai divisi kegiatan. Laporan Studio (logbook, maintenance,
     inventaris) berlokasi Way Kanan memakai Koordinator Studio Produksi Way Kanan;
-    bila belum diisi, otomatis memakai Koordinator Studio.
+    bila belum diisi, otomatis memakai Pengelola Teknik Studio & Media Baru.
 </div>
 
 <div class="row g-3 mb-3">
@@ -150,8 +150,8 @@
             <div class="mb-2">
                 <label class="form-label">Jabatan</label>
                 <input type="text" name="koordinator_{{ $kode }}_jabatan" class="form-control"
-                       value="{{ old('koordinator_'.$kode.'_jabatan', $settings['koordinator_'.$kode.'_jabatan'] ?? ($kode==='studio_wk' ? 'Koordinator Studio Produksi Way Kanan' : 'Koordinator '.ucfirst($kode))) }}"
-                       placeholder="{{ $kode==='studio_wk' ? 'Koordinator Studio Produksi Way Kanan' : 'Koordinator '.ucfirst($kode) }}">
+                       value="{{ old('koordinator_'.$kode.'_jabatan', $settings['koordinator_'.$kode.'_jabatan'] ?? \App\Models\AppSetting::JABATAN_DEFAULT[$kode]) }}"
+                       placeholder="{{ \App\Models\AppSetting::JABATAN_DEFAULT[$kode] }}">
             </div>
 
             {{-- Tanda Tangan --}}
@@ -182,12 +182,12 @@
     @endforeach
 </div>
 
-{{-- Kepala Bidang Teknik (lintas divisi) --}}
+{{-- Ketua Tim Kerja (lintas divisi) --}}
 <div class="row g-3 mb-4">
     <div class="col-12 col-lg-6">
         <div class="p-3 rounded h-100" style="background:#eef6ff;border:1px solid #cfe3fb">
             <div class="fw-bold mb-2" style="font-size:.85rem;color:#1b5fa8">
-                <i class="bi bi-person-vcard-fill me-1"></i>Kepala Stasiun
+                <i class="bi bi-person-vcard-fill me-1"></i>Kepala LPP RRI Bandar Lampung
                 <span class="badge bg-secondary ms-1" style="font-size:.6rem">Mengetahui</span>
             </div>
 
@@ -196,7 +196,7 @@
                     <label class="form-label">Nama Lengkap</label>
                     <input type="text" name="kepala_stasiun" class="form-control"
                            value="{{ old('kepala_stasiun', $settings['kepala_stasiun'] ?? '') }}"
-                           placeholder="Nama Kepala Stasiun">
+                           placeholder="Nama Kepala LPP RRI Bandar Lampung">
                 </div>
                 <div class="col-6">
                     <label class="form-label">NIP</label>
@@ -207,8 +207,8 @@
                 <div class="col-6">
                     <label class="form-label">Jabatan</label>
                     <input type="text" name="kepala_stasiun_jabatan" class="form-control"
-                           value="{{ old('kepala_stasiun_jabatan', $settings['kepala_stasiun_jabatan'] ?? 'Kepala Stasiun') }}"
-                           placeholder="Kepala Stasiun">
+                           value="{{ old('kepala_stasiun_jabatan', $settings['kepala_stasiun_jabatan'] ?? 'Kepala LPP RRI Bandar Lampung') }}"
+                           placeholder="Kepala LPP RRI Bandar Lampung">
                 </div>
             </div>
 
@@ -217,7 +217,7 @@
                 <div style="width:90px;height:50px;border:1px dashed #ccc;border-radius:6px;
                      background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
                     @if(!empty($settings['kepala_stasiun_ttd']))
-                    <img src="{{ asset('storage/'.$settings['kepala_stasiun_ttd']) }}" alt="TTD Kepala Stasiun"
+                    <img src="{{ asset('storage/'.$settings['kepala_stasiun_ttd']) }}" alt="TTD Kepala LPP RRI Bandar Lampung"
                          style="max-width:100%;max-height:100%;object-fit:contain">
                     @else
                     <span class="text-muted" style="font-size:.6rem">Belum ada</span>
@@ -239,7 +239,7 @@
     <div class="col-12 col-lg-6">
         <div class="p-3 rounded h-100" style="background:#fff8e6;border:1px solid #ffe9b3">
             <div class="fw-bold mb-2" style="font-size:.85rem;color:#b8860b">
-                <i class="bi bi-person-badge-fill me-1"></i>Kepala Bidang Teknik
+                <i class="bi bi-person-badge-fill me-1"></i>Ketua Tim Kerja Teknologi & Media Baru
                 <span class="badge bg-secondary ms-1" style="font-size:.6rem">Lintas Divisi</span>
             </div>
 
@@ -248,7 +248,7 @@
                     <label class="form-label">Nama Lengkap</label>
                     <input type="text" name="kabid_nama" class="form-control"
                            value="{{ old('kabid_nama', $settings['kabid_nama'] ?? ($settings['kepala_bidang'] ?? '')) }}"
-                           placeholder="Nama Kepala Bidang Teknik">
+                           placeholder="Nama Ketua Tim Kerja">
                 </div>
                 <div class="col-6">
                     <label class="form-label">NIP</label>
@@ -259,8 +259,8 @@
                 <div class="col-6">
                     <label class="form-label">Jabatan</label>
                     <input type="text" name="kabid_jabatan" class="form-control"
-                           value="{{ old('kabid_jabatan', $settings['kabid_jabatan'] ?? 'Kepala Bidang Teknik') }}"
-                           placeholder="Kepala Bidang Teknik">
+                           value="{{ old('kabid_jabatan', $settings['kabid_jabatan'] ?? 'Ketua Tim Kerja Teknologi & Media Baru') }}"
+                           placeholder="Ketua Tim Kerja Teknologi & Media Baru">
                 </div>
             </div>
 
@@ -422,7 +422,7 @@
                     <td style="font-size:.82rem">{{ $settings['satuan_kerja'] ?? '–' }}</td>
                 </tr>
                 <tr>
-                    <td class="ps-3 text-muted">Koordinator</td>
+                    <td class="ps-3 text-muted">Pengelola</td>
                     <td style="font-size:.82rem">{{ $settings['koordinator'] ?? '–' }}</td>
                 </tr>
             </table>

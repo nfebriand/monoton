@@ -159,7 +159,7 @@
                             </span>
                         </td>
                         <td class="mono" style="font-size:.8rem">
-                            {{ substr($log->jam_mulai,0,5) }}{{ $log->jam_selesai?' – '.substr($log->jam_selesai,0,5):'' }}
+                            {{ substr($log->jam_mulai,0,5) }}{{ $log->jam_selesai?' â€“ '.substr($log->jam_selesai,0,5):'' }}
                         </td>
                         <td>
                             @if($log->ada_gangguan)

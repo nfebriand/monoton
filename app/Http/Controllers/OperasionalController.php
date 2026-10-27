@@ -6,10 +6,53 @@ use App\Models\OperasionalLog;
 use App\Models\Pemancar;
 use App\Models\JadwalShift;
 use App\Services\VswrCalculator;
+use App\Support\Akses;
 use Illuminate\Http\Request;
 
 class OperasionalController extends Controller
 {
+    /** Pesan validasi rentang (Indonesia) agar salah ketik angka langsung terlihat */
+    public const PESAN_RENTANG = [
+        'suhu_ruangan.between'                     => 'Suhu ruangan harus antara 0-60 derajat C (periksa kemungkinan salah ketik).',
+        'checkpoint.*.suhu_ruangan.between'        => 'Suhu ruangan harus antara 0-60 derajat C (periksa kemungkinan salah ketik).',
+        'kelembaban.between'                       => 'Kelembaban harus antara 0-100 %.',
+        'checkpoint.*.kelembaban.between'          => 'Kelembaban harus antara 0-100 %.',
+        'suhu_pemancar.between'                    => 'Suhu pemancar harus antara 0-150 derajat C (periksa kemungkinan salah ketik).',
+        'pemancar.*.suhu_pemancar.between'         => 'Suhu pemancar harus antara 0-150 derajat C (periksa kemungkinan salah ketik).',
+        'checkpoint.*.pemancar.*.suhu_pemancar.between' => 'Suhu pemancar harus antara 0-150 derajat C (periksa kemungkinan salah ketik).',
+    ];
+
+    /**
+     * Pemeriksaan kewajaran nilai satu baris pemancar (status ON).
+     * Mengembalikan pesan kesalahan atau null bila wajar.
+     */
+    public static function cekRentang(array $d, $p): ?string
+    {
+        $nama = $p->nama_stasiun ?? 'pemancar';
+        $num  = fn($k) => (isset($d[$k]) && $d[$k] !== '' && is_numeric($d[$k])) ? (float) $d[$k] : null;
+        $pa = $num('output_final_pa'); $dr = $num('output_driver'); $ex = $num('output_exciter');
+        $rf = $num('reflect_final');   $rj = $num('reject_final');
+
+        if ($pa !== null && $p && $p->kapasitas_output_final && $pa > (float) $p->kapasitas_output_final) {
+            return "Output Final PA untuk {$nama} tidak boleh melebihi kapasitas ({$p->kapasitas_output_final} W).";
+        }
+        $capDr = $p->kapasitas_output_driver ?? null;
+        if ($dr !== null && $capDr && $dr > (float) $capDr) {
+            return "Output Driver untuk {$nama} tidak boleh melebihi kapasitas ({$capDr} W).";
+        }
+        $capEx = $p->kapasitas_output_exciter ?? null;
+        if ($ex !== null && $capEx && $ex > (float) $capEx) {
+            return "Output Exciter untuk {$nama} tidak boleh melebihi kapasitas ({$capEx} W).";
+        }
+        if ($pa !== null && $rf !== null && $rf > $pa) {
+            return "Reflect Final ({$rf} W) pada {$nama} tidak mungkin melebihi Output Final PA ({$pa} W) - kemungkinan salah ketik.";
+        }
+        if ($pa !== null && $rj !== null && $rj > $pa) {
+            return "Reject Final ({$rj} W) pada {$nama} tidak mungkin melebihi Output Final PA ({$pa} W) - kemungkinan salah ketik.";
+        }
+        return null;
+    }
+
     private function getPemancarsForUser()
     {
         $user = auth()->user();
@@ -87,6 +130,35 @@ class OperasionalController extends Controller
             }
         }
 
+        // Default dari input terakhir: suhu/kelembaban ruangan dari log terbaru (<= 24 jam) pada pemancar yang boleh diakses
+        if ($suhuTerakhir === null && $pemancars->isNotEmpty()) {
+            $prevAny = OperasionalLog::whereIn('pemancar_id', $pemancars->pluck('id'))
+                ->whereNotNull('suhu_ruangan')
+                ->where('dicatat_pada', '>=', now()->subHours(24))
+                ->latest('dicatat_pada')->first();
+            if ($prevAny) {
+                $suhuTerakhir       = $prevAny->suhu_ruangan;
+                $kelembabanTerakhir = $prevAny->kelembaban;
+            }
+        }
+
+        // Nilai ON terakhir tiap pemancar: dipakai sebagai petunjuk, tombol "isi dari terakhir", dan peringatan selisih
+        $terakhir = [];
+        foreach ($pemancars as $p) {
+            $l = OperasionalLog::where('pemancar_id', $p->id)->where('status', 'on')
+                ->whereNotNull('output_final_pa')->latest('dicatat_pada')->first();
+            if (!$l) continue;
+            $terakhir[$p->id] = [
+                'waktu'          => $l->dicatat_pada->format('d/m H:i'),
+                'output_final_pa'=> $l->output_final_pa,
+                'output_driver'  => $l->output_driver,
+                'output_exciter' => $l->output_exciter,
+                'reflect_final'  => $l->reflect_final,
+                'reject_final'   => $l->reject_final,
+                'suhu_pemancar'  => $l->suhu_pemancar,
+            ];
+        }
+
         $sudahDicatat = $shiftAktifId
             ? OperasionalLog::where('jadwal_shift_id', $shiftAktifId)
                 ->where('dicatat_pada', '>=', now()->subHours(3))
@@ -95,7 +167,7 @@ class OperasionalController extends Controller
 
         return view('operasional.create', compact(
             'pemancars','shiftAktif','sudahDicatat',
-            'suhuTerakhir','kelembabanTerakhir','lokasiTidakDiset'
+            'suhuTerakhir','kelembabanTerakhir','lokasiTidakDiset','terakhir'
         ));
     }
 
@@ -110,7 +182,7 @@ class OperasionalController extends Controller
 
         $validated = $request->validate([
             'dicatat_pada'               => 'required|date',
-            'suhu_ruangan'               => 'required|numeric|between:-50,100',
+            'suhu_ruangan'               => 'required|numeric|between:0,60',
             'kelembaban'                 => 'nullable|numeric|between:0,100',
             'pemancar'                   => 'required|array|min:1',
             'pemancar.*.id'              => 'required|exists:pemancars,id',
@@ -120,9 +192,9 @@ class OperasionalController extends Controller
             'pemancar.*.output_exciter'  => 'nullable|numeric|min:0',
             'pemancar.*.reflect_final'   => 'nullable|numeric|min:0',
             'pemancar.*.reject_final'    => 'nullable|numeric|min:0',
-            'pemancar.*.suhu_pemancar'   => 'nullable|numeric|between:-50,200',
+            'pemancar.*.suhu_pemancar'   => 'nullable|numeric|between:0,150',
             'pemancar.*.keterangan'      => 'nullable|string|max:500',
-        ]);
+        ], self::PESAN_RENTANG);
 
         $allowedIds = $pemancars->pluck('id')->toArray();
         foreach ($validated['pemancar'] as $data) {
@@ -130,12 +202,10 @@ class OperasionalController extends Controller
                 return back()->withErrors(['pemancar' => 'Pemancar di luar lokasi dinas Anda.']);
             }
             $statusOff = ($data['status'] ?? 'on') === 'off';
-            if (!$statusOff && !empty($data['output_final_pa'])) {
+            if (!$statusOff) {
                 $p = $pemancars->firstWhere('id', $data['id']);
-                if ($p && $data['output_final_pa'] > $p->kapasitas_output_final) {
-                    return back()->withErrors([
-                        'output' => "Output Final PA untuk {$p->nama_stasiun} tidak boleh melebihi kapasitas ({$p->kapasitas_output_final} W)."
-                    ])->withInput();
+                if ($err = self::cekRentang($data, $p)) {
+                    return back()->withErrors(['output' => $err])->withInput();
                 }
             }
         }
@@ -182,7 +252,7 @@ class OperasionalController extends Controller
     public function edit(OperasionalLog $operasional)
     {
         $this->checkAkses($operasional);
-        if (!auth()->user()->isAdmin() && auth()->id() !== $operasional->user_id) abort(403);
+        if (!Akses::operasionalUbah(auth()->user(), $operasional->user_id)) abort(403);
         $operasional->load(['pemancar','user']);
         $pemancars = $this->getPemancarsForUser();
         return view('operasional.edit', compact('operasional','pemancars'));
@@ -191,7 +261,7 @@ class OperasionalController extends Controller
     public function update(Request $request, OperasionalLog $operasional)
     {
         $this->checkAkses($operasional);
-        if (!auth()->user()->isAdmin() && auth()->id() !== $operasional->user_id) abort(403);
+        if (!Akses::operasionalUbah(auth()->user(), $operasional->user_id)) abort(403);
 
         $validated = $request->validate([
             'dicatat_pada'    => 'required|date',
@@ -201,21 +271,16 @@ class OperasionalController extends Controller
             'output_exciter'  => 'nullable|numeric|min:0',
             'reflect_final'   => 'nullable|numeric|min:0',
             'reject_final'    => 'nullable|numeric|min:0',
-            'suhu_pemancar'   => 'nullable|numeric|between:-50,200',
-            'suhu_ruangan'    => 'nullable|numeric|between:-50,100',
+            'suhu_pemancar'   => 'nullable|numeric|between:0,150',
+            'suhu_ruangan'    => 'nullable|numeric|between:0,60',
             'kelembaban'      => 'nullable|numeric|between:0,100',
             'keterangan'      => 'nullable|string|max:1000',
-        ]);
+        ], self::PESAN_RENTANG);
 
         $statusOff = ($validated['status'] ?? 'on') === 'off';
 
-        if (!$statusOff && !empty($validated['output_final_pa'])) {
-            $p = $operasional->pemancar;
-            if ($validated['output_final_pa'] > $p->kapasitas_output_final) {
-                return back()->withErrors([
-                    'output_final_pa' => "Output Final PA tidak boleh melebihi kapasitas ({$p->kapasitas_output_final} W)."
-                ])->withInput();
-            }
+        if (!$statusOff && ($err = self::cekRentang($validated, $operasional->pemancar))) {
+            return back()->withErrors(['output_final_pa' => $err])->withInput();
         }
 
         $vswr = $statusOff ? ['vswr_final' => null, 'return_loss_final' => null] : VswrCalculator::calculateAll($validated);
@@ -247,7 +312,7 @@ class OperasionalController extends Controller
 
     public function destroy(OperasionalLog $operasional)
     {
-        if (!auth()->user()->isAdmin()) abort(403);
+        if (!Akses::operasionalHapus(auth()->user())) abort(403);
         $operasional->delete();
         return back()->with('success','Log berhasil dihapus.');
     }
@@ -321,7 +386,7 @@ class OperasionalController extends Controller
             'shift'                                     => 'required|in:1,2,3',
             'checkpoint'                                => 'required|array|min:1',
             'checkpoint.*.jam'                           => 'required|date_format:H:i',
-            'checkpoint.*.suhu_ruangan'                  => 'required|numeric|between:-50,100',
+            'checkpoint.*.suhu_ruangan'                  => 'required|numeric|between:0,60',
             'checkpoint.*.kelembaban'                    => 'nullable|numeric|between:0,100',
             'checkpoint.*.pemancar'                      => 'required|array|min:1',
             'checkpoint.*.pemancar.*.id'                 => 'required|exists:pemancars,id',
@@ -331,9 +396,9 @@ class OperasionalController extends Controller
             'checkpoint.*.pemancar.*.output_exciter'     => 'nullable|numeric|min:0',
             'checkpoint.*.pemancar.*.reflect_final'      => 'nullable|numeric|min:0',
             'checkpoint.*.pemancar.*.reject_final'       => 'nullable|numeric|min:0',
-            'checkpoint.*.pemancar.*.suhu_pemancar'      => 'nullable|numeric|between:-50,200',
+            'checkpoint.*.pemancar.*.suhu_pemancar'      => 'nullable|numeric|between:0,150',
             'checkpoint.*.pemancar.*.keterangan'         => 'nullable|string|max:500',
-        ]);
+        ], self::PESAN_RENTANG);
 
         $allowedIds = $pemancars->pluck('id')->toArray();
         $dibuat = 0;
@@ -353,12 +418,10 @@ class OperasionalController extends Controller
                     return back()->withErrors(['pemancar' => 'Pemancar di luar lokasi dinas Anda.'])->withInput();
                 }
 
-                if (!$statusOff && !empty($data['output_final_pa'])) {
+                if (!$statusOff) {
                     $p = $pemancars->firstWhere('id', $data['id']);
-                    if ($p && $data['output_final_pa'] > $p->kapasitas_output_final) {
-                        return back()->withErrors([
-                            'output' => "Output Final PA untuk {$p->nama_stasiun} tidak boleh melebihi kapasitas ({$p->kapasitas_output_final} W).",
-                        ])->withInput();
+                    if ($err = self::cekRentang($data, $p)) {
+                        return back()->withErrors(['output' => $err])->withInput();
                     }
                 }
 

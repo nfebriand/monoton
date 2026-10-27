@@ -45,6 +45,16 @@ class AppSetting extends Model
      *
      * Return: ['nama','nip','jabatan','ttd_path','ttd_url']
      */
+    /** Jabatan baku (default) penandatangan. Ubah di sini bila nomenklatur berganti. */
+    public const JABATAN_DEFAULT = [
+        'transmisi' => 'Pengelola Transmisi dan Distribusi',
+        'studio'    => 'Pengelola Teknik Studio & Media Baru',
+        'studio_wk' => 'Koordinator Studio Produksi Way Kanan',
+        'sarana'    => 'Pengelola Teknik Sarana & Prasarana',
+        'kabid'     => 'Ketua Tim Kerja Teknologi & Media Baru',
+        'kepala'    => 'Kepala LPP RRI Bandar Lampung',
+    ];
+
     public static function getKoordinator(string $divisi): array
     {
         // 'studio_wk' = Koordinator Studio Produksi Way Kanan
@@ -53,7 +63,7 @@ class AppSetting extends Model
 
         $nama    = $s["koordinator_{$divisi}_nama"]    ?? '';
         $nip     = $s["koordinator_{$divisi}_nip"]     ?? '';
-        $jabDef  = $divisi === 'studio_wk' ? 'Koordinator Studio Produksi Way Kanan' : 'Koordinator '.ucfirst($divisi);
+        $jabDef  = self::JABATAN_DEFAULT[$divisi];
         $jabatan = ($s["koordinator_{$divisi}_jabatan"] ?? '') !== '' ? $s["koordinator_{$divisi}_jabatan"] : $jabDef;
         $ttd     = $s["koordinator_{$divisi}_ttd"]     ?? '';
 
@@ -94,7 +104,7 @@ class AppSetting extends Model
         $s = self::allKeyed();
         $nama    = $s['kabid_nama']    ?? ($s['kepala_bidang'] ?? '');
         $nip     = $s['kabid_nip']     ?? '';
-        $jabatan = $s['kabid_jabatan'] ?? 'Kepala Bidang Teknik';
+        $jabatan = $s['kabid_jabatan'] ?? self::JABATAN_DEFAULT['kabid'];
         $ttd     = $s['kabid_ttd']     ?? '';
 
         return [
@@ -119,7 +129,7 @@ class AppSetting extends Model
         return [
             'nama'    => $s['kepala_stasiun'] ?? '',
             'nip'     => $s['kepala_stasiun_nip'] ?? '',
-            'jabatan' => ($s['kepala_stasiun_jabatan'] ?? '') !== '' ? $s['kepala_stasiun_jabatan'] : 'Kepala Stasiun',
+            'jabatan' => ($s['kepala_stasiun_jabatan'] ?? '') !== '' ? $s['kepala_stasiun_jabatan'] : self::JABATAN_DEFAULT['kepala'],
             'ttd_path'=> $ttd,
             'ttd_url' => $ttd ? \App\Helpers\ImageHelper::url($ttd) : null,
             'ttd_base64' => self::ttdBase64($ttd),

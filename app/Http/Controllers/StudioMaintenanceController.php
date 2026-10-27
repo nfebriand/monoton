@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\StudioMaintenance;
 use App\Models\StudioPerangkat;
 use App\Models\AppSetting;
+use App\Support\Akses;
 use Illuminate\Http\Request;
 use App\Support\StudioLokasi;
 
@@ -11,16 +12,14 @@ class StudioMaintenanceController extends Controller
 {
     private function checkAccess(): void
     {
-        $user = auth()->user();
-        if (!$user->canAccessStudio()) {
+        if (!Akses::studioMasuk(auth()->user())) {
             abort(403, 'Menu ini hanya untuk Divisi Studio atau Operator Way Kanan.');
         }
     }
 
     private function canDelete(): bool
     {
-        $user = auth()->user();
-        return $user->isAdmin() || ($user->isAdminDivisi() && $user->isDivisi('studio'));
+        return Akses::maintenanceStudioHapus(auth()->user());
     }
 
     public function index(Request $request)

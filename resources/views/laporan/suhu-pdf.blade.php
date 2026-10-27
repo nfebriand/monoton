@@ -112,7 +112,7 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
     <span class="bad">■ Panas (&gt;30°C)</span>
 </div>
 
-{{-- ── TANDA TANGAN — Koordinator Transmisi ── --}}
+{{-- ── TANDA TANGAN — Pengelola Transmisi dan Distribusi ── --}}
 @php
     $koordinator = $koordinator ?? \App\Models\AppSetting::getKoordinator('transmisi');
 @endphp
@@ -120,7 +120,7 @@ table.suhu tr:nth-child(even) td{background:#f7fafc;}
 <tr>
     <td class="ttd-cell">
         <div>Mengetahui,</div>
-        <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
+        <div>{{ $koordinator['jabatan'] ?: \App\Models\AppSetting::JABATAN_DEFAULT['transmisi'] }}</div>
 
         @if(!empty($koordinator['ttd_base64']))
         <div class="ttd-sign"><img src="{{ $koordinator['ttd_base64'] }}" alt="TTD"></div>

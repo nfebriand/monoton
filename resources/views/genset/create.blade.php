@@ -141,5 +141,39 @@ function autoFillLast(){
     }
 }
 document.addEventListener('DOMContentLoaded', autoFillLast);
+
+// Peringatan dini (tidak memblokir): salah ketik HM / BBM
+(function(){
+    const f = document.getElementById('formGenset');
+    const q = n => f.querySelector('[name="' + n + '"]');
+    const sel = document.getElementById('genset_unit_id');
+    function note(el, msg){
+        let w = el.parentElement.querySelector('.cek-warn');
+        if(!w){ w = document.createElement('div'); w.className = 'cek-warn form-text text-warning'; el.parentElement.appendChild(w); }
+        w.textContent = msg; w.style.display = msg ? '' : 'none';
+        el.classList.toggle('border-warning', !!msg);
+    }
+    function cek(){
+        const opt = sel.options[sel.selectedIndex] || {dataset:{}};
+        const hmLast = parseFloat(opt.dataset.hmAkhir), tangki = parseFloat(opt.dataset.tangki);
+        const hmA = parseFloat(q('hm_awal').value), hmZ = parseFloat(q('hm_akhir').value);
+        const bA = parseFloat(q('bbm_awal').value), bI = parseFloat(q('bbm_isi').value) || 0, bZ = parseFloat(q('bbm_akhir').value);
+        note(q('hm_awal'), (!isNaN(hmA) && !isNaN(hmLast) && hmA < hmLast) ? 'Lebih kecil dari HM akhir log sebelumnya (' + hmLast + ') \u2014 periksa' : '');
+        let m = '';
+        if(!isNaN(hmA) && !isNaN(hmZ)){
+            if(hmZ < hmA) m = 'HM akhir lebih kecil dari HM awal';
+            else if(hmZ - hmA > 24) m = 'Selisih HM ' + (hmZ - hmA).toFixed(1) + ' jam \u2014 periksa';
+        }
+        note(q('hm_akhir'), m);
+        m = '';
+        if(!isNaN(bZ)){
+            if(!isNaN(tangki) && bZ > tangki) m = 'Melebihi kapasitas tangki (' + tangki + ' L)';
+            else if(!isNaN(bA) && bZ > bA + bI + 0.5) m = 'Lebih besar dari BBM awal + pengisian \u2014 periksa';
+        }
+        note(q('bbm_akhir'), m);
+    }
+    ['hm_awal','hm_akhir','bbm_awal','bbm_isi','bbm_akhir'].forEach(n => q(n).addEventListener('input', cek));
+    sel.addEventListener('change', cek);
+})();
 </script>
 @endpush

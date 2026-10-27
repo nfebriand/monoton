@@ -69,7 +69,7 @@
             </div>
             <div class="col-6 col-md-3">
                 <label class="form-label">Suhu Ruangan (&#xB0;C)</label>
-                <input type="number" step="0.1" name="checkpoint[{{ $cpIdx }}][suhu_ruangan]"
+                <input type="number" min="0" max="60" step="0.1" name="checkpoint[{{ $cpIdx }}][suhu_ruangan]"
                        class="form-control mono" value="{{ old("checkpoint.$cpIdx.suhu_ruangan") }}" required>
             </div>
             <div class="col-6 col-md-3">

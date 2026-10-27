@@ -1,0 +1,196 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\GensetUnit;
+use App\Models\Pemancar;
+use App\Models\PerawatanRutin;
+use App\Models\PerawatanRutinLog;
+use App\Support\Akses;
+use App\Support\PerawatanHitung;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Jadwal perawatan rutin pemancar & genset, berbasis tanggal dan/atau jam kerja (HM).
+ * Aturan akses: App\Support\Akses::perawatan*.
+ */
+class PerawatanRutinController extends Controller
+{
+    private function wajibMenu(): void
+    {
+        abort_unless(Akses::perawatanMenu(auth()->user()), 403, 'Menu ini hanya untuk Divisi Transmisi atau Sarana & Prasarana.');
+    }
+
+    private function wajibLihat(PerawatanRutin $p): void
+    {
+        $lokasi = $p->objek_tipe === 'pemancar' ? ($p->pemancar->lokasi ?? null) : null;
+        abort_unless(Akses::perawatanLihat(auth()->user(), $p->objek_tipe, $lokasi), 403, 'Anda tidak berhak melihat jadwal ini.');
+    }
+
+    private function wajibKelola(string $tipe): void
+    {
+        abort_unless(Akses::perawatanKelola(auth()->user(), $tipe), 403,
+            $tipe === 'genset'
+                ? 'Jadwal perawatan genset hanya dapat dikelola Super Admin / Admin Divisi Sarana & Prasarana.'
+                : 'Jadwal perawatan pemancar hanya dapat dikelola Super Admin / Admin Divisi Transmisi.');
+    }
+
+    public function index(Request $request)
+    {
+        $this->wajibMenu();
+        $user = auth()->user();
+
+        $query = PerawatanRutin::with(['pemancar', 'gensetUnit'])->bolehDilihat($user)->orderBy('objek_tipe')->orderBy('nama_tugas');
+        if (in_array($request->tipe, ['pemancar', 'genset'], true)) $query->where('objek_tipe', $request->tipe);
+        if (!$request->boolean('semua')) $query->where('aktif', true);
+
+        $map   = PerawatanRutin::hmMap();
+        $baris = $query->get()->map(fn($i) => ['item' => $i, 'hasil' => $i->hitung($map)]);
+
+        $hitung = ['terlambat' => 0, 'segera' => 0, 'belum' => 0, 'ok' => 0];
+        foreach ($baris as $b) $hitung[$b['hasil']['status']]++;
+
+        if (in_array($request->status, array_keys($hitung), true)) {
+            $baris = $baris->filter(fn($b) => $b['hasil']['status'] === $request->status);
+        }
+        // Terparah di atas
+        $baris = $baris->sortByDesc(fn($b) => PerawatanHitung::RANK[$b['hasil']['status']])->values();
+
+        $bisaKelolaPemancar = Akses::perawatanKelola($user, 'pemancar');
+        $bisaKelolaGenset   = Akses::perawatanKelola($user, 'genset');
+
+        return view('perawatan.index', compact('baris', 'hitung', 'bisaKelolaPemancar', 'bisaKelolaGenset'));
+    }
+
+    private function dataForm(): array
+    {
+        $user = auth()->user();
+        return [
+            'pemancars' => Akses::perawatanKelola($user, 'pemancar') ? Pemancar::where('is_active', true)->orderBy('lokasi')->orderBy('nama_stasiun')->get() : collect(),
+            'units'     => Akses::perawatanKelola($user, 'genset')   ? GensetUnit::where('is_active', true)->orderBy('nama_unit')->get() : collect(),
+            'preset'    => PerawatanRutin::PRESET,
+            'hmMap'     => PerawatanRutin::hmMap(),
+        ];
+    }
+
+    public function create(Request $request)
+    {
+        $this->wajibMenu();
+        $user = auth()->user();
+        abort_unless(Akses::perawatanKelola($user, 'pemancar') || Akses::perawatanKelola($user, 'genset'), 403, 'Anda tidak berhak mengelola jadwal perawatan.');
+        return view('perawatan.form', array_merge($this->dataForm(), ['item' => new PerawatanRutin(['objek_tipe' => $request->get('tipe', 'pemancar'), 'basis' => 'tanggal', 'aktif' => true])]));
+    }
+
+    private function validasi(Request $request): array
+    {
+        $v = $request->validate([
+            'objek_tipe'       => 'required|in:pemancar,genset',
+            'pemancar_id'      => 'required_if:objek_tipe,pemancar|nullable|exists:pemancars,id',
+            'genset_unit_id'   => 'required_if:objek_tipe,genset|nullable|exists:genset_units,id',
+            'nama_tugas'       => 'required|string|max:150',
+            'basis'            => 'required|in:tanggal,hm,keduanya',
+            'interval_hari'    => 'required_if:basis,tanggal,keduanya|nullable|integer|min:1|max:3650',
+            'interval_hm'      => 'required_if:basis,hm,keduanya|nullable|numeric|min:1|max:100000',
+            'terakhir_tanggal' => 'nullable|date|before_or_equal:today',
+            'terakhir_hm'      => 'nullable|numeric|min:0',
+            'catatan'          => 'nullable|string|max:1000',
+        ], [
+            'interval_hari.required_if' => 'Isi interval hari untuk perawatan berbasis tanggal.',
+            'interval_hm.required_if'   => 'Isi interval HM untuk perawatan berbasis jam kerja.',
+            'terakhir_tanggal.before_or_equal' => 'Tanggal terakhir tidak boleh di masa depan.',
+        ]);
+        if ($v['objek_tipe'] === 'pemancar' && $v['basis'] !== 'tanggal') {
+            throw \Illuminate\Validation\ValidationException::withMessages(['basis' => 'Pemancar tidak punya hour meter - gunakan basis tanggal.']);
+        }
+        if ($v['objek_tipe'] === 'pemancar') $v['genset_unit_id'] = null; else $v['pemancar_id'] = null;
+        if ($v['basis'] === 'tanggal') $v['interval_hm'] = null;
+        if ($v['basis'] === 'hm') $v['interval_hari'] = null;
+        $v['aktif'] = $request->boolean('aktif', true);
+        return $v;
+    }
+
+    public function store(Request $request)
+    {
+        $this->wajibMenu();
+        $v = $this->validasi($request);
+        $this->wajibKelola($v['objek_tipe']);
+        $v['dibuat_oleh'] = auth()->id();
+        $item = PerawatanRutin::create($v);
+        return redirect()->route('perawatan.show', $item)->with('success', 'Jadwal perawatan berhasil ditambahkan.');
+    }
+
+    public function show(PerawatanRutin $perawatanRutin)
+    {
+        $this->wajibMenu();
+        $this->wajibLihat($perawatanRutin);
+        $perawatanRutin->load(['pemancar', 'gensetUnit', 'logs.user']);
+        $map   = PerawatanRutin::hmMap();
+        $hasil = $perawatanRutin->hitung($map);
+        $hmSekarang = $perawatanRutin->hmSekarang($map);
+        return view('perawatan.show', ['item' => $perawatanRutin, 'hasil' => $hasil, 'hmSekarang' => $hmSekarang]);
+    }
+
+    public function edit(PerawatanRutin $perawatanRutin)
+    {
+        $this->wajibMenu();
+        $this->wajibKelola($perawatanRutin->objek_tipe);
+        return view('perawatan.form', array_merge($this->dataForm(), ['item' => $perawatanRutin]));
+    }
+
+    public function update(Request $request, PerawatanRutin $perawatanRutin)
+    {
+        $this->wajibMenu();
+        $this->wajibKelola($perawatanRutin->objek_tipe);
+        $v = $this->validasi($request);
+        $this->wajibKelola($v['objek_tipe']);
+        $perawatanRutin->update($v);
+        return redirect()->route('perawatan.show', $perawatanRutin)->with('success', 'Jadwal perawatan diperbarui.');
+    }
+
+    public function destroy(PerawatanRutin $perawatanRutin)
+    {
+        $this->wajibMenu();
+        $this->wajibKelola($perawatanRutin->objek_tipe);
+        DB::transaction(function () use ($perawatanRutin) {
+            PerawatanRutinLog::where('perawatan_rutin_id', $perawatanRutin->id)->delete();
+            $perawatanRutin->delete();
+        });
+        return redirect()->route('perawatan.index')->with('success', 'Jadwal perawatan dihapus.');
+    }
+
+    /** Catat pelaksanaan (operator yang bertugas pun boleh). Memperbarui acuan terakhir. */
+    public function selesai(Request $request, PerawatanRutin $perawatanRutin)
+    {
+        $this->wajibMenu();
+        $this->wajibLihat($perawatanRutin);
+
+        $v = $request->validate([
+            'tanggal' => 'required|date|before_or_equal:today',
+            'hm'      => ($perawatanRutin->basis === 'tanggal' ? 'nullable' : 'required').'|numeric|min:0',
+            'catatan' => 'nullable|string|max:1000',
+        ], [
+            'hm.required' => 'Isi HM saat perawatan dilakukan (acuan jadwal berikutnya).',
+            'tanggal.before_or_equal' => 'Tanggal pelaksanaan tidak boleh di masa depan.',
+        ]);
+
+        DB::transaction(function () use ($perawatanRutin, $v) {
+            PerawatanRutinLog::create([
+                'perawatan_rutin_id' => $perawatanRutin->id,
+                'user_id'            => auth()->id(),
+                'tanggal'            => $v['tanggal'],
+                'hm'                 => $v['hm'] ?? null,
+                'catatan'            => $v['catatan'] ?? null,
+            ]);
+            // Acuan hanya maju (tidak mundur bila mencatat pelaksanaan lama)
+            $lebihBaru = !$perawatanRutin->terakhir_tanggal || $v['tanggal'] >= $perawatanRutin->terakhir_tanggal->format('Y-m-d');
+            if ($lebihBaru) {
+                $perawatanRutin->terakhir_tanggal = $v['tanggal'];
+                if (isset($v['hm'])) $perawatanRutin->terakhir_hm = $v['hm'];
+                $perawatanRutin->save();
+            }
+        });
+
+        return redirect()->route('perawatan.show', $perawatanRutin)->with('success', 'Pelaksanaan perawatan dicatat. Jadwal berikutnya dihitung dari tanggal/HM ini.');
+    }
+}

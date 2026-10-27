@@ -4,20 +4,48 @@ namespace App\Http\Controllers;
 use App\Models\GensetLog;
 use App\Models\GensetUnit;
 use App\Models\Lokasi;
+use App\Support\Akses;
 use Illuminate\Http\Request;
 
 class GensetController extends Controller
 {
+    public const PESAN = [
+        'tanggal.before_or_equal' => 'Tanggal tidak boleh di masa depan.',
+        'hm_akhir.gte'            => 'HM akhir tidak boleh lebih kecil dari HM awal.',
+    ];
+
+    /** Kewajaran angka satu log genset. Mengembalikan pesan kesalahan atau null. */
+    public static function cekRentang(array $v, $unit): ?string
+    {
+        $n = fn($k) => (isset($v[$k]) && $v[$k] !== '' && is_numeric($v[$k])) ? (float) $v[$k] : null;
+        $hmA = $n('hm_awal'); $hmZ = $n('hm_akhir');
+        $bA = $n('bbm_awal'); $bI = $n('bbm_isi'); $bZ = $n('bbm_akhir');
+        $tangki = $unit && $unit->kapasitas_tangki_liter ? (float) $unit->kapasitas_tangki_liter : null;
+
+        if ($hmA !== null && $hmZ !== null && ($hmZ - $hmA) > 72) {
+            return 'Selisih HM ('.round($hmZ - $hmA, 1).' jam) terlalu besar untuk satu log - periksa HM awal/akhir.';
+        }
+        if ($tangki !== null) {
+            foreach (['BBM awal' => $bA, 'Pengisian BBM' => $bI, 'BBM akhir' => $bZ] as $label => $val) {
+                if ($val !== null && $val > $tangki) {
+                    return "$label ($val L) melebihi kapasitas tangki unit ($tangki L).";
+                }
+            }
+            if ($bA !== null && $bI !== null && ($bA + $bI) > $tangki + 0.5) {
+                return "BBM awal + pengisian (".($bA + $bI)." L) melebihi kapasitas tangki ($tangki L).";
+            }
+        }
+        if ($bA !== null && $bZ !== null && $bZ > $bA + ($bI ?? 0) + 0.5) {
+            return 'BBM akhir lebih besar dari BBM awal + pengisian - kemungkinan salah ketik (isi kolom Pengisian BBM bila ada pengisian).';
+        }
+        return null;
+    }
+
     /** Pastikan hanya divisi Sarana / Admin yang akses */
     private function checkAccess(): void
     {
-        $user = auth()->user();
-        // Super admin, divisi Sarana, ATAU divisi Transmisi boleh akses genset
-        $boleh = $user->isAdmin()
-            || $user->isDivisi('sarana')
-            || $user->isDivisi('transmisi');
-
-        if (!$boleh) {
+        // Aturan: App\Support\Akses::gensetMasuk (super admin, Sarana, Transmisi)
+        if (!Akses::gensetMasuk(auth()->user())) {
             abort(403, 'Menu ini hanya untuk Divisi Sarana & Prasarana atau Transmisi.');
         }
     }
@@ -30,12 +58,7 @@ class GensetController extends Controller
      */
     private function checkUnitAccess(): void
     {
-        $user = auth()->user();
-
-        $boleh = $user->isAdmin()
-            || ($user->isAdminDivisi() && $user->isDivisi('sarana'));
-
-        if (!$boleh) {
+        if (!Akses::gensetUnitKelola(auth()->user())) {
             abort(403, 'Anda tidak memiliki akses untuk mengelola unit genset. Menu ini khusus Super Admin dan Admin Divisi Sarana & Prasarana.');
         }
     }
@@ -91,7 +114,7 @@ class GensetController extends Controller
 
         $v = $request->validate([
             'genset_unit_id' => 'required|exists:genset_units,id',
-            'tanggal'        => 'required|date',
+            'tanggal'        => 'required|date|before_or_equal:today',
             'jam_mulai'      => 'required|date_format:H:i',
             'jam_selesai'    => 'nullable|date_format:H:i',
             'alasan'         => 'required|in:pln_mati,maintenance,test_rutin,lainnya',
@@ -102,7 +125,11 @@ class GensetController extends Controller
             'bbm_akhir'      => 'nullable|numeric|min:0',
             'kondisi'        => 'required|in:normal,gangguan',
             'keterangan'     => 'nullable|string',
-        ]);
+        ], self::PESAN);
+
+        if ($err = self::cekRentang($v, GensetUnit::find($v['genset_unit_id']))) {
+            return back()->withErrors(['rentang' => $err])->withInput();
+        }
 
         $v['user_id'] = auth()->id();
         GensetLog::create($v);
@@ -120,7 +147,7 @@ class GensetController extends Controller
     public function edit(GensetLog $genset)
     {
         $this->checkAccess();
-        if (!auth()->user()->isAdmin() && auth()->id() !== $genset->user_id) abort(403);
+        if (!Akses::gensetLogUbah(auth()->user(), $genset->user_id)) abort(403);
         $units = GensetUnit::where('is_active',true)->orderBy('nama_unit')->get();
         return view('genset.edit', compact('genset','units'));
     }
@@ -128,11 +155,11 @@ class GensetController extends Controller
     public function update(Request $request, GensetLog $genset)
     {
         $this->checkAccess();
-        if (!auth()->user()->isAdmin() && auth()->id() !== $genset->user_id) abort(403);
+        if (!Akses::gensetLogUbah(auth()->user(), $genset->user_id)) abort(403);
 
         $v = $request->validate([
             'genset_unit_id' => 'required|exists:genset_units,id',
-            'tanggal'        => 'required|date',
+            'tanggal'        => 'required|date|before_or_equal:today',
             'jam_mulai'      => 'required|date_format:H:i',
             'jam_selesai'    => 'nullable|date_format:H:i',
             'alasan'         => 'required|in:pln_mati,maintenance,test_rutin,lainnya',
@@ -143,7 +170,11 @@ class GensetController extends Controller
             'bbm_akhir'      => 'nullable|numeric|min:0',
             'kondisi'        => 'required|in:normal,gangguan',
             'keterangan'     => 'nullable|string',
-        ]);
+        ], self::PESAN);
+
+        if ($err = self::cekRentang($v, GensetUnit::find($v['genset_unit_id']))) {
+            return back()->withErrors(['rentang' => $err])->withInput();
+        }
 
         $genset->update($v);
         return redirect()->route('genset.show',$genset)->with('success','Log genset berhasil diperbarui.');

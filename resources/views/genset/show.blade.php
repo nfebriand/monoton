@@ -11,19 +11,19 @@
     <span class="badge {{ $genset->kondisi=='normal'?'bg-success':'bg-danger' }}">
         {{ $genset->kondisi=='normal'?'Normal':'Gangguan' }}
     </span>
-    @if(auth()->user()->isAdmin() || auth()->id()===$genset->user_id)
+    @can('genset.log.ubah', $genset)
     <div class="d-flex gap-2 ms-auto">
         <a href="{{ route('genset.edit',$genset) }}" class="btn btn-sm btn-outline-warning">
             <i class="bi bi-pencil me-1"></i>Edit
         </a>
-        @if(auth()->user()->isAdmin())
+        @can('genset.log.hapus')
         <form action="{{ route('genset.destroy',$genset) }}" method="POST" onsubmit="return confirm('Hapus log ini?')">
             @csrf @method('DELETE')
             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Hapus</button>
         </form>
-        @endif
+        @endcan
     </div>
-    @endif
+    @endcan
 </div>
 
 <div class="row g-3">

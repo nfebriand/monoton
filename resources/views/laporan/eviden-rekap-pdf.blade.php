@@ -102,7 +102,7 @@ table.tbl tr:nth-child(even) td{background:#f7fafc;}
 <tr>
     <td class="ttd-cell">
         <div>Mengetahui,</div>
-        <div>{{ $koordinator['jabatan'] ?: 'Koordinator '.$divisiLabel }}</div>
+        <div>{{ $koordinator['jabatan'] ?: (\App\Models\AppSetting::JABATAN_DEFAULT[strtolower($divisiLabel)] ?? \App\Models\AppSetting::JABATAN_DEFAULT['transmisi']) }}</div>
         @if(!empty($koordinator['ttd_base64']))
         <div class="ttd-sign"><img src="{{ $koordinator['ttd_base64'] }}" alt="TTD"></div>
         @else

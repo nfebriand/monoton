@@ -3,6 +3,7 @@
 @section('page-title','Dashboard Monitoring')
 
 @section('content')
+@include('dashboard._perawatan')
 @php $user = auth()->user(); @endphp
 
 {{-- Filter Lokasi (Admin) --}}

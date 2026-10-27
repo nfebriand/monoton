@@ -6,9 +6,14 @@
 #   ./deploy.sh                 # bersihkan cache, perbaiki permission, restart PHP-FPM
 #   ./deploy.sh --pull          # + git pull --ff-only dulu
 #   ./deploy.sh --composer      # + composer install --no-dev -o
-#   ./deploy.sh --migrate       # + php artisan migrate --force (tampilkan status dulu)
-#   ./deploy.sh --pull --composer --migrate
+#   ./deploy.sh --pull --composer
+#   ./deploy.sh --no-migrate    # lewati migrasi (default: migrasi tertunda DIJALANKAN otomatis,
+#                               #   didahului backup database)
 #   ./deploy.sh --dry-run       # hanya tampilkan perintah, tidak menjalankan
+#
+# Setelah cache dibersihkan, dijalankan `artisan monoton:preflight` (cek migrasi tertunda,
+# file view hilang/rusak encoding, kolom fillable, route). Bila ada error, ringkasan
+# akhir menandai DEPLOY BERMASALAH dan skrip keluar dengan kode 1.
 #
 # Variabel opsional: APP_DIR (default: /var/www/monoton), WEB_USER (www-data),
 #                    PHP_FPM_SERVICE (otomatis dideteksi), RELOAD_NGINX=1
@@ -19,15 +24,16 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/monoton}"
 WEB_USER="${WEB_USER:-www-data}"
-DO_PULL=0; DO_COMPOSER=0; DO_MIGRATE=0; DRY=0
+DO_PULL=0; DO_COMPOSER=0; DO_MIGRATE=1; DRY=0; PREFLIGHT_FAIL=0
 
 for a in "$@"; do
   case "$a" in
     --pull) DO_PULL=1 ;;
     --composer) DO_COMPOSER=1 ;;
-    --migrate) DO_MIGRATE=1 ;;
+    --migrate) DO_MIGRATE=1 ;;   # (tetap diterima; sekarang sudah default)
+    --no-migrate) DO_MIGRATE=0 ;;
     --dry-run) DRY=1 ;;
-    -h|--help) sed -n '2,17p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
     *) echo "Opsi tidak dikenal: $a (lihat --help)"; exit 2 ;;
   esac
 done
@@ -68,9 +74,27 @@ fi
 
 if [ "$DO_MIGRATE" = 1 ]; then
   step "Status migrasi (sebelum)"
-  art migrate:status
-  step "Menjalankan migrasi"
-  art migrate --force
+  if [ "$DRY" = 1 ]; then
+    art migrate:status
+    PENDING=1
+  else
+    STATUS_OUT="$(sudo -u "$WEB_USER" php artisan migrate:status 2>&1 || true)"
+    echo "$STATUS_OUT" | tail -n 12
+    PENDING=0
+    echo "$STATUS_OUT" | grep -Eqi 'Pending|\bNo\b' && PENDING=1
+  fi
+  if [ "$PENDING" = 1 ]; then
+    step "Backup database sebelum migrasi"
+    if sudo -u "$WEB_USER" php artisan list 2>/dev/null | grep -q 'monoton:backup-db'; then
+      art monoton:backup-db --keep=14 || warn "Backup gagal - migrasi tetap dilanjutkan; pastikan Anda punya backup lain."
+    else
+      warn "Perintah monoton:backup-db tidak tersedia - backup dilewati."
+    fi
+    step "Menjalankan migrasi tertunda"
+    art migrate --force
+  else
+    echo "    Tidak ada migrasi tertunda."
+  fi
 fi
 
 step "Bersihkan cache Laravel"
@@ -78,6 +102,18 @@ art view:clear
 art route:clear
 art config:clear
 art cache:clear || warn "cache:clear gagal (biasanya karena permission storage/framework/cache) - lanjut, permission diperbaiki di bawah"
+
+step "Preflight (kesiapan deploy)"
+if [ "$DRY" = 1 ]; then
+  echo "    (dry-run) php artisan monoton:preflight"
+elif sudo -u "$WEB_USER" php artisan list 2>/dev/null | grep -q 'monoton:preflight'; then
+  if ! sudo -u "$WEB_USER" php artisan monoton:preflight; then
+    PREFLIGHT_FAIL=1
+    warn "Preflight menemukan masalah (lihat daftar di atas) - perbaiki file/migrasi yang disebut lalu jalankan ulang ./deploy.sh"
+  fi
+else
+  warn "Perintah monoton:preflight belum ada (unggah app/Console/Commands/Preflight.php & app/Support/Preflight.php lalu jalankan ulang)."
+fi
 
 step "Link storage"
 if [ ! -L public/storage ]; then art storage:link; else echo "    public/storage sudah ada"; fi
@@ -107,5 +143,9 @@ else
   echo "    Versi Laravel : $(sudo -u "$WEB_USER" php artisan --version 2>/dev/null || echo '?')"
   echo "    Commit        : $(git rev-parse --short HEAD 2>/dev/null || echo '-')"
   echo "    PHP-FPM       : ${SVC:-tidak direstart}"
+  if [ "$PREFLIGHT_FAIL" = 1 ]; then
+    echo "${C_ERR}DEPLOY BERMASALAH${C_OFF} - ada temuan preflight yang harus diperbaiki."
+    exit 1
+  fi
   echo "${C_OK}Selesai.${C_OFF} Hard refresh browser (Ctrl+F5) bila tampilan belum berubah - service worker diganti versinya."
 fi

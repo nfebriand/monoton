@@ -254,7 +254,7 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
     <tr>
         <td class="ttd-cell">
             <div>Mengetahui,</div>
-            <div>{{ $koordinator['jabatan'] ?: 'Koordinator Teknik' }}</div>
+            <div>{{ $koordinator['jabatan'] ?: \App\Models\AppSetting::JABATAN_DEFAULT['transmisi'] }}</div>
             @if(!empty($koordinator['ttd_base64']))
             <div style="height:45px;display:flex;align-items:center;justify-content:center">
                 <img src="{{ $koordinator['ttd_base64'] }}" alt="TTD" style="max-height:40px;max-width:120px">

@@ -3,6 +3,7 @@
 @section('page-title','Dashboard Sarana & Prasarana')
 
 @section('content')
+@include('dashboard._perawatan')
 {{-- Statistik Genset Bulan Ini --}}
 <div class="row g-2 mb-3">
     <div class="col-6 col-md-3">

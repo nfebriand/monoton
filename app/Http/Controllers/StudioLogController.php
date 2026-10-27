@@ -6,6 +6,7 @@ use App\Models\StudioLogFoto;
 use App\Models\AppSetting;
 use App\Helpers\ImageHelper;
 use App\Support\StudioLokasi;
+use App\Support\Akses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -13,17 +14,14 @@ class StudioLogController extends Controller
 {
     private function checkAccess(): void
     {
-        $user = auth()->user();
-        if (!$user->canAccessStudio()) {
+        if (!Akses::studioMasuk(auth()->user())) {
             abort(403, 'Menu ini hanya untuk Divisi Studio atau Operator Way Kanan.');
         }
     }
 
     private function canEdit(StudioLog $log): bool
     {
-        $user = auth()->user();
-        if ($user->isAdmin() || $user->isAdminDivisi()) return true;
-        return auth()->id() === $log->user_id;
+        return Akses::logStudioUbah(auth()->user(), $log->user_id);
     }
 
     /**

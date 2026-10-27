@@ -133,11 +133,13 @@
                                class="btn btn-sm btn-outline-primary" style="padding:.12rem .38rem">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            @can('operasional.ubah', $log)
                             <a href="{{ route('operasional.edit',$log) }}"
                                class="btn btn-sm btn-outline-warning" style="padding:.12rem .38rem">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            @if(auth()->user()->isAdmin())
+                            @endcan
+                            @can('operasional.hapus')
                             <form action="{{ route('operasional.destroy',$log) }}" method="POST"
                                   onsubmit="return confirm('Hapus log ini?')">
                                 @csrf @method('DELETE')
@@ -145,7 +147,7 @@
                                     <i class="bi bi-trash"></i>
                                 </button>
                             </form>
-                            @endif
+                            @endcan
                         </div>
                     </td>
                 </tr>

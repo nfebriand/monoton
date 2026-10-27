@@ -174,9 +174,9 @@
                         <td style="font-size:.8rem">{{ $log->user->name }}</td>
                         <td class="text-end pe-3">
                             <a href="{{ route('studio.logbook.show',$log) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
-                            @if(auth()->user()->isAdmin() || auth()->user()->isAdminDivisi() || auth()->id()===$log->user_id)
+                            @can('studio.log.ubah', $log)
                             <a href="{{ route('studio.logbook.edit',$log) }}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i></a>
-                            @endif
+                            @endcan
                         </td>
                     </tr>
                     @empty

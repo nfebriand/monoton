@@ -97,11 +97,11 @@
     <a href="{{ route('studio.perangkat.cetak-inventaris', array_filter(['lokasi' => $lokasiAktif])) }}" class="btn btn-sm btn-outline-secondary" target="_blank">
         <i class="bi bi-file-earmark-pdf me-1"></i>Cetak Inventaris
     </a>
-    @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && (auth()->user()->isDivisi('studio') || auth()->user()->isWayKanan())))
+    @can('studio.perangkat.tambah')
     <a href="{{ route('studio.perangkat.create') }}" class="btn btn-primary-custom">
         <i class="bi bi-plus-circle me-1"></i>Tambah Perangkat
     </a>
-    @endif
+    @endcan
 </div>
 
 {{-- Tabel --}}
@@ -148,9 +148,9 @@
                         </td>
                         <td class="text-end pe-3">
                             <a href="{{ route('studio.perangkat.show',$p) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
-                            @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && (auth()->user()->isDivisi('studio') || (auth()->user()->isWayKanan() && $p->lokasi === 'Way Kanan'))))
+                            @can('studio.perangkat.ubah', $p)
                             <a href="{{ route('studio.perangkat.edit',$p) }}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil"></i></a>
-                            @endif
+                            @endcan
                         </td>
                     </tr>
                     @empty

@@ -17,6 +17,7 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\StudioLogController;
 use App\Http\Controllers\StudioPerangkatController;
 use App\Http\Controllers\StudioMaintenanceController;
+use App\Http\Controllers\PerawatanRutinController;
 
 Route::get('/login',  [LoginController::class,'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class,'login'])
@@ -107,6 +108,16 @@ Route::middleware(['auth'])->group(function(){
     Route::put('/genset/{genset}',          [GensetController::class,'update'])->name('genset.update');
     Route::delete('/genset/{genset}',       [GensetController::class,'destroy'])->name('genset.destroy');
     
+    // Perawatan Rutin Pemancar & Genset (akses dicek di controller via App\Support\Akses)
+    Route::get('/perawatan-rutin',                          [PerawatanRutinController::class,'index'])->name('perawatan.index');
+    Route::get('/perawatan-rutin/create',                   [PerawatanRutinController::class,'create'])->name('perawatan.create');
+    Route::post('/perawatan-rutin',                         [PerawatanRutinController::class,'store'])->name('perawatan.store');
+    Route::get('/perawatan-rutin/{perawatanRutin}',         [PerawatanRutinController::class,'show'])->name('perawatan.show');
+    Route::get('/perawatan-rutin/{perawatanRutin}/edit',    [PerawatanRutinController::class,'edit'])->name('perawatan.edit');
+    Route::put('/perawatan-rutin/{perawatanRutin}',         [PerawatanRutinController::class,'update'])->name('perawatan.update');
+    Route::delete('/perawatan-rutin/{perawatanRutin}',      [PerawatanRutinController::class,'destroy'])->name('perawatan.destroy');
+    Route::post('/perawatan-rutin/{perawatanRutin}/selesai',[PerawatanRutinController::class,'selesai'])->name('perawatan.selesai');
+
     // Aset & Inventaris (Sarana)
     Route::get('/aset',              [AsetController::class,'index'])->name('aset.index');
     Route::get('/aset/create',       [AsetController::class,'create'])->name('aset.create');

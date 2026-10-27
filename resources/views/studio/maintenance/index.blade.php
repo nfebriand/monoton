@@ -96,12 +96,12 @@
                         <td style="font-size:.8rem">{{ $log->user->name }}</td>
                         <td class="text-end pe-3">
                             <a href="{{ route('studio.maintenance.show',$log) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
-                            @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && auth()->user()->isDivisi('studio')))
+                            @can('studio.maintenance.hapus')
                             <form method="POST" action="{{ route('studio.maintenance.destroy',$log) }}" class="d-inline" onsubmit="return confirm('Hapus log ini?')">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
                             </form>
-                            @endif
+                            @endcan
                         </td>
                     </tr>
                     @empty

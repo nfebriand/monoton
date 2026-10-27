@@ -138,7 +138,7 @@
             <label class="form-label">Suhu Pemancar</label>
             <div class="input-group input-group-sm">
                 <input type="number" name="suhu_pemancar" class="form-control mono op-numeric"
-                       step="0.1" value="{{ old('suhu_pemancar', $operasional->suhu_pemancar) }}" placeholder="0.0">
+                       min="0" max="150" step="0.1" value="{{ old('suhu_pemancar', $operasional->suhu_pemancar) }}" placeholder="0.0">
                 <span class="input-group-text">&#xB0;C</span>
             </div>
         </div>
@@ -146,7 +146,7 @@
             <label class="form-label">Suhu Ruangan</label>
             <div class="input-group input-group-sm">
                 <input type="number" name="suhu_ruangan" class="form-control mono"
-                       step="0.1" value="{{ old('suhu_ruangan', $operasional->suhu_ruangan) }}" placeholder="0.0">
+                       min="0" max="60" step="0.1" value="{{ old('suhu_ruangan', $operasional->suhu_ruangan) }}" placeholder="0.0">
                 <span class="input-group-text">&#xB0;C</span>
             </div>
         </div>

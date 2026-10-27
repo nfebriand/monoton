@@ -12,11 +12,11 @@
     <span class="badge bg-warning text-dark"><i class="bi bi-power me-1"></i>OFF &#x2014; tidak dihitung rata-rata</span>
     @endif
     <span class="badge bg-secondary ms-auto mono">{{ $operasional->dicatat_pada->format('d/m/Y H:i') }}</span>
-    @if(auth()->user()->isAdmin() || auth()->id() === $operasional->user_id)
+    @can('operasional.ubah', $operasional)
     <a href="{{ route('operasional.edit',$operasional) }}" class="btn btn-sm btn-warning">
         <i class="bi bi-pencil me-1"></i>Edit
     </a>
-    @endif
+    @endcan
 </div>
 
 {{-- Info Header --}}
@@ -149,11 +149,11 @@
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-chat-text me-2"></i>Keterangan</span>
-                @if(auth()->user()->isAdmin() || auth()->id() === $operasional->user_id)
+                @can('operasional.ubah', $operasional)
                 <a href="{{ route('operasional.edit',$operasional) }}" class="btn btn-sm btn-outline-warning" style="font-size:.72rem;padding:.15rem .5rem">
                     <i class="bi bi-pencil"></i> Edit
                 </a>
-                @endif
+                @endcan
             </div>
             <div class="card-body" style="font-size:.88rem">
                 {{ $operasional->keterangan ?: ''."\u{2013}".'' }}

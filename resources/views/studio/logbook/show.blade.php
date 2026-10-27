@@ -104,13 +104,13 @@
 
 {{-- Tombol Aksi --}}
 <div class="d-flex gap-2">
-    @if(auth()->user()->isAdmin() || auth()->user()->isAdminDivisi() || auth()->id()===$studioLog->user_id)
+    @can('studio.log.ubah', $studioLog)
     <a href="{{ route('studio.logbook.edit',$studioLog) }}" class="btn btn-outline-warning"><i class="bi bi-pencil me-1"></i>Edit</a>
     <form method="POST" action="{{ route('studio.logbook.destroy',$studioLog) }}" onsubmit="return confirm('Hapus logbook ini?')">
         @csrf @method('DELETE')
         <button class="btn btn-outline-danger"><i class="bi bi-trash me-1"></i>Hapus</button>
     </form>
-    @endif
+    @endcan
     <a href="{{ route('studio.logbook.cetak-harian',['tanggal'=>$studioLog->tanggal->toDateString(),'user_id'=>$studioLog->user_id]) }}" class="btn btn-outline-secondary" target="_blank">
         <i class="bi bi-printer me-1"></i>Cetak PDF
     </a>

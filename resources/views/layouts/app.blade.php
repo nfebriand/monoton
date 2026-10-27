@@ -292,46 +292,49 @@
     <div class="sidebar-nav flex-fill py-1">
         <div class="nav-section">Utama</div>
         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        @if(auth()->user()->isAdmin() || auth()->user()->isDivisi('transmisi'))
+        @can('menu.transmisi')
         <a href="{{ route('pemancar.index') }}" class="nav-link {{ request()->routeIs('pemancar.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-broadcast-pin"></i> Data Pemancar</a>
-        @endif
+        @endcan
         <div class="nav-section">Operasional</div>
-        @if(auth()->user()->isAdmin() || auth()->user()->isDivisi('transmisi'))
+        @can('menu.transmisi')
         <a href="{{ route('operasional.create') }}" class="nav-link {{ request()->routeIs('operasional.create')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-pencil-square"></i> Catat Log</a>
         <a href="{{ route('operasional.index') }}" class="nav-link {{ request()->routeIs('operasional.index')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-journal-text"></i> Riwayat Log</a>
-        @endif
+        @endcan
+        @can('perawatan.menu')
+        <a href="{{ route('perawatan.index') }}" class="nav-link {{ request()->routeIs('perawatan.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-wrench-adjustable"></i> Perawatan Rutin</a>
+        @endcan
         <a href="{{ route('eviden.index') }}" class="nav-link {{ request()->routeIs('eviden.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-camera"></i> Catatan Eviden</a>
         <div class="nav-section">Laporan</div>
-        @if(auth()->user()->isAdmin() || auth()->user()->isDivisi('transmisi'))
+        @can('menu.transmisi')
         <a href="{{ route('laporan.index') }}" class="nav-link {{ request()->routeIs('laporan.index')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-file-earmark-pdf"></i> Cetak Laporan</a>
         <a href="{{ route('laporan.suhu') }}" class="nav-link {{ request()->routeIs('laporan.suhu*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-thermometer-half"></i> Grafik Suhu</a>
-        @endif
+        @endcan
         <a href="{{ route('laporan.eviden-rekap') }}" class="nav-link {{ request()->routeIs('laporan.eviden-rekap*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-journal-richtext"></i> Rekap Eviden</a>
 
-        @if(auth()->user()->canAccessStudio())
+        @can('menu.studio')
         <div class="nav-section">Studio</div>
         <a href="{{ route('studio.logbook.index') }}" class="nav-link {{ request()->routeIs('studio.logbook.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-broadcast"></i> Logbook Siaran</a>
         <a href="{{ route('studio.perangkat.index') }}" class="nav-link {{ request()->routeIs('studio.perangkat.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-speaker"></i> Master Perangkat</a>
         <a href="{{ route('studio.maintenance.index') }}" class="nav-link {{ request()->routeIs('studio.maintenance.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-tools"></i> Maintenance Studio</a>
-        @endif
+        @endcan
         
-        @if(auth()->user()->isAdmin() || auth()->user()->isDivisi('sarana') || auth()->user()->isDivisi('transmisi'))
+        @can('menu.genset')
         <div class="nav-section">Sarana & Prasarana</div>
         {{-- Maintenance: Admin + Sarana saja (bukan Transmisi) --}}
-        @if(auth()->user()->isAdmin() || auth()->user()->isDivisi('sarana'))
+        @can('menu.sarana')
         <a href="{{ route('maintenance.index') }}" class="nav-link {{ request()->routeIs('maintenance.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-tools"></i> Maintenance</a>
-        @endif
+        @endcan
         {{-- Operasional Genset: Admin + Sarana + Transmisi --}}
         <a href="{{ route('genset.index') }}" class="nav-link {{ request()->routeIs('genset.index')||request()->routeIs('genset.show')||request()->routeIs('genset.create')||request()->routeIs('genset.edit')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-battery-charging"></i> Operasional Genset</a>
         {{-- Aset & Inventaris: Admin + Sarana saja (bukan Transmisi) --}}
-        @if(auth()->user()->isAdmin() || auth()->user()->isDivisi('sarana'))
+        @can('menu.sarana')
         <a href="{{ route('aset.index') }}" class="nav-link {{ request()->routeIs('aset.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-box-seam"></i> Aset & Inventaris</a>
-        @endif
+        @endcan
         {{-- Kelola Unit Genset: Admin super + Admin Divisi Sarana --}}
-        @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && auth()->user()->isDivisi('sarana')))
+        @can('genset.unit.kelola')
         <a href="{{ route('genset.units') }}" class="nav-link {{ request()->routeIs('genset-unit.*')||request()->routeIs('genset.units')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-gear-wide-connected"></i> Kelola Unit Genset</a>
-        @endif
-        @endif
+        @endcan
+        @endcan
 
         @if(auth()->user()->hasAdminAccess())
         <div class="nav-section">{{ auth()->user()->isAdminDivisi() ? 'Admin '.auth()->user()->divisi_label : 'Admin' }}</div>

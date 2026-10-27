@@ -139,7 +139,7 @@
             <div class="row">
                 <div class="col-4 text-center">
                     <div style="font-size:.82rem">Mengetahui,</div>
-                    <div style="font-size:.82rem">Pengelola / Koordinator</div>
+                    <div style="font-size:.82rem">Pengelola Transmisi dan Distribusi</div>
                     <div style="height:55px"></div>
                     <div style="border-top:1px solid #333;padding-top:.3rem;font-size:.82rem">
                         ( {{ $pengelola ?: '____________________' }} )

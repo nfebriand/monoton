@@ -36,7 +36,7 @@
                 <label class="form-label">Suhu Ruangan (&#xB0;C) <span class="text-danger">*</span></label>
                 <div class="input-group">
                     <input type="number" name="suhu_ruangan" id="suhu_ruangan" class="form-control mono"
-                           step="0.1" value="{{ old('suhu_ruangan', $suhuTerakhir) }}" required>
+                           min="0" max="60" step="0.1" value="{{ old('suhu_ruangan', $suhuTerakhir) }}" required>
                     <span class="input-group-text">&#xB0;C</span>
                 </div>
             </div>
@@ -76,9 +76,15 @@
 <div class="card">
     <div class="card-header d-flex align-items-center justify-content-between">
         <span><i class="bi bi-broadcast-pin me-2 text-primary"></i>Data Per Pemancar</span>
+        <span class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnIsiSemuaTerakhir" style="display:none"
+                title="Salin nilai log ON terakhir ke semua kolom yang masih kosong, lalu periksa/ubah sesuai pembacaan sekarang">
+            <i class="bi bi-clock-history me-1"></i>Isi dari log terakhir
+        </button>
         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAll()">
             <i class="bi bi-arrows-expand me-1"></i><span id="toggleLabel">Tutup Semua</span>
         </button>
+        </span>
     </div>
     <div class="card-body p-0">
         @foreach($pemancars as $idx => $pemancar)
@@ -159,7 +165,7 @@
                     <div class="col-4">
                         <label class="form-label">Suhu Pemancar</label>
                         <div class="input-group input-group-sm">
-                            <input type="number" name="pemancar[{{ $idx }}][suhu_pemancar]" class="form-control mono" step="0.1">
+                            <input type="number" name="pemancar[{{ $idx }}][suhu_pemancar]" class="form-control mono" min="0" max="150" step="0.1">
                             <span class="input-group-text">&#xB0;C</span>
                         </div>
                     </div>
@@ -249,6 +255,63 @@ document.querySelectorAll('.out-final').forEach(el=>{
     });
 });
 document.querySelectorAll('.ref-final').forEach(el=>el.addEventListener('input',()=>calcVswr(el.dataset.idx)));
+
+// Nilai terakhir tiap pemancar: petunjuk (placeholder), tombol isi, dan peringatan selisih/ketidakwajaran
+const TERAKHIR = @json($terakhir);
+(function(){
+    const FIELDS = {output_final_pa:'PA', output_driver:'Driver', output_exciter:'Exciter', reflect_final:'Refl', reject_final:'Rej', suhu_pemancar:'Suhu'};
+    const ids = {};
+    document.querySelectorAll('input[type=hidden]').forEach(h => {
+        const m = h.name.match(/^pemancar\[(\d+)\]\[id\]$/); if (m) ids[m[1]] = h.value;
+    });
+    const inp = (idx, f) => document.querySelector('input[name="pemancar[' + idx + '][' + f + ']"]');
+    function isi(idx) {
+        const t = TERAKHIR[ids[idx]]; if (!t) return;
+        Object.keys(FIELDS).forEach(f => {
+            const el = inp(idx, f);
+            if (el && !el.disabled && el.value === '' && t[f] !== null && t[f] !== undefined) {
+                el.value = t[f]; el.dispatchEvent(new Event('input', {bubbles:true}));
+            }
+        });
+    }
+    function cek(idx, f, el, warn) {
+        const t = TERAKHIR[ids[idx]]; const v = parseFloat(el.value); let msg = '';
+        if (!isNaN(v) && t && t[f] !== null && t[f] !== undefined && parseFloat(t[f]) > 0) {
+            const d = Math.abs(v - parseFloat(t[f])) / parseFloat(t[f]) * 100;
+            if (d >= 30) msg = 'Beda ' + Math.round(d) + '% dari terakhir (' + t[f] + ') \u2014 periksa';
+        }
+        if (f === 'reflect_final' || f === 'reject_final') {
+            const pa = parseFloat((inp(idx, 'output_final_pa') || {}).value);
+            if (!isNaN(v) && !isNaN(pa) && v > pa) msg = 'Tidak mungkin lebih besar dari Final PA';
+        }
+        warn.textContent = msg; warn.classList.toggle('d-none', !msg); el.classList.toggle('border-warning', !!msg);
+    }
+    let ada = false;
+    Object.keys(ids).forEach(idx => {
+        const t = TERAKHIR[ids[idx]]; const box = document.getElementById('fields-' + idx); if (!t || !box) return;
+        ada = true;
+        const ring = Object.keys(FIELDS).filter(k => t[k] !== null && t[k] !== undefined).map(k => FIELDS[k] + ' ' + t[k]).join(' \u00B7 ');
+        const bar = document.createElement('div');
+        bar.className = 'd-flex align-items-center flex-wrap gap-2 mb-2';
+        bar.innerHTML = '<span class="text-muted" style="font-size:.7rem"><i class="bi bi-clock-history me-1"></i>Terakhir (' + t.waktu + '): ' + ring + '</span>';
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'btn btn-sm btn-outline-primary py-0 px-2'; btn.style.fontSize = '.7rem';
+        btn.textContent = 'Isi dari terakhir'; btn.onclick = () => isi(idx);
+        bar.appendChild(btn); box.insertBefore(bar, box.firstChild);
+        Object.keys(FIELDS).forEach(f => {
+            const el = inp(idx, f); if (!el) return;
+            if (t[f] !== null && t[f] !== undefined) el.placeholder = t[f];
+            const warn = document.createElement('div'); warn.className = 'form-text text-warning d-none'; warn.style.fontSize = '.65rem';
+            const col = el.closest('.col-4'); if (col) col.appendChild(warn);
+            el.addEventListener('input', () => {
+                cek(idx, f, el, warn);
+                if (f === 'output_final_pa') ['reflect_final', 'reject_final'].forEach(g => { const e2 = inp(idx, g); if (e2 && e2.value !== '') e2.dispatchEvent(new Event('input')); });
+            });
+        });
+    });
+    const all = document.getElementById('btnIsiSemuaTerakhir');
+    if (all && ada) { all.style.display = ''; all.onclick = () => Object.keys(ids).forEach(isi); }
+})();
 
 // \u2500\u2500 OFFLINE SUPPORT \u2500\u2500
 function updateOfflineUI(){

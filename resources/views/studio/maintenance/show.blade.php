@@ -51,12 +51,12 @@
         </dl>
     </div>
     <div class="card-footer d-flex gap-2">
-        @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && auth()->user()->isDivisi('studio')))
+        @can('studio.maintenance.hapus')
         <form method="POST" action="{{ route('studio.maintenance.destroy',$studioMaintenance) }}" onsubmit="return confirm('Hapus log ini?')">
             @csrf @method('DELETE')
             <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash me-1"></i>Hapus</button>
         </form>
-        @endif
+        @endcan
         <a href="{{ route('studio.maintenance.index') }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
     </div>
 </div>

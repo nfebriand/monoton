@@ -101,7 +101,7 @@
 </form> {{-- TUTUP FORM UPDATE --}}
 
 
-@if(auth()->user()->isAdmin())
+@can('studio.perangkat.ubah', $studioPerangkat)
 
 <form method="POST"
       action="{{ route('studio.perangkat.destroy',$studioPerangkat) }}"
@@ -118,7 +118,7 @@
 
 </form>
 
-@endif     
+@endcan     
 
 </div> {{-- card-body --}}
 </div> {{-- card --}}

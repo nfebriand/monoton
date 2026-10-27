@@ -49,9 +49,9 @@
         </dl>
     </div>
     <div class="card-footer d-flex gap-2 flex-wrap">
-        @if(auth()->user()->isAdmin() || (auth()->user()->isAdminDivisi() && (auth()->user()->isDivisi('studio') || (auth()->user()->isWayKanan() && $studioPerangkat->lokasi === 'Way Kanan'))))
+        @can('studio.perangkat.ubah', $studioPerangkat)
         <a href="{{ route('studio.perangkat.edit',$studioPerangkat) }}" class="btn btn-sm btn-outline-warning"><i class="bi bi-pencil me-1"></i>Edit</a>
-        @endif
+        @endcan
         <a href="{{ route('studio.maintenance.create',['studio_perangkat_id'=>$studioPerangkat->id]) }}" class="btn btn-sm btn-outline-success"><i class="bi bi-tools me-1"></i>Catat Maintenance</a>
         <a href="{{ route('studio.perangkat.index') }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-arrow-left me-1"></i>Kembali</a>
     </div>

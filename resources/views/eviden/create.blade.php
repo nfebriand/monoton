@@ -15,6 +15,14 @@
     <div class="card-body">
     <form action="{{ route('eviden.store') }}" method="POST" enctype="multipart/form-data" id="formEviden">
     @csrf
+    @if(!empty($perawatan))
+    <input type="hidden" name="perawatan_rutin_id" value="{{ $perawatan->id }}">
+    <div class="alert alert-info py-2" style="font-size:.82rem">
+        <i class="bi bi-link-45deg me-1"></i>
+        Eviden ini akan dikaitkan dengan perawatan rutin <strong>{{ $perawatan->nama_tugas }}</strong> &mdash; {{ $perawatan->nama_objek }}.
+        Setelah disimpan Anda diarahkan untuk mencatat pelaksanaannya.
+    </div>
+    @endif
 
     @include('eviden._form-fields')
 

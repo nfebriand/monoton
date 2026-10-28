@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Eviden;
 use App\Models\GensetUnit;
 use App\Models\Pemancar;
 use App\Models\PerawatanRutin;
@@ -124,11 +125,34 @@ class PerawatanRutinController extends Controller
     {
         $this->wajibMenu();
         $this->wajibLihat($perawatanRutin);
-        $perawatanRutin->load(['pemancar', 'gensetUnit', 'logs.user']);
+        $perawatanRutin->load(['pemancar', 'gensetUnit', 'logs.user', 'logs.eviden']);
         $map   = PerawatanRutin::hmMap();
         $hasil = $perawatanRutin->hitung($map);
         $hmSekarang = $perawatanRutin->hmSekarang($map);
-        return view('perawatan.show', ['item' => $perawatanRutin, 'hasil' => $hasil, 'hmSekarang' => $hmSekarang]);
+
+        $user = auth()->user();
+        // Eviden riwayat yang boleh dibuka pengguna ini (selain itu hanya tampil tanpa tautan)
+        $evidenBoleh = Eviden::dapatDiakses($user)
+            ->whereIn('id', $perawatanRutin->logs->pluck('eviden_id')->filter()->all())->pluck('id')->all();
+
+        // Kandidat eviden untuk dikaitkan: milik/terlibat, 120 hari terakhir, belum dipakai jadwal ini
+        $sudahDipakai = $perawatanRutin->logs->pluck('eviden_id')->filter()->all();
+        $kandidat = Eviden::dapatDiakses($user)
+            ->where('tanggal', '>=', now()->subDays(120)->toDateString())
+            ->whereNotIn('id', $sudahDipakai)
+            ->orderByDesc('tanggal')->orderByDesc('jam_mulai')->limit(50)->get(['id', 'judul', 'tanggal', 'lokasi']);
+
+        // Datang dari "Buat Eviden Baru": eviden itu dipilih otomatis
+        $evidenDipilih = null;
+        if (request()->filled('eviden')) {
+            $evidenDipilih = Eviden::dapatDiakses($user)->whereNotIn('id', $sudahDipakai)->find((int) request('eviden'));
+            if ($evidenDipilih && !$kandidat->contains('id', $evidenDipilih->id)) $kandidat->prepend($evidenDipilih);
+        }
+
+        return view('perawatan.show', [
+            'item' => $perawatanRutin, 'hasil' => $hasil, 'hmSekarang' => $hmSekarang,
+            'evidenBoleh' => $evidenBoleh, 'kandidat' => $kandidat, 'evidenDipilih' => $evidenDipilih,
+        ]);
     }
 
     public function edit(PerawatanRutin $perawatanRutin)
@@ -169,10 +193,16 @@ class PerawatanRutinController extends Controller
             'tanggal' => 'required|date|before_or_equal:today',
             'hm'      => ($perawatanRutin->basis === 'tanggal' ? 'nullable' : 'required').'|numeric|min:0',
             'catatan' => 'nullable|string|max:1000',
+            'eviden_id' => 'nullable|integer|exists:evidens,id',
         ], [
             'hm.required' => 'Isi HM saat perawatan dilakukan (acuan jadwal berikutnya).',
             'tanggal.before_or_equal' => 'Tanggal pelaksanaan tidak boleh di masa depan.',
         ]);
+
+        // Eviden hanya boleh dikaitkan bila pengguna berhak melihatnya
+        if (!empty($v['eviden_id']) && !Eviden::dapatDiakses(auth()->user())->whereKey($v['eviden_id'])->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['eviden_id' => 'Eviden tersebut tidak dapat Anda akses.']);
+        }
 
         DB::transaction(function () use ($perawatanRutin, $v) {
             PerawatanRutinLog::create([
@@ -181,6 +211,7 @@ class PerawatanRutinController extends Controller
                 'tanggal'            => $v['tanggal'],
                 'hm'                 => $v['hm'] ?? null,
                 'catatan'            => $v['catatan'] ?? null,
+                'eviden_id'          => $v['eviden_id'] ?? null,
             ]);
             // Acuan hanya maju (tidak mundur bila mencatat pelaksanaan lama)
             $lebihBaru = !$perawatanRutin->terakhir_tanggal || $v['tanggal'] >= $perawatanRutin->terakhir_tanggal->format('Y-m-d');

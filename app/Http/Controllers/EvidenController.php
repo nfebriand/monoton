@@ -7,6 +7,8 @@ use App\Helpers\ImageHelper;
 use App\Models\User;
 use App\Models\Lokasi;
 use App\Models\AppSetting;
+use App\Models\PerawatanRutin;
+use App\Support\Akses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -87,12 +89,42 @@ class EvidenController extends Controller
         return view('eviden.index', compact('evidens','operators'));
     }
 
-    public function create()
+    /**
+     * Jadwal perawatan rutin yang menjadi asal pembuatan eviden (?perawatan=ID), bila pengguna berhak.
+     * Return [PerawatanRutin|null, array isian awal form].
+     */
+    private function konteksPerawatan($id): array
+    {
+        if (!$id) return [null, []];
+        $user = auth()->user();
+        if (!Akses::perawatanMenu($user)) return [null, []];
+        $p = PerawatanRutin::with(['pemancar', 'gensetUnit'])->find((int) $id);
+        if (!$p) return [null, []];
+        $lokasi = $p->objek_tipe === 'pemancar' ? ($p->pemancar->lokasi ?? null) : null;
+        if (!Akses::perawatanLihat($user, $p->objek_tipe, $lokasi)) return [null, []];
+
+        $hm = $p->hmSekarang();
+        $deskripsi = "Pelaksanaan perawatan rutin: {$p->nama_tugas}\n"
+            . "Objek: {$p->nama_objek}".($p->lokasi_objek ? " ({$p->lokasi_objek})" : '')."\n"
+            . ($hm !== null ? "HM unit saat ini: {$hm}\n" : '')
+            . "\nUraian pekerjaan / hasil:\n- ";
+
+        return [$p, [
+            'judul'     => "Perawatan Rutin: {$p->nama_tugas} - {$p->nama_objek}",
+            'deskripsi' => $deskripsi,
+            'divisi'    => $p->objek_tipe === 'genset' ? 'sarana' : 'transmisi',
+            'lokasi'    => $p->lokasi_objek,
+        ]];
+    }
+
+    public function create(Request $request)
     {
         $operators    = $this->allOperators();
         $lokasiList   = $this->lokasiList();
         $divisiDefault = $this->userDivisi();
-        return view('eviden.create', compact('operators','lokasiList','divisiDefault'));
+        [$perawatan, $prefill] = $this->konteksPerawatan($request->query('perawatan'));
+        if ($perawatan && auth()->user()->isAdmin()) $divisiDefault = $prefill['divisi'];
+        return view('eviden.create', compact('operators','lokasiList','divisiDefault','perawatan','prefill'));
     }
 
     public function store(Request $request)
@@ -111,7 +143,10 @@ class EvidenController extends Controller
             'fotos'          => 'nullable|array',
             'fotos.*'        => 'image|mimes:jpeg,png,jpg,webp|max:8192',
             'foto_keterangan'=> 'nullable|array',
+            'perawatan_rutin_id' => 'nullable|integer',
         ]);
+        $perawatanId = $validated['perawatan_rutin_id'] ?? null;
+        unset($validated['perawatan_rutin_id']);
 
         $eviden = Eviden::create(array_merge($validated, ['user_id' => auth()->id()]));
 
@@ -136,6 +171,13 @@ class EvidenController extends Controller
             }
         }
 
+        // Dibuat dari jadwal perawatan rutin: lanjut ke pencatatan pelaksanaan dengan eviden ini terpilih
+        [$perawatan] = $this->konteksPerawatan($perawatanId);
+        if ($perawatan) {
+            return redirect()->to(route('perawatan.show', ['perawatanRutin' => $perawatan, 'eviden' => $eviden->id]).'#catat')
+                ->with('success', 'Eviden tersimpan. Satu langkah lagi: catat pelaksanaan perawatan agar jadwal berikutnya dihitung.');
+        }
+
         return redirect()->route('eviden.show', $eviden)
             ->with('success', 'Catatan eviden berhasil disimpan.');
     }
@@ -143,7 +185,7 @@ class EvidenController extends Controller
     public function show(Eviden $eviden)
     {
         $this->authorizeEviden($eviden);
-        $eviden->load(['user','operators','fotos']);
+        $eviden->load(['user','operators','fotos','perawatanLogs.perawatan']);
         return view('eviden.show', compact('eviden'));
     }
 
@@ -216,6 +258,10 @@ class EvidenController extends Controller
     {
         $this->authorizeEviden($eviden, true);
         foreach ($eviden->fotos as $f) ImageHelper::deleteWithThumbnail($f->path);
+        // Riwayat perawatan rutin tetap ada, hanya tautan buktinya dilepas
+        if (\Illuminate\Support\Facades\Schema::hasColumn('perawatan_rutin_log', 'eviden_id')) {
+            \App\Models\PerawatanRutinLog::where('eviden_id', $eviden->id)->update(['eviden_id' => null]);
+        }
         $eviden->delete();
         return redirect()->route('eviden.index')->with('success', 'Eviden berhasil dihapus.');
     }

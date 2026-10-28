@@ -2,7 +2,8 @@
     $isEdit      = isset($eviden);
     $user        = auth()->user();
     $divisiLabel = \App\Models\User::DIVISI_LABEL;
-    $lokasiVal   = old('lokasi', $isEdit ? ($eviden->lokasi ?? '') : '');
+    $prefill     = $prefill ?? [];
+    $lokasiVal   = old('lokasi', $isEdit ? ($eviden->lokasi ?? '') : ($prefill['lokasi'] ?? ''));
     // Cek apakah lokasi adalah custom (tidak ada di tabel)
     $lokasiNamaList = $lokasiList->pluck('nama')->toArray();
     $isCustomLokasi = $lokasiVal && !in_array($lokasiVal, $lokasiNamaList);
@@ -13,7 +14,7 @@
     <div class="col-12 col-md-8">
         <label class="form-label">Judul Kegiatan <span class="text-danger">*</span></label>
         <input type="text" name="judul" class="form-control"
-               value="{{ old('judul', $isEdit ? $eviden->judul : '') }}" required>
+               value="{{ old('judul', $isEdit ? $eviden->judul : ($prefill['judul'] ?? '')) }}" required>
     </div>
     <div class="col-12 col-md-4">
         <label class="form-label">Divisi <span class="text-danger">*</span></label>
@@ -33,7 +34,7 @@
     </div>
     <div class="col-12">
         <label class="form-label">Deskripsi / Uraian Pekerjaan</label>
-        <textarea name="deskripsi" class="form-control" rows="4">{{ old('deskripsi', $isEdit ? $eviden->deskripsi : '') }}</textarea>
+        <textarea name="deskripsi" class="form-control" rows="4">{{ old('deskripsi', $isEdit ? $eviden->deskripsi : ($prefill['deskripsi'] ?? '')) }}</textarea>
     </div>
 </div>
 

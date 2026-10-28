@@ -196,6 +196,33 @@
         </div>
         @endif
 
+        {{-- Perawatan rutin yang memakai eviden ini sebagai bukti --}}
+        @if($eviden->perawatanLogs->isNotEmpty())
+        <div class="card mb-3">
+            <div class="card-header">
+                <i class="bi bi-wrench-adjustable me-2 text-primary"></i>Bukti Perawatan Rutin
+            </div>
+            <div class="list-group list-group-flush">
+                @foreach($eviden->perawatanLogs as $pl)
+                @php $pr = $pl->perawatan; @endphp
+                @if($pr)
+                @can('perawatan.menu')
+                <a href="{{ route('perawatan.show', $pr) }}" class="list-group-item list-group-item-action" style="font-size:.82rem">
+                    <strong>{{ $pr->nama_tugas }}</strong><br>
+                    <span class="text-muted">{{ $pr->nama_objek }} &middot; dilaksanakan {{ $pl->tanggal->format('d/m/Y') }}</span>
+                </a>
+                @else
+                <div class="list-group-item" style="font-size:.82rem">
+                    <strong>{{ $pr->nama_tugas }}</strong><br>
+                    <span class="text-muted">{{ $pr->nama_objek }} &middot; dilaksanakan {{ $pl->tanggal->format('d/m/Y') }}</span>
+                </div>
+                @endcan
+                @endif
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Supervisi --}}
         @if($eviden->supervisi)
         <div class="card">

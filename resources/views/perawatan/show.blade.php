@@ -52,11 +52,26 @@
         <div class="card mb-3" id="catat">
             <div class="card-header"><i class="bi bi-check2-square me-2 text-success"></i>Catat Pelaksanaan</div>
             <div class="card-body">
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-3 p-2 rounded" style="background:#f4f8fb;font-size:.78rem">
+                    <span class="badge bg-secondary">1</span> Lakukan perawatan
+                    <i class="bi bi-chevron-right text-muted"></i>
+                    <span class="badge {{ $evidenDipilih ? 'bg-success' : 'bg-secondary' }}">2</span> Buat eviden (bukti laporan)
+                    <i class="bi bi-chevron-right text-muted"></i>
+                    <span class="badge bg-secondary">3</span> Catat di sini
+                    <a href="{{ route('eviden.create', ['perawatan' => $item->id]) }}" class="btn btn-sm btn-outline-primary ms-auto" style="font-size:.72rem">
+                        <i class="bi bi-camera me-1"></i>Buat Eviden Baru
+                    </a>
+                </div>
+                @if($evidenDipilih)
+                <div class="alert alert-success py-2" style="font-size:.8rem">
+                    <i class="bi bi-check-circle me-1"></i>Eviden <strong>{{ $evidenDipilih->judul }}</strong> sudah terpilih. Lengkapi dan simpan pelaksanaan di bawah ini.
+                </div>
+                @endif
                 <form method="POST" action="{{ route('perawatan.selesai', $item) }}" class="row g-2">
                     @csrf
                     <div class="col-6 col-md-4">
                         <label class="form-label">Tanggal <span class="text-danger">*</span></label>
-                        <input type="date" name="tanggal" class="form-control" max="{{ now()->toDateString() }}" value="{{ old('tanggal', now()->toDateString()) }}" required>
+                        <input type="date" name="tanggal" class="form-control" max="{{ now()->toDateString() }}" value="{{ old('tanggal', ($evidenDipilih && $evidenDipilih->tanggal->lte(now())) ? $evidenDipilih->tanggal->toDateString() : now()->toDateString()) }}" required>
                     </div>
                     @if($item->basis !== 'tanggal')
                     <div class="col-6 col-md-4">
@@ -67,6 +82,18 @@
                     <div class="col-12">
                         <label class="form-label">Catatan (opsional)</label>
                         <input type="text" name="catatan" class="form-control" maxlength="1000" value="{{ old('catatan') }}" placeholder="Mis. oli diganti 12 liter, filter baru, kondisi baik">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label"><i class="bi bi-link-45deg me-1"></i>Kaitkan dengan Eviden (bukti laporan)</label>
+                        <select name="eviden_id" class="form-select">
+                            <option value="">&mdash; Tanpa eviden &mdash;</option>
+                            @foreach($kandidat as $ev)
+                            <option value="{{ $ev->id }}" {{ (string) old('eviden_id', $evidenDipilih->id ?? '') === (string) $ev->id ? 'selected' : '' }}>
+                                {{ $ev->tanggal->format('d/m/Y') }} &middot; {{ \Illuminate\Support\Str::limit($ev->judul, 70) }}{{ $ev->lokasi ? ' ('.$ev->lokasi.')' : '' }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <div class="form-text">Menampilkan eviden Anda dalam 120 hari terakhir yang belum dipakai jadwal ini. Belum ada? Klik <em>Buat Eviden Baru</em> di atas.</div>
                     </div>
                     <div class="col-12"><button class="btn btn-success"><i class="bi bi-check-circle me-1"></i>Simpan Pelaksanaan</button></div>
                 </form>
@@ -79,7 +106,7 @@
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th class="ps-3">Tanggal</th><th>HM</th><th>Petugas</th><th>Catatan</th></tr></thead>
+                        <thead><tr><th class="ps-3">Tanggal</th><th>HM</th><th>Petugas</th><th>Catatan</th><th>Eviden</th></tr></thead>
                         <tbody>
                             @forelse($item->logs as $l)
                             <tr>
@@ -87,9 +114,18 @@
                                 <td class="mono" style="font-size:.78rem">{{ $l->hm !== null ? $fmt($l->hm) : '-' }}</td>
                                 <td style="font-size:.78rem">{{ $l->user->name ?? '-' }}</td>
                                 <td style="font-size:.78rem">{{ $l->catatan ?: '-' }}</td>
+                                <td style="font-size:.78rem">
+                                    @if($l->eviden_id && in_array($l->eviden_id, $evidenBoleh))
+                                    <a href="{{ route('eviden.show', $l->eviden_id) }}" title="{{ $l->eviden->judul ?? '' }}"><i class="bi bi-camera me-1"></i>Lihat</a>
+                                    @elseif($l->eviden_id)
+                                    <span class="text-muted" title="Eviden milik pengguna lain"><i class="bi bi-camera me-1"></i>Ada</span>
+                                    @else
+                                    <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                             </tr>
                             @empty
-                            <tr><td colspan="4" class="text-center text-muted py-3">Belum ada riwayat</td></tr>
+                            <tr><td colspan="5" class="text-center text-muted py-3">Belum ada riwayat</td></tr>
                             @endforelse
                         </tbody>
                     </table>

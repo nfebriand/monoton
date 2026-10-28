@@ -125,7 +125,8 @@ table.info tr{border-bottom:1px solid #f0f0f0;}
 {{-- ══ HALAMAN PER EVIDEN ══ --}}
 @foreach($evidens as $i => $eviden)
 @php
-    $koordinator = $koordinatorCache[$eviden->divisi ?? 'transmisi'] ?? $koordinatorCache['transmisi'];
+    $__ac = \App\Models\AppSetting::tanggalAcuan($eviden->tanggal);
+    $koordinator = $koordinatorCache[($eviden->divisi ?? 'transmisi').'|'.$__ac] ?? $koordinatorCache[$eviden->divisi ?? 'transmisi'] ?? $koordinatorCache['transmisi'];
 @endphp
 <div class="eviden-page">
 

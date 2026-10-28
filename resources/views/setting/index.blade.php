@@ -116,6 +116,11 @@
 @endphp
 
 <h6 class="section-title mb-3 mt-4">🖋️ Profil Pejabat (Approver Laporan)</h6>
+<div class="alert alert-warning py-2" style="font-size:.78rem">
+    Ada pergantian pejabat? Jangan timpa data di bawah, karena laporan periode lama ikut berubah.
+    Gunakan <a href="{{ route('setting.pejabat') }}" class="alert-link"><strong>Pergantian Pejabat</strong></a>
+    agar pejabat lama diarsipkan sesuai masa jabatannya. Form di bawah hanya untuk membetulkan data pejabat yang sedang menjabat.
+</div>
 <div class="form-text mb-3" style="font-size:.75rem">
     Nama, jabatan, dan tanda tangan di sini akan otomatis muncul pada kolom
     "Mengetahui" di laporan PDF — <strong>sesuai divisi laporan tersebut</strong>.

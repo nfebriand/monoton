@@ -201,6 +201,12 @@ Route::middleware(['auth'])->group(function(){
         Route::post('/setting/kredit',    [SettingController::class,'updateKredit'])->name('setting.kredit');
         Route::post('/setting/hapus-ttd', [SettingController::class,'removeTtd'])->name('setting.remove-ttd');
 
+        // Pergantian pejabat penandatangan + arsip masa jabatan
+        Route::get('/setting/pejabat',                  [\App\Http\Controllers\PejabatController::class,'index'])->name('setting.pejabat');
+        Route::post('/setting/pejabat/ganti',           [\App\Http\Controllers\PejabatController::class,'ganti'])->name('setting.pejabat.ganti');
+        Route::put('/setting/pejabat/{riwayat}',        [\App\Http\Controllers\PejabatController::class,'update'])->name('setting.pejabat.update');
+        Route::delete('/setting/pejabat/{riwayat}',     [\App\Http\Controllers\PejabatController::class,'destroy'])->name('setting.pejabat.destroy');
+
         // Backup & Restore Database (Super Admin)
         Route::get('/backup-db',                     [\App\Http\Controllers\BackupController::class,'index'])->name('backup.index');
         Route::post('/backup-db',                    [\App\Http\Controllers\BackupController::class,'create'])->name('backup.create');

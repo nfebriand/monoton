@@ -147,6 +147,8 @@ class JadwalController extends Controller
         }
         ksort($perLokasi);
         $sheets = [];
+        // Penandatangan = pejabat yang menjabat pada akhir bulan jadwal (maks. hari ini)
+        $acuan = AppSetting::tanggalAcuan(Carbon::create($tahun, $bulan, 1)->endOfMonth()->toDateString());
         foreach ($perLokasi as $lok => $data) {
             foreach ($data as $tgl => $perShift) foreach ($perShift as $no => $list) {
                 sort($list, SORT_NATURAL | SORT_FLAG_CASE);
@@ -155,8 +157,8 @@ class JadwalController extends Controller
             $sheet = ['lokasi' => $lok, 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? [], 'cuti' => $cutiLokasi[$lok] ?? []];
             // Studio Produksi Way Kanan: penandatangan = pencetak (kiri), Koordinator SP Way Kanan (kanan), Kepala Stasiun (mengetahui)
             if ($divisi === 'studio' && strcasecmp(trim((string) $lok), 'Way Kanan') === 0) {
-                $korWk  = AppSetting::getKoordinatorStudio('Way Kanan');
-                $kepWk  = AppSetting::getKepalaStasiun();
+                $korWk  = AppSetting::getKoordinatorStudio('Way Kanan', $acuan);
+                $kepWk  = AppSetting::getKepalaStasiun($acuan);
                 $sheet['ttd'] = [
                     'kiri'   => ['jabatan' => 'Dicetak oleh', 'nama' => (string) $user->name, 'nip' => (string) ($user->nip ?? ''), 'ttd' => null],
                     'kanan'  => ['jabatan' => $korWk['jabatan'], 'nama' => $korWk['nama'], 'nip' => $korWk['nip'], 'ttd' => $this->ttdGambar($korWk['ttd_path'] ?? null)],
@@ -169,9 +171,9 @@ class JadwalController extends Controller
         $skema  = JadwalShift::getSkemaForDivisi($divisi);
         $shifts = SkemaShift::getShiftsForKode($skema);
 
-        $kor  = AppSetting::getKoordinator($divisi);
-        $kabid = AppSetting::getKabid();
-        $kepala = AppSetting::getKepalaStasiun();
+        $kor  = AppSetting::getKoordinator($divisi, $acuan);
+        $kabid = AppSetting::getKabid($acuan);
+        $kepala = AppSetting::getKepalaStasiun($acuan);
 
         $x = JadwalExcel::build([
             'divisi_label' => \App\Models\User::DIVISI_LABEL[$divisi] ?? ucfirst($divisi),

@@ -228,7 +228,7 @@ class EvidenController extends Controller
         $satkerName      = $settings['satuan_kerja'] ?? '';
         $koordinatorName = $settings['koordinator']  ?? '';
         $appVersion      = $settings['app_version']  ?? '1.0.0';
-        $koordinator     = AppSetting::getKoordinator($eviden->divisi ?? 'transmisi');
+        $koordinator     = AppSetting::getKoordinator($eviden->divisi ?? 'transmisi', AppSetting::tanggalAcuan($eviden->tanggal));
 
         $html = view('eviden.pdf', compact(
             'eviden','satkerName','koordinatorName','appVersion','koordinator'
@@ -309,10 +309,14 @@ class EvidenController extends Controller
         $appVersion = $settings['app_version']  ?? '1.0.0';
 
         // Ambil koordinator per divisi (cache agar tidak query berulang)
+        // Kunci: "divisi|tanggal-acuan" -> pejabat yang menjabat pada tanggal eviden tsb
         $koordinatorCache = [];
+        foreach ($evidens as $ev) {
+            $div = $ev->divisi ?? 'transmisi';
+            $acuan = AppSetting::tanggalAcuan($ev->tanggal);
+            $koordinatorCache[$div.'|'.$acuan] ??= AppSetting::getKoordinator($div, $acuan);
+        }
         $koordinatorCache['transmisi'] = AppSetting::getKoordinator('transmisi');
-        $koordinatorCache['studio']    = AppSetting::getKoordinator('studio');
-        $koordinatorCache['sarana']    = AppSetting::getKoordinator('sarana');
 
         $html = view('eviden.pdf-bulk', compact(
             'evidens','satkerName','appVersion','koordinatorCache','settings'

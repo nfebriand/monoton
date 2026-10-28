@@ -240,8 +240,9 @@ class StudioLogController extends Controller
         }
 
         $settings       = AppSetting::allKeyed();
-        $koordinator    = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs));
-        $kabid          = AppSetting::getKabid();
+        $acuan          = AppSetting::tanggalAcuan($request->tanggal_sampai ?: $logs->max('tanggal'));
+        $koordinator    = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs), $acuan);
+        $kabid          = AppSetting::getKabid($acuan);
         $operatorFilter = (!$user->isAdmin() && !$user->isAdminDivisi())
             ? $user
             : ($request->filled('user_id') ? \App\Models\User::find($request->user_id) : null);
@@ -278,8 +279,9 @@ class StudioLogController extends Controller
 
         $logs = $query->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs));
-        $kabid       = AppSetting::getKabid();
+        $acuan       = AppSetting::tanggalAcuan($tanggal);
+        $koordinator = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs), $acuan);
+        $kabid       = AppSetting::getKabid($acuan);
         $html   = view('studio.laporan.pdf-logbook-harian', compact('logs','tanggal','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
         $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');
         return $this->streamPdf($html, 'logbook-harian-studio-'.$tanggal.$suffix, 'portrait');
@@ -306,8 +308,9 @@ class StudioLogController extends Controller
 
         $logs = $qBulanan->get();
         $settings    = AppSetting::allKeyed();
-        $koordinator = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs));
-        $kabid       = AppSetting::getKabid();
+        $acuan       = AppSetting::tanggalAcuan(\Carbon\Carbon::create((int) $year, (int) $month, 1)->endOfMonth()->toDateString());
+        $koordinator = AppSetting::getKoordinatorStudio($this->lokasiTtd($lokasiFilter, $logs), $acuan);
+        $kabid       = AppSetting::getKabid($acuan);
         $html   = view('studio.laporan.pdf-rekap-bulanan', compact('logs','bulan','year','month','settings','koordinator','kabid','operatorFilter','lokasiFilter'))->render();
         $suffix = ($lokasiFilter ? '-'.\Illuminate\Support\Str::slug($lokasiFilter) : '').($operatorFilter ? '-'.\Illuminate\Support\Str::slug($operatorFilter->name) : '');
         return $this->streamPdf($html, 'rekap-bulanan-studio-'.$bulan.$suffix, 'landscape');

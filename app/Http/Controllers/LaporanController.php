@@ -161,7 +161,7 @@ class LaporanController extends Controller
                 'tanggal_sampai' => $tanggal_sampai,
                 'satkerName'     => $settings['satuan_kerja'] ?? '',
                 'pengelola'      => $settings['koordinator']  ?? '',
-                'koordinator'    => AppSetting::getKoordinator('transmisi'),
+                'koordinator'    => AppSetting::getKoordinator('transmisi', AppSetting::tanggalAcuan($tanggal_sampai)),
                 'generated_by'   => $user->name,
                 'generated_at'   => now()->format('d/m/Y H:i'),
             ])->render();
@@ -293,7 +293,7 @@ class LaporanController extends Controller
                 'lokasi'          => $lokasi,
                 'satkerName'      => $settings['satuan_kerja'] ?? '',
                 'koordinatorName' => $settings['koordinator']  ?? '',
-                'koordinator'     => AppSetting::getKoordinator('transmisi'),
+                'koordinator'     => AppSetting::getKoordinator('transmisi', AppSetting::tanggalAcuan(Carbon::create($tahun, $bulan, 1)->endOfMonth()->toDateString())),
                 'operatorNama'    => $user->name,
                 'operatorNip'     => $user->nip ?? null,
             ])->render();
@@ -385,9 +385,11 @@ class LaporanController extends Controller
             $divisi   = $request->divisi ?: ($user->isAdminDivisi() ? $user->divisi : 'semua');
             $settings = AppSetting::allKeyed();
 
+            // Pejabat sesuai akhir periode laporan (bila tanggal akhir kosong: tanggal eviden terbaru yang dicetak)
+            $acuan = AppSetting::tanggalAcuan($request->tanggal_sampai ?: $evidens->max('tanggal'));
             $koordinator = $divisi === 'semua'
-                ? AppSetting::getKoordinator('transmisi')
-                : AppSetting::getKoordinator($divisi);
+                ? AppSetting::getKoordinator('transmisi', $acuan)
+                : AppSetting::getKoordinator($divisi, $acuan);
 
             $html = view('laporan.eviden-rekap-pdf', [
                 'evidens'        => $evidens,
@@ -397,7 +399,7 @@ class LaporanController extends Controller
                 'tanggal_sampai' => $request->tanggal_sampai ?? null,
                 'satkerName'     => $settings['satuan_kerja'] ?? '',
                 'koordinator'    => $koordinator,
-                'kabid'          => AppSetting::getKabid(),
+                'kabid'          => AppSetting::getKabid($acuan),
                 'generated_by'   => $user->name,
                 'generated_at'   => now()->format('d/m/Y H:i'),
             ])->render();

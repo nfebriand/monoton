@@ -111,9 +111,11 @@
 
     <div class="mb-4">
         <div class="form-check form-switch">
+            <input type="hidden" name="is_active" value="0">
             <input type="checkbox" name="is_active" class="form-check-input" value="1" {{ old('is_active',$pemancar->is_active)?'checked':'' }}>
             <label class="form-check-label">Status Aktif</label>
         </div>
+        <div class="form-text">Pemancar non-aktif tidak muncul di form Catat Log, sehingga operator tidak perlu mengisi nilai operasionalnya. Riwayat lama tetap tersimpan.</div>
     </div>
 
     <div class="d-flex gap-2">

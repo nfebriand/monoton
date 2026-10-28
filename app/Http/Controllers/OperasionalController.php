@@ -196,6 +196,13 @@ class OperasionalController extends Controller
             'pemancar.*.keterangan'      => 'nullable|string|max:500',
         ], self::PESAN_RENTANG);
 
+        // Pemancar non-aktif tidak dicatat (juga untuk data kiriman offline yang dibuat sebelum dinonaktifkan)
+        $aktifIds = Pemancar::where('is_active', true)->pluck('id')->all();
+        $validated['pemancar'] = array_values(array_filter($validated['pemancar'], fn($d) => in_array($d['id'], $aktifIds)));
+        if (empty($validated['pemancar'])) {
+            return back()->withErrors(['pemancar' => 'Pemancar yang dipilih berstatus non-aktif, tidak ada yang perlu dicatat.'])->withInput();
+        }
+
         $allowedIds = $pemancars->pluck('id')->toArray();
         foreach ($validated['pemancar'] as $data) {
             if ($user->isOperator() && !in_array($data['id'], $allowedIds)) {
@@ -401,12 +408,14 @@ class OperasionalController extends Controller
         ], self::PESAN_RENTANG);
 
         $allowedIds = $pemancars->pluck('id')->toArray();
+        $aktifIds   = Pemancar::where('is_active', true)->pluck('id')->all();
         $dibuat = 0;
 
         foreach ($validated['checkpoint'] as $cp) {
             $dicatatPada = $validated['tanggal'] . ' ' . $cp['jam'] . ':00';
 
             foreach ($cp['pemancar'] as $data) {
+                if (!in_array($data['id'], $aktifIds)) continue;   // pemancar non-aktif tidak dicatat
                 $statusOff = ($data['status'] ?? 'on') === 'off';
 
                 // Lewati baris yang tidak diisi sama sekali (semua field kosong)

@@ -78,7 +78,7 @@ class PemancarController extends Controller
 		            'fotos.*.max'      => 'Ukuran tiap foto maksimal 8 MB.',
 		        ]);
 
-		$v['is_active'] = $request->boolean('is_active', true);
+		$v['is_active'] = $request->boolean('is_active');   // form mengirim 0 bila switch dimatikan
 		unset($v['sistem'], $v['audio']);
 
 		$pemancar = Pemancar::create($v);
@@ -268,7 +268,7 @@ class PemancarController extends Controller
             'fotos.*.mimes'    => 'Format foto harus JPG, PNG, atau WEBP.',
             'fotos.*.max'      => 'Ukuran tiap foto maksimal 8 MB.',
         ]);
-        $v['is_active'] = $request->boolean('is_active', true);
+        $v['is_active'] = $request->boolean('is_active');   // form mengirim 0 bila switch dimatikan
         unset($v['sistem'], $v['audio']);
         $pemancar->update($v);
         $this->simpanSistem($request, $pemancar);

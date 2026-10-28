@@ -79,7 +79,7 @@
         <span class="d-flex gap-2">
         <button type="button" class="btn btn-sm btn-outline-primary" id="btnIsiSemuaTerakhir" style="display:none"
                 title="Salin nilai log ON terakhir ke semua kolom yang masih kosong, lalu periksa/ubah sesuai pembacaan sekarang">
-            <i class="bi bi-clock-history me-1"></i>Isi dari log terakhir
+            <i class="bi bi-clock-history me-1"></i>Isi Semua Dari Log Terakhir
         </button>
         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAll()">
             <i class="bi bi-arrows-expand me-1"></i><span id="toggleLabel">Tutup Semua</span>
@@ -260,13 +260,15 @@ const TERAKHIR = @json($terakhir);
     document.querySelectorAll('input[type=hidden]').forEach(h => {
         const m = h.name.match(/^pemancar\[(\d+)\]\[id\]$/); if (m) ids[m[1]] = h.value;
     });
+    // Angka bersih: 16.00 / 16,00 -> 16 ; 25,50 -> 25.5 (titik sebagai desimal, tanpa nol di belakang)
+    const fmt = v => { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? '' : String(Number(n.toFixed(4))); };
     const inp = (idx, f) => document.querySelector('input[name="pemancar[' + idx + '][' + f + ']"]');
     function isi(idx) {
         const t = TERAKHIR[ids[idx]]; if (!t) return;
         Object.keys(FIELDS).forEach(f => {
             const el = inp(idx, f);
             if (el && !el.disabled && el.value === '' && t[f] !== null && t[f] !== undefined) {
-                el.value = t[f]; el.dispatchEvent(new Event('input', {bubbles:true}));
+                el.value = fmt(t[f]); el.dispatchEvent(new Event('input', {bubbles:true}));
             }
         });
     }
@@ -274,7 +276,7 @@ const TERAKHIR = @json($terakhir);
         const t = TERAKHIR[ids[idx]]; const v = parseFloat(el.value); let msg = '';
         if (!isNaN(v) && t && t[f] !== null && t[f] !== undefined && parseFloat(t[f]) > 0) {
             const d = Math.abs(v - parseFloat(t[f])) / parseFloat(t[f]) * 100;
-            if (d >= 30) msg = 'Beda ' + Math.round(d) + '% dari terakhir (' + t[f] + ') \u2014 periksa';
+            if (d >= 30) msg = 'Beda ' + Math.round(d) + '% dari terakhir (' + fmt(t[f]) + ') \u2014 periksa';
         }
         if (f === 'reflect_final' || f === 'reject_final') {
             const pa = parseFloat((inp(idx, 'output_final_pa') || {}).value);
@@ -286,17 +288,16 @@ const TERAKHIR = @json($terakhir);
     Object.keys(ids).forEach(idx => {
         const t = TERAKHIR[ids[idx]]; const box = document.getElementById('fields-' + idx); if (!t || !box) return;
         ada = true;
-        const ring = Object.keys(FIELDS).filter(k => t[k] !== null && t[k] !== undefined).map(k => FIELDS[k] + ' ' + t[k]).join(' \u00B7 ');
+        const ring = Object.keys(FIELDS).filter(k => t[k] !== null && t[k] !== undefined).map(k => FIELDS[k] + ' ' + fmt(t[k])).join(' \u00B7 ');
         const bar = document.createElement('div');
         bar.className = 'd-flex align-items-center flex-wrap gap-2 mb-2';
         bar.innerHTML = '<span class="text-muted" style="font-size:.7rem"><i class="bi bi-clock-history me-1"></i>Terakhir (' + t.waktu + '): ' + ring + '</span>';
         const btn = document.createElement('button');
         btn.type = 'button'; btn.className = 'btn btn-sm btn-outline-primary py-0 px-2'; btn.style.fontSize = '.7rem';
-        btn.textContent = 'Isi dari terakhir'; btn.onclick = () => isi(idx);
+        btn.textContent = 'Ambil Log Terakhir'; btn.onclick = () => isi(idx);
         bar.appendChild(btn); box.insertBefore(bar, box.firstChild);
         Object.keys(FIELDS).forEach(f => {
             const el = inp(idx, f); if (!el) return;
-            if (t[f] !== null && t[f] !== undefined) el.placeholder = t[f];
             const warn = document.createElement('div'); warn.className = 'form-text text-warning d-none'; warn.style.fontSize = '.65rem';
             const col = el.closest('.col-4'); if (col) col.appendChild(warn);
             el.addEventListener('input', () => {

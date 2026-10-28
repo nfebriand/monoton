@@ -12,7 +12,8 @@ class Pemancar extends Model
     protected $fillable = [
         'nama_stasiun', 'merk', 'tipe_unit', 'tipe_komponen', 'modulasi',
         'lokasi', 'latitude', 'longitude', 'alamat_lokasi',
-        'kapasitas_output_final', 'tipe_exciter', 'tipe_driver',
+        'tahun_pembuatan', 'kapasitas_output_final', 'kapasitas_output_driver', 'kapasitas_output_exciter',
+        'tipe_exciter', 'tipe_driver',
         'frekuensi', 'nomor_izin', 'tanggal_instalasi', 'keterangan', 'is_active',
     ];
 

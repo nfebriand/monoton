@@ -3,6 +3,7 @@
 @section('page-title','Catat Operasional Genset')
 
 @section('content')
+@include('partials.offline-notice')
 <div class="row justify-content-center">
 <div class="col-12 col-lg-8">
 <div class="card">
@@ -13,7 +14,7 @@
         </a>
     </div>
     <div class="card-body">
-    <form action="{{ route('genset.store') }}" method="POST" id="formGenset">
+    <form action="{{ route('genset.store') }}" method="POST" id="formGenset" data-offline-queue="genset" data-offline-label="Log Genset">
     @csrf
 
     <div class="row g-3 mb-4">

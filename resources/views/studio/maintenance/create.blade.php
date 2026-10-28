@@ -3,6 +3,7 @@
 @section('page-title','Catat Maintenance Perangkat Studio')
 
 @section('content')
+@include('partials.offline-notice')
 <div class="row justify-content-center">
 <div class="col-12 col-lg-9">
 <div class="card">
@@ -11,7 +12,7 @@
 @if($errors->any())
 <div class="alert alert-danger py-2"><ul class="mb-0 ps-3">@foreach($errors->all() as $e)<li style="font-size:.82rem">{{ $e }}</li>@endforeach</ul></div>
 @endif
-<form method="POST" action="{{ route('studio.maintenance.store') }}">
+<form method="POST" action="{{ route('studio.maintenance.store') }}" data-offline-queue="studio_maintenance" data-offline-label="Maintenance Studio">
 @csrf
 <div class="row g-3">
     <div class="col-md-12">

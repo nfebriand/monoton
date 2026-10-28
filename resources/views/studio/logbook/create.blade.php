@@ -2,9 +2,10 @@
 @section('title','Isi Logbook Studio')
 @section('page-title','Isi Logbook Harian Studio')
 @section('content')
+@include('partials.offline-notice')
 <div class="row justify-content-center"><div class="col-12 col-lg-9">
 @if($errors->any())<div class="alert alert-danger py-2 mb-3"><ul class="mb-0 ps-3">@foreach($errors->all() as $e)<li style="font-size:.82rem">{{ $e }}</li>@endforeach</ul></div>@endif
-<form method="POST" action="{{ route('studio.logbook.store') }}" enctype="multipart/form-data">
+<form method="POST" action="{{ route('studio.logbook.store') }}" enctype="multipart/form-data" data-offline-queue="studio_logbook" data-offline-label="Logbook Siaran">
 @csrf
 <div class="card mb-3">
     <div class="card-header"><h6 class="mb-0"><i class="bi bi-clock me-2"></i>Informasi Shift</h6></div>

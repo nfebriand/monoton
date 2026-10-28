@@ -14,7 +14,11 @@ const SyncManager = {
     async init() {
         await this.updateBadge();
         this.bindEvents();
-        if (navigator.onLine) this.scheduleSync();
+        if (navigator.onLine) { this.scheduleSync(); this.syncAll(); }
+        // Kembali ke tab/aplikasi: coba kirim antrian yang tertunda
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && navigator.onLine && !this._syncing) this.syncAll();
+        });
     },
 
     bindEvents() {
@@ -74,6 +78,11 @@ const SyncManager = {
                         lastError: e.message,
                     });
                 }
+            }
+
+            // Antrian umum (log operasional, logbook, maintenance, dst.) - toast sendiri di OfflineForms
+            if (window.OfflineForms) {
+                try { await OfflineForms.syncSemua(); } catch (e) { console.error('[Sync] OfflineForms:', e); }
             }
 
             if (totalSynced > 0) {

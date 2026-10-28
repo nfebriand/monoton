@@ -1,12 +1,13 @@
 /**
  * MonOTOn OfflineDB
  * IndexedDB wrapper untuk antrian data offline
- * Stores: pending_logs, pending_evidens
+ * Stores: pending_logs, pending_evidens (lama), pending_forms (antrian umum: log operasional,
+ * logbook studio, maintenance, genset, dst. - lihat offline-forms.js)
  */
 
 const OfflineDB = {
     DB_NAME:    'monoton_offline',
-    DB_VERSION: 1,
+    DB_VERSION: 2,
     db:         null,
 
     async open() {
@@ -26,6 +27,12 @@ const OfflineDB = {
                     const es = db.createObjectStore('pending_evidens', { keyPath: 'localId', autoIncrement: true });
                     es.createIndex('status', 'status', { unique: false });
                     es.createIndex('createdAt', 'createdAt', { unique: false });
+                }
+                // Antrian umum semua form offline (key = UUID yang juga dikirim sebagai X-Offline-Id)
+                if (!db.objectStoreNames.contains('pending_forms')) {
+                    const fs = db.createObjectStore('pending_forms', { keyPath: 'id' });
+                    fs.createIndex('status', 'status', { unique: false });
+                    fs.createIndex('createdAt', 'createdAt', { unique: false });
                 }
             };
             req.onsuccess = e => { this.db = e.target.result; resolve(this.db); };
@@ -88,11 +95,12 @@ const OfflineDB = {
     },
 
     async countPending() {
-        const [logs, evidens] = await Promise.all([
+        const [logs, evidens, forms] = await Promise.all([
             this.getAll('pending_logs', 'pending'),
             this.getAll('pending_evidens', 'pending'),
+            this.getAll('pending_forms', 'pending'),
         ]);
-        return logs.length + evidens.length;
+        return logs.length + evidens.length + forms.length;
     },
 
     async clear(store) {

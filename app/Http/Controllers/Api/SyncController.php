@@ -42,6 +42,8 @@ class SyncController extends Controller
     {
         return response()->json([
             'online'  => true,
+            'csrf'    => csrf_token(),
+            'user_id' => optional(auth()->user())->id,
             'server'  => 'MonOTOn',
             'time'    => now()->format('Y-m-d H:i:s'),
             'version' => \App\Models\AppSetting::get('app_version','1.0.0'),

@@ -3,6 +3,7 @@
 @section('page-title','Catat Maintenance Aset')
 
 @section('content')
+@include('partials.offline-notice')
 <div class="row justify-content-center">
 <div class="col-12 col-lg-8">
 <div class="card">
@@ -11,7 +12,7 @@
         <a href="{{ route('maintenance.index') }}" class="btn btn-sm btn-outline-secondary ms-auto"><i class="bi bi-arrow-left"></i> Kembali</a>
     </div>
     <div class="card-body">
-    <form action="{{ route('maintenance.store') }}" method="POST" enctype="multipart/form-data" id="formMaintenance">
+    <form action="{{ route('maintenance.store') }}" method="POST" enctype="multipart/form-data" id="formMaintenance" data-offline-queue="maintenance_aset" data-offline-label="Maintenance Aset">
     @csrf
 
     <div class="row g-3 mb-4">

@@ -29,7 +29,7 @@
     <div class="col-4">
         <div class="card text-center">
             <div class="card-body py-2">
-                <div style="font-size:.65rem;color:#636e72">LOG PENDING</div>
+                <div style="font-size:.65rem;color:#636e72">MENUNGGU KIRIM</div>
                 <div class="mono fw-bold" id="countLogs" style="font-size:1.8rem;color:#ff9f43">0</div>
             </div>
         </div>
@@ -37,7 +37,7 @@
     <div class="col-4">
         <div class="card text-center">
             <div class="card-body py-2">
-                <div style="font-size:.65rem;color:#636e72">EVIDEN PENDING</div>
+                <div style="font-size:.65rem;color:#636e72">AKUN LAIN</div>
                 <div class="mono fw-bold" id="countEvidens" style="font-size:1.8rem;color:#ff9f43">0</div>
             </div>
         </div>
@@ -52,8 +52,25 @@
     </div>
 </div>
 
-{{-- Daftar Data Pending --}}
+{{-- Antrian offline umum: log operasional, logbook siaran, maintenance, genset --}}
 <div class="card mb-3">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-cloud-arrow-up me-2 text-warning"></i>Antrian Offline (Log Operasional, Logbook, Maintenance, Genset)</span>
+    </div>
+    <div id="listForms">
+        <div class="text-center text-muted py-4 small">
+            <i class="bi bi-check-circle d-block fs-3 mb-1 text-success"></i>
+            Tidak ada data menunggu
+        </div>
+    </div>
+    <div class="card-footer text-muted" style="font-size:.72rem">
+        Data tersimpan di perangkat ini dan dikirim otomatis (berurutan) saat koneksi tersambung. Tiap data hanya masuk satu kali meski pengiriman diulang.
+        Data hanya dikirim oleh akun pembuatnya. Jangan hapus data situs/cache browser sebelum antrian kosong.
+    </div>
+</div>
+
+{{-- Daftar Data Pending (format lama) --}}
+<div class="card mb-3" id="cardLogsLama" style="display:none">
     <div class="card-header d-flex align-items-center justify-content-between">
         <span><i class="bi bi-journal-text me-2 text-warning"></i>Log Operasional Pending</span>
         <button class="btn btn-sm btn-outline-danger" onclick="hapusSemua('pending_logs')">
@@ -68,7 +85,7 @@
     </div>
 </div>
 
-<div class="card">
+<div class="card" id="cardEvidensLama" style="display:none">
     <div class="card-header d-flex align-items-center justify-content-between">
         <span><i class="bi bi-camera me-2 text-warning"></i>Eviden Pending</span>
         <button class="btn btn-sm btn-outline-danger" onclick="hapusSemua('pending_evidens')">
@@ -86,8 +103,6 @@
 @endsection
 
 @push('scripts')
-<script src="/js/offline-db.js"></script>
-<script src="/js/offline-sync.js"></script>
 <script>
 const STATUS_COLOR = { pending:'#ff9f43', synced:'#10ac84', failed:'#ee5a24' };
 const STATUS_LABEL = { pending:'Menunggu', synced:'Tersinkron', failed:'Gagal' };
@@ -119,22 +134,73 @@ async function renderPage() {
     }
 
     // Load data
-    const [logs, evidens] = await Promise.all([
+    const [logs, evidens, forms] = await Promise.all([
         OfflineDB.getAll('pending_logs'),
         OfflineDB.getAll('pending_evidens'),
+        OfflineDB.getAll('pending_forms'),
     ]);
+    const me = document.querySelector('meta[name="user-id"]')?.content || '';
+    const milikku = x => !x.userId || !me || String(x.userId) === me;
 
-    const pendingLogs    = logs.filter(l => l.status === 'pending').length;
-    const pendingEvidens = evidens.filter(e => e.status === 'pending').length;
-    const failed         = [...logs, ...evidens].filter(x => x.status === 'failed').length;
+    const menunggu = logs.filter(l => l.status === 'pending').length
+                   + evidens.filter(e => e.status === 'pending').length
+                   + forms.filter(f => f.status === 'pending' && milikku(f)).length;
+    const failed   = [...logs, ...evidens, ...forms].filter(x => x.status === 'failed').length;
+    const akunLain = forms.filter(f => !milikku(f)).length;
 
-    document.getElementById('countLogs').textContent    = pendingLogs;
-    document.getElementById('countEvidens').textContent = pendingEvidens;
+    document.getElementById('countLogs').textContent    = menunggu;
+    document.getElementById('countEvidens').textContent = akunLain;
     document.getElementById('countFailed').textContent  = failed;
+
+    document.getElementById('cardLogsLama').style.display    = logs.length ? '' : 'none';
+    document.getElementById('cardEvidensLama').style.display = evidens.length ? '' : 'none';
+    renderForms(forms.sort((a, b) => a.createdAt - b.createdAt), milikku);
 
     // Render log list
     renderList('listLogs', logs, 'pending_logs', renderLogItem);
     renderList('listEvidens', evidens, 'pending_evidens', renderEvidenItem);
+}
+
+function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderForms(items, milikku) {
+    const el = document.getElementById('listForms');
+    if (!items.length) {
+        el.innerHTML = '<div class="text-center text-muted py-4 small"><i class="bi bi-check-circle d-block fs-3 mb-1 text-success"></i>Tidak ada data menunggu</div>';
+        return;
+    }
+    el.innerHTML = items.map(item => {
+        const dt  = new Date(item.createdAt).toLocaleString('id-ID');
+        const clr = STATUS_COLOR[item.status] || '#888';
+        const lain = !milikku(item);
+        return `<div class="d-flex align-items-center gap-3 px-3 py-3 border-bottom">
+            <div style="font-size:1.5rem">${STATUS_ICON[item.status] || '\u23F3'}</div>
+            <div class="flex-fill" style="min-width:0">
+                <div class="fw-bold" style="font-size:.85rem">${esc(item.label)}</div>
+                <div class="text-muted" style="font-size:.73rem">
+                    ${esc(item.ringkas) || '-'} &nbsp;|&nbsp; Disimpan: ${dt}
+                    ${lain ? '<br><span class="text-warning">Milik akun lain di perangkat ini - dikirim saat akun tersebut login.</span>' : ''}
+                    ${item.retries > 0 ? `&nbsp;|&nbsp; <span class="text-danger">Percobaan: ${item.retries}x</span>` : ''}
+                    ${item.lastError ? `<br><span class="text-danger">${esc(item.lastError)}</span>` : ''}
+                </div>
+            </div>
+            <span class="badge" style="background:${clr};font-size:.65rem">${STATUS_LABEL[item.status] || item.status}</span>
+            ${item.status === 'failed' ? `<button class="btn btn-sm btn-outline-primary" style="padding:.1rem .45rem" onclick="ulangiForm('${item.id}')">Coba lagi</button>` : ''}
+            <button class="btn btn-sm btn-outline-danger" style="padding:.1rem .35rem" onclick="hapusForm('${item.id}')"><i class="bi bi-trash"></i></button>
+        </div>`;
+    }).join('');
+}
+
+async function ulangiForm(id) {
+    await OfflineForms.ulangi(id);
+    renderPage();
+}
+
+async function hapusForm(id) {
+    if (!confirm('Hapus data ini dari antrian? Data TIDAK akan terkirim ke server.')) return;
+    await OfflineDB.delete('pending_forms', id);
+    await SyncManager.updateBadge();
+    renderPage();
 }
 
 function renderList(elId, items, store, renderFn) {

@@ -1,5 +1,5 @@
 // MonOTOn Service Worker — v2 (full page caching for offline)
-const CACHE_VERSION = 'monoton-v10';
+const CACHE_VERSION = 'monoton-v11';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 const ASSET_CACHE   = `${CACHE_VERSION}-assets`;
@@ -17,6 +17,7 @@ const STATIC_ASSETS = [
     '/js/foto-auto-compress.js',
     '/js/offline-db.js',
     '/js/offline-sync.js',
+    '/js/offline-forms.js',
 ];
 
 // Halaman utama aplikasi yang di-precache agar bisa dibuka offline
@@ -28,6 +29,13 @@ const APP_PAGES = [
     '/operasional/create',
     '/eviden',
     '/eviden/create',
+    '/studio/logbook',
+    '/studio/logbook/create',
+    '/studio/maintenance',
+    '/studio/maintenance/create',
+    '/maintenance/create',
+    '/genset',
+    '/genset/create',
     '/laporan',
     '/laporan/suhu',
     '/jadwal',

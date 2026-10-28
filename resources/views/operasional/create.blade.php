@@ -19,7 +19,7 @@
 <div class="alert alert-warning"><strong>Tidak ada pemancar di lokasi {{ $user->lokasi_dinas }}.</strong></div>
 @else
 
-<form action="{{ route('operasional.store') }}" method="POST" id="formLog" enctype="multipart/form-data">
+<form action="{{ route('operasional.store') }}" method="POST" id="formLog" enctype="multipart/form-data" data-offline-queue="operasional" data-offline-label="Log Operasional" data-offline-after="reload">
 @csrf
 
 {{-- Parameter Umum --}}
@@ -189,10 +189,6 @@
         <button type="submit" id="btnSubmitOnline" class="btn btn-primary-custom">
             <i class="bi bi-save me-1"></i>Simpan Log
         </button>
-        <button type="button" id="btnSimpanOffline" class="btn btn-warning fw-bold" style="display:none"
-                onclick="simpanOffline()">
-            <i class="bi bi-cloud-arrow-down me-1"></i>Simpan Offline
-        </button>
         <a href="{{ route('operasional.index') }}" class="btn btn-outline-secondary">Batal</a>
     </div>
 </div>
@@ -314,46 +310,12 @@ const TERAKHIR = @json($terakhir);
 })();
 
 // \u2500\u2500 OFFLINE SUPPORT \u2500\u2500
+// Penyimpanan offline & sinkronisasi otomatis ditangani offline-forms.js (form ber-atribut data-offline-queue).
 function updateOfflineUI(){
-    const isOnline = navigator.onLine;
-    document.getElementById('offline-notice')?.style.setProperty('display', isOnline ? 'none' : 'flex', 'important');
-    const btnOnline  = document.getElementById('btnSubmitOnline');
-    const btnOffline = document.getElementById('btnSimpanOffline');
-    if(btnOnline)  btnOnline.style.display  = isOnline ? '' : 'none';
-    if(btnOffline) btnOffline.style.display = isOnline ? 'none' : '';
+    document.getElementById('offline-notice')?.style.setProperty('display', navigator.onLine ? 'none' : 'flex', 'important');
 }
 window.addEventListener('online',  updateOfflineUI);
 window.addEventListener('offline', updateOfflineUI);
 document.addEventListener('DOMContentLoaded', updateOfflineUI);
-
-async function simpanOffline(){
-    const form = document.getElementById('formLog');
-    const fd   = new FormData(form);
-
-    // Kumpulkan data dari form
-    const data = {};
-    for(const [k,v] of fd.entries()){
-        if(k === '_token') continue;
-        // Parse array fields: pemancar[0][id] dll
-        const m = k.match(/^(\w+)\[(\d+)\]\[(\w+)\]$/);
-        if(m){
-            const [,store,idx,field] = m;
-            if(!data[store]) data[store] = [];
-            if(!data[store][idx]) data[store][idx] = {};
-            data[store][idx][field] = v;
-        } else {
-            data[k] = v;
-        }
-    }
-
-    const localId = await OfflineDB.add('pending_logs', { data });
-    await SyncManager.updateBadge();
-    SyncManager.showToast('\u2705 Log disimpan offline! Akan sync saat online.', 'success');
-
-    // Reset form
-    form.reset();
-    document.getElementById('dicatat_pada').value = new Date().toISOString().slice(0,16);
-    setTimeout(()=>{ window.location.href = '{{ route("operasional.index") }}'; }, 1500);
-}
 </script>
 @endpush

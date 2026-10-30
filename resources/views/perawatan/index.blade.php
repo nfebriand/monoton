@@ -24,12 +24,18 @@
 </div>
 
 <div class="d-flex gap-2 flex-wrap align-items-center mb-3">
+    @if($lihatPemancar && $lihatGenset)
     <a href="{{ route('perawatan.index') }}" class="btn btn-sm {{ !request('tipe') ? 'btn-primary-custom' : 'btn-outline-secondary' }}">Semua</a>
+    @endif
+    @if($lihatPemancar)
     <a href="{{ route('perawatan.index', ['tipe' => 'pemancar']) }}" class="btn btn-sm {{ request('tipe')==='pemancar' ? 'btn-primary-custom' : 'btn-outline-secondary' }}"><i class="bi bi-broadcast-pin me-1"></i>Pemancar</a>
-    <a href="{{ route('perawatan.index', ['tipe' => 'genset']) }}" class="btn btn-sm {{ request('tipe')==='genset' ? 'btn-primary-custom' : 'btn-outline-secondary' }}"><i class="bi bi-battery-charging me-1"></i>Genset</a>
+    @endif
+    @if($lihatGenset)
+    <a href="{{ route('perawatan.index', ['tipe' => 'genset']) }}" class="btn btn-sm {{ request('tipe')==='genset' || (!$lihatPemancar && !request('tipe')) ? 'btn-primary-custom' : 'btn-outline-secondary' }}"><i class="bi bi-battery-charging me-1"></i>Genset</a>
+    @endif
     <a href="{{ request()->fullUrlWithQuery(['semua' => request('semua') ? null : 1]) }}" class="btn btn-sm btn-outline-secondary">{{ request('semua') ? 'Sembunyikan nonaktif' : 'Tampilkan nonaktif' }}</a>
     @if($bisaKelolaPemancar || $bisaKelolaGenset)
-    <a href="{{ route('perawatan.create', array_filter(['tipe' => request('tipe')])) }}" class="btn btn-primary-custom ms-auto"><i class="bi bi-plus-circle me-1"></i>Tambah Jadwal</a>
+    <a href="{{ route('perawatan.create', array_filter(['tipe' => request('tipe') ?: (!$lihatPemancar ? 'genset' : null)])) }}" class="btn btn-primary-custom ms-auto"><i class="bi bi-plus-circle me-1"></i>Tambah Jadwal</a>
     @endif
 </div>
 

@@ -61,7 +61,10 @@ class PerawatanRutinController extends Controller
         $bisaKelolaPemancar = Akses::perawatanKelola($user, 'pemancar');
         $bisaKelolaGenset   = Akses::perawatanKelola($user, 'genset');
 
-        return view('perawatan.index', compact('baris', 'hitung', 'bisaKelolaPemancar', 'bisaKelolaGenset'));
+        $lihatPemancar = Akses::menuTransmisi($user);
+        $lihatGenset   = Akses::gensetMasuk($user);
+
+        return view('perawatan.index', compact('baris', 'hitung', 'bisaKelolaPemancar', 'bisaKelolaGenset', 'lihatPemancar', 'lihatGenset'));
     }
 
     private function dataForm(): array
@@ -80,7 +83,10 @@ class PerawatanRutinController extends Controller
         $this->wajibMenu();
         $user = auth()->user();
         abort_unless(Akses::perawatanKelola($user, 'pemancar') || Akses::perawatanKelola($user, 'genset'), 403, 'Anda tidak berhak mengelola jadwal perawatan.');
-        return view('perawatan.form', array_merge($this->dataForm(), ['item' => new PerawatanRutin(['objek_tipe' => $request->get('tipe', 'pemancar'), 'basis' => 'tanggal', 'aktif' => true])]));
+        // Objek bawaan menyesuaikan hak pengguna: user Sarana & Prasarana -> genset, user Transmisi -> pemancar
+        $boleh = array_values(array_filter(['pemancar', 'genset'], fn($t) => Akses::perawatanKelola($user, $t)));
+        $tipe  = in_array($request->get('tipe'), $boleh, true) ? $request->get('tipe') : ($boleh[0] ?? 'pemancar');
+        return view('perawatan.form', array_merge($this->dataForm(), ['item' => new PerawatanRutin(['objek_tipe' => $tipe, 'basis' => 'tanggal', 'aktif' => true])]));
     }
 
     private function validasi(Request $request): array

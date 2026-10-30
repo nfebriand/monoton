@@ -4,10 +4,13 @@
 
 @section('content')
 @php
-    $tipe = old('objek_tipe', $item->objek_tipe ?: 'pemancar');
     $basis = old('basis', $item->basis ?: 'tanggal');
-    $bisaPemancar = $pemancars->isNotEmpty();
+    $bisaPemancar = $pemancars->isNotEmpty() || auth()->user()->can('perawatan.kelola', 'pemancar');
     $bisaGenset   = $units->isNotEmpty() || auth()->user()->can('perawatan.kelola', 'genset');
+    $tipe = old('objek_tipe', $item->objek_tipe ?: ($bisaPemancar ? 'pemancar' : 'genset'));
+    // objek bawaan harus yang boleh dipilih pengguna ini (mis. user Sarana tidak melihat pemancar)
+    if ($tipe === 'pemancar' && !$bisaPemancar && $bisaGenset) $tipe = 'genset';
+    if ($tipe === 'genset' && !$bisaGenset && $bisaPemancar) $tipe = 'pemancar';
     $nf = fn($v) => $v === null ? '' : rtrim(rtrim(number_format($v,1,'.',''),'0'),'.');
 @endphp
 <div class="row justify-content-center"><div class="col-12 col-lg-8">
@@ -126,7 +129,7 @@
 (function(){
     const PRESET = @json($preset);
     const $ = id => document.getElementById(id);
-    const tipeEl = () => (document.querySelector('input[name=objek_tipe]:checked') || document.querySelector('input[name=objek_tipe][type=hidden]') || {}).value || 'pemancar';
+    const tipeEl = () => (document.querySelector('input[name=objek_tipe]:checked') || document.querySelector('input[name=objek_tipe][type=hidden]') || {}).value || @json($tipe);
 
     function aturTampilan(){
         const t = tipeEl(), b = $('sel-basis').value;

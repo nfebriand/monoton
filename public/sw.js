@@ -1,5 +1,5 @@
 // MonOTOn Service Worker — v2 (full page caching for offline)
-const CACHE_VERSION = 'monoton-v11';
+const CACHE_VERSION = 'monoton-v13';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 const ASSET_CACHE   = `${CACHE_VERSION}-assets`;
@@ -29,6 +29,10 @@ const APP_PAGES = [
     '/operasional/create',
     '/eviden',
     '/eviden/create',
+    '/catatan-dinas',
+    '/sarana/logbook',
+    '/sarana/logbook/create',
+    '/catatan-dinas/create',
     '/studio/logbook',
     '/studio/logbook/create',
     '/studio/maintenance',

@@ -307,6 +307,7 @@
         @can('perawatan.menu')
         <a href="{{ route('perawatan.index') }}" class="nav-link {{ request()->routeIs('perawatan.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-wrench-adjustable"></i> Perawatan Rutin</a>
         @endcan
+        <a href="{{ route('catatan-dinas.index') }}" class="nav-link {{ request()->routeIs('catatan-dinas.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-journal-richtext"></i> Catatan Dinas</a>
         <a href="{{ route('eviden.index') }}" class="nav-link {{ request()->routeIs('eviden.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-camera"></i> Catatan Eviden</a>
         <div class="nav-section">Laporan</div>
         @can('menu.transmisi')
@@ -327,6 +328,9 @@
         {{-- Maintenance: Admin + Sarana saja (bukan Transmisi) --}}
         @can('menu.sarana')
         <a href="{{ route('maintenance.index') }}" class="nav-link {{ request()->routeIs('maintenance.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-tools"></i> Maintenance</a>
+        @endcan
+        @can('menu.sarana')
+        <a href="{{ route('sarana.logbook.index') }}" class="nav-link {{ request()->routeIs('sarana.logbook.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-journal-check"></i> Logbook Sarana</a>
         @endcan
         {{-- Operasional Genset: Admin + Sarana + Transmisi --}}
         <a href="{{ route('genset.index') }}" class="nav-link {{ request()->routeIs('genset.index')||request()->routeIs('genset.show')||request()->routeIs('genset.create')||request()->routeIs('genset.edit')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-battery-charging"></i> Operasional Genset</a>

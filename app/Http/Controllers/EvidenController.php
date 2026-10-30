@@ -143,10 +143,11 @@ class EvidenController extends Controller
             'fotos'          => 'nullable|array',
             'fotos.*'        => 'image|mimes:jpeg,png,jpg,webp|max:8192',
             'foto_keterangan'=> 'nullable|array',
+            'foto_keterangan.*' => 'nullable|string|max:255',
             'perawatan_rutin_id' => 'nullable|integer',
         ]);
         $perawatanId = $validated['perawatan_rutin_id'] ?? null;
-        unset($validated['perawatan_rutin_id']);
+        unset($validated['perawatan_rutin_id'], $validated['foto_keterangan']);
 
         $eviden = Eviden::create(array_merge($validated, ['user_id' => auth()->id()]));
 
@@ -165,7 +166,7 @@ class EvidenController extends Controller
                     'eviden_id'  => $eviden->id,
                     'path'       => $saved['original'],
                     'thumb_path' => $saved['thumbnail'],
-                    'keterangan' => $request->input("foto_keterangan.{$idx}"),
+                    'keterangan' => $this->bersihKet($request->input("foto_keterangan.{$idx}")),
                     'urutan'     => $idx,
                 ]);
             }
@@ -214,7 +215,16 @@ class EvidenController extends Controller
             'supervisi'      => 'nullable|string|max:255',
             'operator_ids'   => 'nullable|array',
             'operator_ids.*' => 'exists:users,id',
+            'fotos'          => 'nullable|array',
+            'fotos.*'        => 'image|mimes:jpeg,png,jpg,webp|max:8192',
+            'foto_keterangan_baru'   => 'nullable|array',
+            'foto_keterangan_baru.*' => 'nullable|string|max:255',
+            'foto_keterangan_lama'   => 'nullable|array',
+            'foto_keterangan_lama.*' => 'nullable|string|max:255',
+            'hapus_foto'     => 'nullable|array',
+            'hapus_foto.*'   => 'integer',
         ]);
+        unset($validated['fotos'], $validated['foto_keterangan_baru'], $validated['foto_keterangan_lama'], $validated['hapus_foto']);
 
         // Admin Divisi tidak boleh memindahkan eviden keluar dari divisinya sendiri
         // (authorizeEviden di atas hanya mengecek divisi LAMA sebelum update).
@@ -237,10 +247,16 @@ class EvidenController extends Controller
                     'eviden_id'  => $eviden->id,
                     'path'       => $saved['original'],
                     'thumb_path' => $saved['thumbnail'],
-                    'keterangan' => $request->input("foto_keterangan_baru.{$idx}"),
+                    'keterangan' => $this->bersihKet($request->input("foto_keterangan_baru.{$idx}")),
                     'urutan'     => $last + $idx + 1,
                 ]);
             }
+        }
+
+        // Perbarui keterangan foto yang sudah ada
+        foreach ((array) $request->input('foto_keterangan_lama', []) as $fotoId => $ket) {
+            EvidenFoto::where('eviden_id', $eviden->id)->where('id', (int) $fotoId)
+                ->update(['keterangan' => $this->bersihKet($ket)]);
         }
 
         if ($request->has('hapus_foto')) {
@@ -388,6 +404,12 @@ class EvidenController extends Controller
         }
     }
     
+    private function bersihKet($v): ?string
+    {
+        $v = trim((string) $v);
+        return $v === '' ? null : mb_substr($v, 0, 255);
+    }
+
     private function authorizeEviden(Eviden $eviden, bool $forEdit = false): void
     {
         $user = auth()->user();

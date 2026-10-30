@@ -113,6 +113,19 @@ class Akses
         return $u->isAdmin() || ($u->isAdminDivisi() && $u->isDivisi('studio'));
     }
 
+    // ───────────────────────── Logbook Sarana ─────────────────────────
+    /** Masuk menu Logbook Sarana: super admin & divisi Sarana (semua anggota boleh melihat logbook rekan) */
+    public static function saranaLogMasuk($u): bool
+    {
+        return self::menuSarana($u);
+    }
+
+    /** Mengubah/menghapus logbook sarana: pembuat, super admin, atau admin divisi Sarana */
+    public static function saranaLogUbah($u, $pembuatId): bool
+    {
+        return $u->isAdmin() || ($u->isAdminDivisi() && $u->isDivisi('sarana')) || (int) $u->id === (int) $pembuatId;
+    }
+
     // ───────────────────────── Genset & operasional pemancar ─────────────────────────
     /** Mengubah log genset: super admin atau pembuat log */
     public static function gensetLogUbah($u, $pembuatId): bool

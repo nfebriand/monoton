@@ -118,6 +118,28 @@ Route::middleware(['auth'])->group(function(){
     Route::delete('/perawatan-rutin/{perawatanRutin}',      [PerawatanRutinController::class,'destroy'])->name('perawatan.destroy');
     Route::post('/perawatan-rutin/{perawatanRutin}/selesai',[PerawatanRutinController::class,'selesai'])->name('perawatan.selesai');
 
+    // Logbook Sarana & Prasarana (akses: divisi Sarana + super admin, dicek di controller)
+    Route::get('/sarana/logbook',                      [\App\Http\Controllers\SaranaLogController::class,'index'])->name('sarana.logbook.index');
+    Route::get('/sarana/logbook/create',               [\App\Http\Controllers\SaranaLogController::class,'create'])->name('sarana.logbook.create');
+    Route::post('/sarana/logbook',                     [\App\Http\Controllers\SaranaLogController::class,'store'])->name('sarana.logbook.store');
+    Route::get('/sarana/logbook/cetak-harian',         [\App\Http\Controllers\SaranaLogController::class,'cetakHarian'])->name('sarana.logbook.cetak-harian');
+    Route::get('/sarana/logbook/cetak-bulanan',        [\App\Http\Controllers\SaranaLogController::class,'cetakBulanan'])->name('sarana.logbook.cetak-bulanan');
+    Route::get('/sarana/logbook/{saranaLog}',          [\App\Http\Controllers\SaranaLogController::class,'show'])->name('sarana.logbook.show');
+    Route::get('/sarana/logbook/{saranaLog}/cetak',    [\App\Http\Controllers\SaranaLogController::class,'cetak'])->name('sarana.logbook.cetak');
+    Route::get('/sarana/logbook/{saranaLog}/edit',     [\App\Http\Controllers\SaranaLogController::class,'edit'])->name('sarana.logbook.edit');
+    Route::put('/sarana/logbook/{saranaLog}',          [\App\Http\Controllers\SaranaLogController::class,'update'])->name('sarana.logbook.update');
+    Route::delete('/sarana/logbook/{saranaLog}',       [\App\Http\Controllers\SaranaLogController::class,'destroy'])->name('sarana.logbook.destroy');
+
+    // Catatan Dinas (narasi kejadian/kondisi/situasi + foto berketerangan; akses dicek di controller/model)
+    Route::get('/catatan-dinas',                         [\App\Http\Controllers\CatatanDinasController::class,'index'])->name('catatan-dinas.index');
+    Route::get('/catatan-dinas/create',                  [\App\Http\Controllers\CatatanDinasController::class,'create'])->name('catatan-dinas.create');
+    Route::post('/catatan-dinas',                        [\App\Http\Controllers\CatatanDinasController::class,'store'])->name('catatan-dinas.store');
+    Route::get('/catatan-dinas/{catatanDinas}',          [\App\Http\Controllers\CatatanDinasController::class,'show'])->name('catatan-dinas.show');
+    Route::get('/catatan-dinas/{catatanDinas}/cetak',    [\App\Http\Controllers\CatatanDinasController::class,'cetak'])->name('catatan-dinas.cetak');
+    Route::get('/catatan-dinas/{catatanDinas}/edit',     [\App\Http\Controllers\CatatanDinasController::class,'edit'])->name('catatan-dinas.edit');
+    Route::put('/catatan-dinas/{catatanDinas}',          [\App\Http\Controllers\CatatanDinasController::class,'update'])->name('catatan-dinas.update');
+    Route::delete('/catatan-dinas/{catatanDinas}',       [\App\Http\Controllers\CatatanDinasController::class,'destroy'])->name('catatan-dinas.destroy');
+
     // Aset & Inventaris (Sarana)
     Route::get('/aset',              [AsetController::class,'index'])->name('aset.index');
     Route::get('/aset/create',       [AsetController::class,'create'])->name('aset.create');

@@ -23,6 +23,11 @@
 </div></div></div>
 <div class="card mb-3"><div class="card-header"><h6 class="mb-0"><i class="bi bi-camera me-2"></i>Foto Bukti <small class="text-muted">(layar alat, kondisi titik)</small></h6></div>
 <div class="card-body">@include('components.foto-multi-ket', ['capName' => $ukur ? 'foto_keterangan_baru' : 'foto_keterangan', 'existing' => $ukur ? $ukur->fotos : null])</div></div>
+@php
+    $kandidat = $kandidat ?? collect(); $evidenDipilih = $evidenDipilih ?? null;
+    if (!$ukur) $buatUrl = route('eviden.create', ['grounding_titik' => $t->id]);
+@endphp
+@include('grounding._eviden-pilih')
 <div class="d-flex gap-2 mb-4"><button class="btn btn-primary-custom"><i class="bi bi-save me-1"></i>{{ $ukur ? 'Simpan Perubahan' : 'Simpan Pengukuran' }}</button><a href="{{ route('grounding.titik.show', $t) }}" class="btn btn-outline-secondary">Batal</a></div>
 </form>
 </div></div>

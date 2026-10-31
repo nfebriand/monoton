@@ -34,6 +34,11 @@
 <div class="p-4 text-center text-muted">Wilayah ini belum memiliki titik aktif.</div>
 @endforelse
 </div></div>
+@php
+    $kandidat = $kandidat ?? collect(); $evidenDipilih = $evidenDipilih ?? null;
+    $buatUrl = route('eviden.create', ['grounding_wilayah' => $w->id]);
+@endphp
+@include('grounding._eviden-pilih')
 <div class="d-flex gap-2 mb-4"><button class="btn btn-primary-custom"><i class="bi bi-save me-1"></i>Simpan Ronde</button><a href="{{ route('grounding.wilayah.show', $w) }}" class="btn btn-outline-secondary">Batal</a></div>
 </form>
 </div></div>

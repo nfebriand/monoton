@@ -32,4 +32,13 @@ class GroundingTest extends TestCase
             $this->assertStringContainsString("'".$n."'", $r);
         }
     }
+
+    public function test_pengukuran_terkait_eviden(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $this->assertStringContainsString('eviden_id', file_get_contents($root.'/app/Models/GroundingUkur.php'));
+        $this->assertStringContainsString('grounding._eviden-pilih', file_get_contents($root.'/resources/views/grounding/ukur-form.blade.php'));
+        $this->assertStringContainsString('grounding._eviden-pilih', file_get_contents($root.'/resources/views/grounding/ronde.blade.php'));
+        $this->assertStringContainsString('groundingUkurs', file_get_contents($root.'/app/Models/Eviden.php'));
+    }
 }

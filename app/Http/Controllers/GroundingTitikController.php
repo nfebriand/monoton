@@ -89,6 +89,8 @@ class GroundingTitikController extends Controller
     {
         $this->masuk();
         $groundingTitik->load(['wilayah', 'fotos', 'ukurs.user', 'ukurs.fotos']);
+        $evidenBoleh = \App\Models\Eviden::dapatDiakses(auth()->user())
+            ->whereIn('id', $groundingTitik->ukurs->pluck('eviden_id')->filter()->all())->pluck('id')->all();
         $seri = $groundingTitik->ukurs->sortBy(fn($u) => $u->tanggal->format('Y-m-d').sprintf('%08d', $u->id))->values();
         $jadwal = null; $jadwalHasil = null;
         try {
@@ -99,7 +101,7 @@ class GroundingTitikController extends Controller
         } catch (\Throwable $e) { $jadwal = null; }
         return view('grounding.titik-show', [
             't' => $groundingTitik, 'seri' => $seri, 'jadwal' => $jadwal, 'jadwalHasil' => $jadwalHasil,
-            'bisaKelola' => Akses::groundingKelola(auth()->user()),
+            'bisaKelola' => Akses::groundingKelola(auth()->user()), 'evidenBoleh' => $evidenBoleh,
         ]);
     }
 

@@ -15,6 +15,9 @@ class Eviden extends Model
     public function fotos()   { return $this->hasMany(EvidenFoto::class)->orderBy('urutan'); }
     public function operators(){ return $this->belongsToMany(User::class,'eviden_operators'); }
 
+    /** Pengukuran grounding yang memakai eviden ini sebagai bukti. */
+    public function groundingUkurs() { return $this->hasMany(GroundingUkur::class, 'eviden_id'); }
+
     /** Pelaksanaan perawatan rutin yang memakai eviden ini sebagai bukti. */
     public function perawatanLogs() { return $this->hasMany(PerawatanRutinLog::class, 'eviden_id'); }
 

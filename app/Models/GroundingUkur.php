@@ -9,7 +9,7 @@ class GroundingUkur extends Model
 
     protected $fillable = [
         'titik_id','user_id','tanggal','jam','nilai_ohm','batas_ohm','status',
-        'kondisi_tanah','alat','metode','keterangan',
+        'kondisi_tanah','alat','metode','keterangan','eviden_id',
     ];
 
     protected $casts = ['tanggal' => 'date'];
@@ -23,6 +23,7 @@ class GroundingUkur extends Model
 
     public function titik() { return $this->belongsTo(GroundingTitik::class, 'titik_id'); }
     public function user()  { return $this->belongsTo(User::class); }
+    public function eviden() { return $this->belongsTo(Eviden::class, 'eviden_id'); }
     public function fotos() { return $this->hasMany(GroundingUkurFoto::class, 'ukur_id')->orderBy('urutan')->orderBy('id'); }
 
     public static function hitungStatus(float $nilai, float $batas): string

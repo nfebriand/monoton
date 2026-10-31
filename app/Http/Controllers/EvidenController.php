@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Models\Lokasi;
 use App\Models\AppSetting;
 use App\Models\PerawatanRutin;
+use App\Models\GroundingTitik;
+use App\Models\GroundingWilayah;
 use App\Support\Akses;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -117,6 +119,35 @@ class EvidenController extends Controller
         ]];
     }
 
+    /**
+     * Asal pembuatan eviden dari pengukuran grounding: ?grounding_titik=ID (satuan) atau ?grounding_wilayah=ID (ronde).
+     * Return [['jenis'=>'titik|wilayah','id'=>int]|null, isian awal].
+     */
+    private function konteksGrounding($titikId, $wilayahId): array
+    {
+        $user = auth()->user();
+        if (!Akses::groundingMasuk($user)) return [null, []];
+        if ($titikId) {
+            $t = GroundingTitik::with('wilayah')->find((int) $titikId);
+            if (!$t) return [null, []];
+            return [['jenis' => 'titik', 'id' => $t->id, 'label' => $t->kode.' - '.$t->nama], [
+                'judul' => "Pengukuran Grounding: {$t->kode} - {$t->nama}",
+                'deskripsi' => "Pengukuran tahanan grounding titik {$t->kode} ({$t->nama}), wilayah {$t->wilayah->nama}.\nBatas maksimum: ".rtrim(rtrim(number_format((float) $t->batas_ohm, 2, ',', ''), '0'), ',')." \u{03A9}\n\nUraian pekerjaan / hasil:\n- ",
+                'divisi' => 'sarana', 'lokasi' => $t->wilayah->lokasi ?? $t->wilayah->nama,
+            ]];
+        }
+        if ($wilayahId) {
+            $w = GroundingWilayah::with(['titiks' => fn($q) => $q->where('status', 'aktif')])->find((int) $wilayahId);
+            if (!$w) return [null, []];
+            return [['jenis' => 'wilayah', 'id' => $w->id, 'label' => $w->nama], [
+                'judul' => "Ronde Pengukuran Grounding: {$w->nama}",
+                'deskripsi' => "Ronde pengukuran tahanan grounding wilayah {$w->nama}.\nTitik: ".$w->titiks->pluck('kode')->implode(', ')."\n\nUraian pekerjaan / hasil:\n- ",
+                'divisi' => 'sarana', 'lokasi' => $w->lokasi ?? $w->nama,
+            ]];
+        }
+        return [null, []];
+    }
+
     public function create(Request $request)
     {
         $operators    = $this->allOperators();
@@ -124,7 +155,9 @@ class EvidenController extends Controller
         $divisiDefault = $this->userDivisi();
         [$perawatan, $prefill] = $this->konteksPerawatan($request->query('perawatan'));
         if ($perawatan && auth()->user()->isAdmin()) $divisiDefault = $prefill['divisi'];
-        return view('eviden.create', compact('operators','lokasiList','divisiDefault','perawatan','prefill'));
+        [$grounding, $prefillG] = $this->konteksGrounding($request->query('grounding_titik'), $request->query('grounding_wilayah'));
+        if ($grounding) { $prefill = $prefillG; if (auth()->user()->isAdmin()) $divisiDefault = 'sarana'; }
+        return view('eviden.create', compact('operators','lokasiList','divisiDefault','perawatan','prefill','grounding'));
     }
 
     public function store(Request $request)
@@ -145,9 +178,12 @@ class EvidenController extends Controller
             'foto_keterangan'=> 'nullable|array',
             'foto_keterangan.*' => 'nullable|string|max:255',
             'perawatan_rutin_id' => 'nullable|integer',
+            'grounding_titik_id' => 'nullable|integer',
+            'grounding_wilayah_id' => 'nullable|integer',
         ]);
+        $gTitik = $validated['grounding_titik_id'] ?? null; $gWilayah = $validated['grounding_wilayah_id'] ?? null;
         $perawatanId = $validated['perawatan_rutin_id'] ?? null;
-        unset($validated['perawatan_rutin_id'], $validated['foto_keterangan']);
+        unset($validated['perawatan_rutin_id'], $validated['foto_keterangan'], $validated['grounding_titik_id'], $validated['grounding_wilayah_id']);
 
         $eviden = Eviden::create(array_merge($validated, ['user_id' => auth()->id()]));
 
@@ -179,6 +215,15 @@ class EvidenController extends Controller
                 ->with('success', 'Eviden tersimpan. Satu langkah lagi: catat pelaksanaan perawatan agar jadwal berikutnya dihitung.');
         }
 
+        // Dibuat dari pengukuran grounding: kembali ke form pengukuran dengan eviden ini terpilih
+        [$grounding] = $this->konteksGrounding($gTitik, $gWilayah);
+        if ($grounding) {
+            $to = $grounding['jenis'] === 'titik'
+                ? route('grounding.ukur.create', ['groundingTitik' => $grounding['id'], 'eviden' => $eviden->id])
+                : route('grounding.ronde', ['groundingWilayah' => $grounding['id'], 'eviden' => $eviden->id]);
+            return redirect()->to($to)->with('success', 'Eviden tersimpan. Lanjutkan mengisi hasil pengukuran; eviden ini sudah terpilih.');
+        }
+
         return redirect()->route('eviden.show', $eviden)
             ->with('success', 'Catatan eviden berhasil disimpan.');
     }
@@ -186,7 +231,7 @@ class EvidenController extends Controller
     public function show(Eviden $eviden)
     {
         $this->authorizeEviden($eviden);
-        $eviden->load(['user','operators','fotos','perawatanLogs.perawatan']);
+        $eviden->load(['user','operators','fotos','perawatanLogs.perawatan','groundingUkurs.titik']);
         return view('eviden.show', compact('eviden'));
     }
 

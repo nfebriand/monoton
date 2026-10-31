@@ -24,6 +24,15 @@
     </div>
     @endif
 
+    @if(!empty($grounding))
+    <input type="hidden" name="grounding_{{ $grounding['jenis'] }}_id" value="{{ $grounding['id'] }}">
+    <div class="alert alert-info py-2" style="font-size:.82rem">
+        <i class="bi bi-link-45deg me-1"></i>
+        Eviden ini untuk pengukuran grounding <strong>{{ $grounding['label'] }}</strong>{{ $grounding['jenis'] === 'wilayah' ? ' (satu ronde)' : '' }}.
+        Setelah disimpan Anda kembali ke form pengukuran dengan eviden ini terpilih.
+    </div>
+    @endif
+
     @include('eviden._form-fields')
 
     <h6 class="section-title mb-3">&#128247; Foto Dokumentasi</h6>

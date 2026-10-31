@@ -196,6 +196,22 @@
         </div>
         @endif
 
+        @if($eviden->groundingUkurs->isNotEmpty())
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-lightning-charge me-2 text-primary"></i>Bukti Pengukuran Grounding</div>
+            <div class="list-group list-group-flush">
+                @foreach($eviden->groundingUkurs as $gu)
+                @if($gu->titik)
+                <a href="{{ route('grounding.titik.show', $gu->titik) }}" class="list-group-item list-group-item-action" style="font-size:.82rem">
+                    <strong>{{ $gu->titik->kode }}</strong> &mdash; {{ $gu->titik->nama }}<br>
+                    <span class="text-muted">{{ rtrim(rtrim(number_format((float) $gu->nilai_ohm, 2, ',', '.'), '0'), ',') }} &Omega; &middot; {{ \App\Models\GroundingUkur::STATUS_LABEL[$gu->status] ?? $gu->status }} &middot; {{ $gu->tanggal->format('d/m/Y') }}</span>
+                </a>
+                @endif
+                @endforeach
+            </div>
+        </div>
+        @endif
+
         {{-- Perawatan rutin yang memakai eviden ini sebagai bukti --}}
         @if($eviden->perawatanLogs->isNotEmpty())
         <div class="card mb-3">

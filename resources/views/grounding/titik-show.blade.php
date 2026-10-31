@@ -76,7 +76,8 @@
         <td>{{ \App\Models\GroundingUkur::KONDISI[$u->kondisi_tanah] ?? '-' }}</td>
         <td>{{ trim($u->alat.' '.($u->metode ? '('.$u->metode.')' : '')) ?: '-' }}</td>
         <td>{{ $u->user->name ?? '-' }}</td>
-        <td style="white-space:pre-wrap">{{ $u->keterangan }}@foreach($u->fotos as $f) <a href="#" onclick="bukaLightbox('{{ $f->url }}', {{ json_encode((string) $f->keterangan) }});return false" title="{{ $f->keterangan }}"><i class="bi bi-image"></i></a>@endforeach</td>
+        <td style="white-space:pre-wrap">{{ $u->keterangan }}@if($u->eviden_id && in_array($u->eviden_id, $evidenBoleh ?? [])) <a href="{{ route('eviden.show', $u->eviden_id) }}" title="Lihat eviden"><i class="bi bi-camera"></i></a>@elseif($u->eviden_id) <i class="bi bi-camera text-muted" title="Eviden milik pengguna lain"></i>@endif
+        @foreach($u->fotos as $f) <a href="#" onclick="bukaLightbox('{{ $f->url }}', {{ json_encode((string) $f->keterangan) }});return false" title="{{ $f->keterangan }}"><i class="bi bi-image"></i></a>@endforeach</td>
         <td class="text-nowrap">@if(\App\Support\Akses::groundingUkurHapus(auth()->user(), $u->user_id))<a href="{{ route('grounding.ukur.edit', $u) }}" class="btn btn-sm btn-outline-warning py-0"><i class="bi bi-pencil"></i></a> <form style="display:inline" action="{{ route('grounding.ukur.destroy', $u) }}" method="POST" onsubmit="return confirm('Hapus pengukuran ini?')">@csrf @method('DELETE')<button class="btn btn-sm btn-outline-danger py-0"><i class="bi bi-trash"></i></button></form>@endif</td>
     </tr>
     @empty

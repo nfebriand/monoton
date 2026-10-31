@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\ImageHelper;
 use App\Http\Controllers\Concerns\SimpanFotoKeterangan;
+use App\Models\Eviden;
 use App\Models\GroundingTitik;
 use App\Models\GroundingUkur;
 use App\Models\GroundingWilayah;
@@ -44,6 +45,27 @@ class GroundingUkurController extends Controller
         }
     }
 
+    /** Eviden yang boleh dikaitkan: yang dapat diakses pengguna, 120 hari terakhir (+ yang sedang terkait / baru dibuat). */
+    private function kandidatEviden(?int $sertakan = null)
+    {
+        $user = auth()->user();
+        $q = Eviden::dapatDiakses($user)->where(function ($w) use ($sertakan) {
+            $w->where('tanggal', '>=', now()->subDays(120)->toDateString());
+            if ($sertakan) $w->orWhere('id', $sertakan);
+        });
+        return $q->orderByDesc('tanggal')->orderByDesc('jam_mulai')->limit(60)->get(['id', 'judul', 'tanggal', 'lokasi']);
+    }
+
+    private function evidenValid($id): ?int
+    {
+        if (!$id) return null;
+        $id = (int) $id;
+        if (!Eviden::dapatDiakses(auth()->user())->whereKey($id)->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['eviden_id' => 'Eviden tersebut tidak dapat Anda akses.']);
+        }
+        return $id;
+    }
+
     private function metaRules(): array
     {
         return [
@@ -52,6 +74,7 @@ class GroundingUkurController extends Controller
             'kondisi_tanah' => 'nullable|in:kering,lembab,basah',
             'alat' => 'nullable|string|max:80',
             'metode' => 'nullable|string|max:60',
+            'eviden_id' => 'nullable|integer|exists:evidens,id',
         ];
     }
 
@@ -59,7 +82,10 @@ class GroundingUkurController extends Controller
     {
         $this->masuk();
         $groundingTitik->load(['wilayah', 'ukurTerakhir']);
-        return view('grounding.ukur-form', ['t' => $groundingTitik]);
+        $dipilih = request()->filled('eviden') ? (int) request('eviden') : null;
+        $kandidat = $this->kandidatEviden($dipilih);
+        if ($dipilih && !$kandidat->contains('id', $dipilih)) $dipilih = null;
+        return view('grounding.ukur-form', ['t' => $groundingTitik, 'kandidat' => $kandidat, 'evidenDipilih' => $dipilih]);
     }
 
     public function store(Request $request, GroundingTitik $groundingTitik)
@@ -72,8 +98,9 @@ class GroundingUkurController extends Controller
             'fotos' => 'nullable|array|max:10', 'fotos.*' => 'image|mimes:jpeg,png,jpg,webp|max:8192',
             'foto_keterangan' => 'nullable|array', 'foto_keterangan.*' => 'nullable|string|max:255',
         ]);
+        $evidenId = $this->evidenValid($v['eviden_id'] ?? null);
         $u = GroundingUkur::create([
-            'titik_id' => $groundingTitik->id, 'user_id' => auth()->id(),
+            'titik_id' => $groundingTitik->id, 'eviden_id' => $evidenId, 'user_id' => auth()->id(),
             'tanggal' => $v['tanggal'], 'jam' => $v['jam'] ?? null,
             'nilai_ohm' => $v['nilai_ohm'], 'batas_ohm' => $groundingTitik->batas_ohm,
             'status' => GroundingUkur::hitungStatus((float) $v['nilai_ohm'], (float) $groundingTitik->batas_ohm),
@@ -91,7 +118,10 @@ class GroundingUkurController extends Controller
     {
         $this->masuk();
         $groundingWilayah->load(['titiks' => fn($q) => $q->where('status', 'aktif')->orderBy('kode'), 'titiks.ukurTerakhir']);
-        return view('grounding.ronde', ['w' => $groundingWilayah]);
+        $dipilih = request()->filled('eviden') ? (int) request('eviden') : null;
+        $kandidat = $this->kandidatEviden($dipilih);
+        if ($dipilih && !$kandidat->contains('id', $dipilih)) $dipilih = null;
+        return view('grounding.ronde', ['w' => $groundingWilayah, 'kandidat' => $kandidat, 'evidenDipilih' => $dipilih]);
     }
 
     public function rondeStore(Request $request, GroundingWilayah $groundingWilayah)
@@ -114,14 +144,15 @@ class GroundingUkurController extends Controller
         ], ['nilai.required' => 'Isi nilai tahanan minimal untuk satu titik.', 'nilai.min' => 'Isi nilai tahanan minimal untuk satu titik.',
             'nilai.*.numeric' => 'Nilai tahanan harus berupa angka.']);
 
+        $evidenId = $this->evidenValid($v['eviden_id'] ?? null);
         $dibuat = 0; $buruk = 0;
-        DB::transaction(function () use ($v, $nilai, $titiks, $request, &$dibuat, &$buruk) {
+        DB::transaction(function () use ($v, $nilai, $titiks, $request, $evidenId, &$dibuat, &$buruk) {
             foreach ($nilai as $id => $n) {
                 $t = $titiks->get($id);
                 if (!$t) continue;
                 $status = GroundingUkur::hitungStatus((float) $n, (float) $t->batas_ohm);
                 $baru = GroundingUkur::create([
-                    'titik_id' => $t->id, 'user_id' => auth()->id(), 'tanggal' => $v['tanggal'], 'jam' => $v['jam'] ?? null,
+                    'titik_id' => $t->id, 'user_id' => auth()->id(), 'tanggal' => $v['tanggal'], 'jam' => $v['jam'] ?? null, 'eviden_id' => $evidenId,
                     'nilai_ohm' => $n, 'batas_ohm' => $t->batas_ohm, 'status' => $status,
                     'kondisi_tanah' => $v['kondisi_tanah'] ?? null, 'alat' => $v['alat'] ?? null, 'metode' => $v['metode'] ?? null,
                     'keterangan' => trim((string) $request->input("ket.$id")) ?: null,
@@ -148,7 +179,8 @@ class GroundingUkurController extends Controller
         $this->masuk();
         $this->bolehUbah($groundingUkur);
         $groundingUkur->load(['titik.wilayah', 'fotos']);
-        return view('grounding.ukur-form', ['t' => $groundingUkur->titik, 'ukur' => $groundingUkur]);
+        return view('grounding.ukur-form', ['t' => $groundingUkur->titik, 'ukur' => $groundingUkur,
+            'kandidat' => $this->kandidatEviden($groundingUkur->eviden_id), 'evidenDipilih' => $groundingUkur->eviden_id]);
     }
 
     public function update(Request $request, GroundingUkur $groundingUkur)
@@ -165,8 +197,9 @@ class GroundingUkurController extends Controller
             'hapus_foto' => 'nullable|array', 'hapus_foto.*' => 'integer',
         ]);
         // batas yang berlaku saat pengukuran (salinan) dipertahankan agar riwayat konsisten
+        $evidenId = $this->evidenValid($v['eviden_id'] ?? null);
         $groundingUkur->update([
-            'tanggal' => $v['tanggal'], 'jam' => $v['jam'] ?? null, 'nilai_ohm' => $v['nilai_ohm'],
+            'eviden_id' => $evidenId, 'tanggal' => $v['tanggal'], 'jam' => $v['jam'] ?? null, 'nilai_ohm' => $v['nilai_ohm'],
             'status' => GroundingUkur::hitungStatus((float) $v['nilai_ohm'], (float) $groundingUkur->batas_ohm),
             'kondisi_tanah' => $v['kondisi_tanah'] ?? null, 'alat' => $v['alat'] ?? null, 'metode' => $v['metode'] ?? null,
             'keterangan' => $v['keterangan'] ?? null,

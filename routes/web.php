@@ -118,6 +118,31 @@ Route::middleware(['auth'])->group(function(){
     Route::delete('/perawatan-rutin/{perawatanRutin}',      [PerawatanRutinController::class,'destroy'])->name('perawatan.destroy');
     Route::post('/perawatan-rutin/{perawatanRutin}/selesai',[PerawatanRutinController::class,'selesai'])->name('perawatan.selesai');
 
+    // Pengukuran Grounding (Sarana & Prasarana; hak kelola dicek di controller)
+    Route::get('/grounding',                                   [\App\Http\Controllers\GroundingController::class,'index'])->name('grounding.index');
+    Route::get('/grounding/wilayah/create',                    [\App\Http\Controllers\GroundingController::class,'create'])->name('grounding.wilayah.create');
+    Route::post('/grounding/wilayah',                          [\App\Http\Controllers\GroundingController::class,'store'])->name('grounding.wilayah.store');
+    Route::get('/grounding/wilayah/{groundingWilayah}',        [\App\Http\Controllers\GroundingController::class,'show'])->name('grounding.wilayah.show');
+    Route::get('/grounding/wilayah/{groundingWilayah}/edit',   [\App\Http\Controllers\GroundingController::class,'edit'])->name('grounding.wilayah.edit');
+    Route::put('/grounding/wilayah/{groundingWilayah}',        [\App\Http\Controllers\GroundingController::class,'update'])->name('grounding.wilayah.update');
+    Route::delete('/grounding/wilayah/{groundingWilayah}',     [\App\Http\Controllers\GroundingController::class,'destroy'])->name('grounding.wilayah.destroy');
+    Route::get('/grounding/wilayah/{groundingWilayah}/laporan', [\App\Http\Controllers\GroundingLaporanController::class,'laporan'])->name('grounding.laporan');
+    Route::post('/grounding/wilayah/{groundingWilayah}/jadwal', [\App\Http\Controllers\GroundingController::class,'buatJadwal'])->name('grounding.jadwal');
+    Route::get('/grounding/titik/{groundingTitik}/kartu',       [\App\Http\Controllers\GroundingLaporanController::class,'kartu'])->name('grounding.titik.kartu');
+    Route::get('/grounding/ukur/{groundingUkur}/edit',          [\App\Http\Controllers\GroundingUkurController::class,'edit'])->name('grounding.ukur.edit');
+    Route::put('/grounding/ukur/{groundingUkur}',               [\App\Http\Controllers\GroundingUkurController::class,'update'])->name('grounding.ukur.update');
+    Route::get('/grounding/wilayah/{groundingWilayah}/ronde',  [\App\Http\Controllers\GroundingUkurController::class,'ronde'])->name('grounding.ronde');
+    Route::post('/grounding/wilayah/{groundingWilayah}/ronde', [\App\Http\Controllers\GroundingUkurController::class,'rondeStore'])->name('grounding.ronde.store');
+    Route::get('/grounding/titik/create',                      [\App\Http\Controllers\GroundingTitikController::class,'create'])->name('grounding.titik.create');
+    Route::post('/grounding/titik',                            [\App\Http\Controllers\GroundingTitikController::class,'store'])->name('grounding.titik.store');
+    Route::get('/grounding/titik/{groundingTitik}',            [\App\Http\Controllers\GroundingTitikController::class,'show'])->name('grounding.titik.show');
+    Route::get('/grounding/titik/{groundingTitik}/edit',       [\App\Http\Controllers\GroundingTitikController::class,'edit'])->name('grounding.titik.edit');
+    Route::put('/grounding/titik/{groundingTitik}',            [\App\Http\Controllers\GroundingTitikController::class,'update'])->name('grounding.titik.update');
+    Route::delete('/grounding/titik/{groundingTitik}',         [\App\Http\Controllers\GroundingTitikController::class,'destroy'])->name('grounding.titik.destroy');
+    Route::get('/grounding/titik/{groundingTitik}/ukur/create',[\App\Http\Controllers\GroundingUkurController::class,'create'])->name('grounding.ukur.create');
+    Route::post('/grounding/titik/{groundingTitik}/ukur',      [\App\Http\Controllers\GroundingUkurController::class,'store'])->name('grounding.ukur.store');
+    Route::delete('/grounding/ukur/{groundingUkur}',           [\App\Http\Controllers\GroundingUkurController::class,'destroy'])->name('grounding.ukur.destroy');
+
     // Logbook Sarana & Prasarana (akses: divisi Sarana + super admin, dicek di controller)
     Route::get('/sarana/logbook',                      [\App\Http\Controllers\SaranaLogController::class,'index'])->name('sarana.logbook.index');
     Route::get('/sarana/logbook/create',               [\App\Http\Controllers\SaranaLogController::class,'create'])->name('sarana.logbook.create');

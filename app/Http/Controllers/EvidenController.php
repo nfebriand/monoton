@@ -112,7 +112,7 @@ class EvidenController extends Controller
         return [$p, [
             'judul'     => "Perawatan Rutin: {$p->nama_tugas} - {$p->nama_objek}",
             'deskripsi' => $deskripsi,
-            'divisi'    => $p->objek_tipe === 'genset' ? 'sarana' : 'transmisi',
+            'divisi'    => in_array($p->objek_tipe, ['genset', 'grounding'], true) ? 'sarana' : 'transmisi',
             'lokasi'    => $p->lokasi_objek,
         ]];
     }

@@ -14,6 +14,7 @@ const PrecacheManager = {
         '/eviden/create',
         '/catatan-dinas',
         '/sarana/logbook',
+        '/grounding',
         '/sarana/logbook/create',
         '/catatan-dinas/create',
         '/studio/logbook',

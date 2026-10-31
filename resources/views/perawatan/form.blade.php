@@ -7,10 +7,11 @@
     $basis = old('basis', $item->basis ?: 'tanggal');
     $bisaPemancar = $pemancars->isNotEmpty() || auth()->user()->can('perawatan.kelola', 'pemancar');
     $bisaGenset   = $units->isNotEmpty() || auth()->user()->can('perawatan.kelola', 'genset');
-    $tipe = old('objek_tipe', $item->objek_tipe ?: ($bisaPemancar ? 'pemancar' : 'genset'));
+    $bisaGrounding = $titiks->isNotEmpty() || auth()->user()->can('perawatan.kelola', 'grounding');
+    $tersedia = array_keys(array_filter(['pemancar' => $bisaPemancar, 'genset' => $bisaGenset, 'grounding' => $bisaGrounding]));
+    $tipe = old('objek_tipe', $item->objek_tipe ?: ($tersedia[0] ?? 'pemancar'));
     // objek bawaan harus yang boleh dipilih pengguna ini (mis. user Sarana tidak melihat pemancar)
-    if ($tipe === 'pemancar' && !$bisaPemancar && $bisaGenset) $tipe = 'genset';
-    if ($tipe === 'genset' && !$bisaGenset && $bisaPemancar) $tipe = 'pemancar';
+    if (!in_array($tipe, $tersedia, true) && $tersedia) $tipe = $tersedia[0];
     $nf = fn($v) => $v === null ? '' : rtrim(rtrim(number_format($v,1,'.',''),'0'),'.');
 @endphp
 <div class="row justify-content-center"><div class="col-12 col-lg-8">
@@ -29,7 +30,7 @@
                 <label class="form-label">Objek <span class="text-danger">*</span></label>
                 @if($item->exists)
                     <input type="hidden" name="objek_tipe" value="{{ $item->objek_tipe }}">
-                    <div class="form-control-plaintext fw-bold">{{ $item->objek_tipe === 'pemancar' ? 'Pemancar' : 'Genset' }}</div>
+                    <div class="form-control-plaintext fw-bold">{{ ['pemancar' => 'Pemancar', 'genset' => 'Genset', 'grounding' => 'Grounding'][$item->objek_tipe] ?? $item->objek_tipe }}</div>
                 @else
                 <div class="d-flex gap-3">
                     @if($bisaPemancar)
@@ -37,6 +38,9 @@
                     @endif
                     @if($bisaGenset)
                     <div class="form-check"><input class="form-check-input" type="radio" name="objek_tipe" id="t-genset" value="genset" {{ $tipe==='genset'?'checked':'' }}><label class="form-check-label" for="t-genset"><i class="bi bi-battery-charging me-1"></i>Genset</label></div>
+                    @endif
+                    @if($bisaGrounding)
+                    <div class="form-check"><input class="form-check-input" type="radio" name="objek_tipe" id="t-grounding" value="grounding" {{ $tipe==='grounding'?'checked':'' }}><label class="form-check-label" for="t-grounding"><i class="bi bi-lightning-charge me-1"></i>Grounding</label></div>
                     @endif
                 </div>
                 @endif
@@ -64,6 +68,20 @@
                     @endforeach
                 </select>
                 <div class="form-text" id="info-hm"></div>
+            </div>
+
+            <div class="col-12 col-md-6" id="row-grounding">
+                <label class="form-label">Titik Grounding <span class="text-danger">*</span></label>
+                <select name="grounding_titik_id" class="form-select">
+                    <option value="">&mdash; Pilih Titik &mdash;</option>
+                    @foreach($titiks->groupBy(fn($x) => $x->wilayah->nama ?? 'Tanpa wilayah') as $wn => $grp)
+                    <optgroup label="{{ $wn }}">
+                        @foreach($grp as $g)
+                        <option value="{{ $g->id }}" {{ (string) old('grounding_titik_id', $item->grounding_titik_id) === (string) $g->id ? 'selected' : '' }}>{{ $g->kode }} - {{ $g->nama }}</option>
+                        @endforeach
+                    </optgroup>
+                    @endforeach
+                </select>
             </div>
 
             <div class="col-12 col-md-5">
@@ -135,6 +153,7 @@
         const t = tipeEl(), b = $('sel-basis').value;
         $('row-pemancar').style.display = t === 'pemancar' ? '' : 'none';
         $('row-genset').style.display   = t === 'genset' ? '' : 'none';
+        $('row-grounding').style.display = t === 'grounding' ? '' : 'none';
         // basis HM hanya untuk genset
         Array.from($('sel-basis').options).forEach(o => { if (o.hasAttribute('data-genset')) o.disabled = (t !== 'genset'); });
         if (t !== 'genset' && b !== 'tanggal') $('sel-basis').value = 'tanggal';

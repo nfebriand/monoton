@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Eviden;
 use App\Models\GensetUnit;
+use App\Models\GroundingTitik;
 use App\Models\Pemancar;
 use App\Models\PerawatanRutin;
 use App\Models\PerawatanRutinLog;
@@ -32,8 +33,8 @@ class PerawatanRutinController extends Controller
     private function wajibKelola(string $tipe): void
     {
         abort_unless(Akses::perawatanKelola(auth()->user(), $tipe), 403,
-            $tipe === 'genset'
-                ? 'Jadwal perawatan genset hanya dapat dikelola Super Admin / Admin Divisi Sarana & Prasarana.'
+            in_array($tipe, ['genset', 'grounding'], true)
+                ? 'Jadwal perawatan genset/grounding hanya dapat dikelola Super Admin / Admin Divisi Sarana & Prasarana.'
                 : 'Jadwal perawatan pemancar hanya dapat dikelola Super Admin / Admin Divisi Transmisi.');
     }
 
@@ -42,8 +43,8 @@ class PerawatanRutinController extends Controller
         $this->wajibMenu();
         $user = auth()->user();
 
-        $query = PerawatanRutin::with(['pemancar', 'gensetUnit'])->bolehDilihat($user)->orderBy('objek_tipe')->orderBy('nama_tugas');
-        if (in_array($request->tipe, ['pemancar', 'genset'], true)) $query->where('objek_tipe', $request->tipe);
+        $query = PerawatanRutin::with(['pemancar', 'gensetUnit', 'groundingTitik.wilayah'])->bolehDilihat($user)->orderBy('objek_tipe')->orderBy('nama_tugas');
+        if (in_array($request->tipe, ['pemancar', 'genset', 'grounding'], true)) $query->where('objek_tipe', $request->tipe);
         if (!$request->boolean('semua')) $query->where('aktif', true);
 
         $map   = PerawatanRutin::hmMap();
@@ -63,8 +64,9 @@ class PerawatanRutinController extends Controller
 
         $lihatPemancar = Akses::menuTransmisi($user);
         $lihatGenset   = Akses::gensetMasuk($user);
+        $lihatGrounding = Akses::menuSarana($user);
 
-        return view('perawatan.index', compact('baris', 'hitung', 'bisaKelolaPemancar', 'bisaKelolaGenset', 'lihatPemancar', 'lihatGenset'));
+        return view('perawatan.index', compact('baris', 'hitung', 'bisaKelolaPemancar', 'bisaKelolaGenset', 'lihatPemancar', 'lihatGenset', 'lihatGrounding'));
     }
 
     private function dataForm(): array
@@ -73,6 +75,7 @@ class PerawatanRutinController extends Controller
         return [
             'pemancars' => Akses::perawatanKelola($user, 'pemancar') ? Pemancar::where('is_active', true)->orderBy('lokasi')->orderBy('nama_stasiun')->get() : collect(),
             'units'     => Akses::perawatanKelola($user, 'genset')   ? GensetUnit::where('is_active', true)->orderBy('nama_unit')->get() : collect(),
+            'titiks'    => Akses::perawatanKelola($user, 'grounding') ? GroundingTitik::with('wilayah')->where('status', 'aktif')->orderBy('wilayah_id')->orderBy('kode')->get() : collect(),
             'preset'    => PerawatanRutin::PRESET,
             'hmMap'     => PerawatanRutin::hmMap(),
         ];
@@ -82,9 +85,9 @@ class PerawatanRutinController extends Controller
     {
         $this->wajibMenu();
         $user = auth()->user();
-        abort_unless(Akses::perawatanKelola($user, 'pemancar') || Akses::perawatanKelola($user, 'genset'), 403, 'Anda tidak berhak mengelola jadwal perawatan.');
+        abort_unless(Akses::perawatanKelola($user, 'pemancar') || Akses::perawatanKelola($user, 'genset') || Akses::perawatanKelola($user, 'grounding'), 403, 'Anda tidak berhak mengelola jadwal perawatan.');
         // Objek bawaan menyesuaikan hak pengguna: user Sarana & Prasarana -> genset, user Transmisi -> pemancar
-        $boleh = array_values(array_filter(['pemancar', 'genset'], fn($t) => Akses::perawatanKelola($user, $t)));
+        $boleh = array_values(array_filter(['pemancar', 'genset', 'grounding'], fn($t) => Akses::perawatanKelola($user, $t)));
         $tipe  = in_array($request->get('tipe'), $boleh, true) ? $request->get('tipe') : ($boleh[0] ?? 'pemancar');
         return view('perawatan.form', array_merge($this->dataForm(), ['item' => new PerawatanRutin(['objek_tipe' => $tipe, 'basis' => 'tanggal', 'aktif' => true])]));
     }
@@ -92,7 +95,8 @@ class PerawatanRutinController extends Controller
     private function validasi(Request $request): array
     {
         $v = $request->validate([
-            'objek_tipe'       => 'required|in:pemancar,genset',
+            'objek_tipe'       => 'required|in:pemancar,genset,grounding',
+            'grounding_titik_id' => 'required_if:objek_tipe,grounding|nullable|exists:grounding_titiks,id',
             'pemancar_id'      => 'required_if:objek_tipe,pemancar|nullable|exists:pemancars,id',
             'genset_unit_id'   => 'required_if:objek_tipe,genset|nullable|exists:genset_units,id',
             'nama_tugas'       => 'required|string|max:150',
@@ -107,10 +111,12 @@ class PerawatanRutinController extends Controller
             'interval_hm.required_if'   => 'Isi interval HM untuk perawatan berbasis jam kerja.',
             'terakhir_tanggal.before_or_equal' => 'Tanggal terakhir tidak boleh di masa depan.',
         ]);
-        if ($v['objek_tipe'] === 'pemancar' && $v['basis'] !== 'tanggal') {
-            throw \Illuminate\Validation\ValidationException::withMessages(['basis' => 'Pemancar tidak punya hour meter - gunakan basis tanggal.']);
+        if (in_array($v['objek_tipe'], ['pemancar', 'grounding'], true) && $v['basis'] !== 'tanggal') {
+            throw \Illuminate\Validation\ValidationException::withMessages(['basis' => 'Pemancar dan grounding tidak punya hour meter - gunakan basis tanggal.']);
         }
-        if ($v['objek_tipe'] === 'pemancar') $v['genset_unit_id'] = null; else $v['pemancar_id'] = null;
+        $v['pemancar_id']       = $v['objek_tipe'] === 'pemancar'  ? ($v['pemancar_id'] ?? null) : null;
+        $v['genset_unit_id']    = $v['objek_tipe'] === 'genset'    ? ($v['genset_unit_id'] ?? null) : null;
+        $v['grounding_titik_id'] = $v['objek_tipe'] === 'grounding' ? ($v['grounding_titik_id'] ?? null) : null;
         if ($v['basis'] === 'tanggal') $v['interval_hm'] = null;
         if ($v['basis'] === 'hm') $v['interval_hari'] = null;
         $v['aktif'] = $request->boolean('aktif', true);
@@ -131,7 +137,7 @@ class PerawatanRutinController extends Controller
     {
         $this->wajibMenu();
         $this->wajibLihat($perawatanRutin);
-        $perawatanRutin->load(['pemancar', 'gensetUnit', 'logs.user', 'logs.eviden']);
+        $perawatanRutin->load(['pemancar', 'gensetUnit', 'groundingTitik.wilayah', 'logs.user', 'logs.eviden']);
         $map   = PerawatanRutin::hmMap();
         $hasil = $perawatanRutin->hitung($map);
         $hmSekarang = $perawatanRutin->hmSekarang($map);

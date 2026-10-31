@@ -56,6 +56,7 @@ class Akses
     public static function perawatanLihat($u, string $tipe, ?string $lokasiPemancar = null): bool
     {
         if ($tipe === 'genset') return self::gensetMasuk($u);
+        if ($tipe === 'grounding') return self::menuSarana($u);
         if (!self::menuTransmisi($u)) return false;
         if ($u->isOperator() && !empty($u->lokasi_dinas)) {
             return strcasecmp(trim((string) $u->lokasi_dinas), trim((string) $lokasiPemancar)) === 0;
@@ -68,7 +69,7 @@ class Akses
     {
         if ($u->isAdmin()) return true;
         if (!$u->isAdminDivisi()) return false;
-        return $tipe === 'genset' ? $u->isDivisi('sarana') : $u->isDivisi('transmisi');
+        return in_array($tipe, ['genset', 'grounding'], true) ? $u->isDivisi('sarana') : $u->isDivisi('transmisi');
     }
 
     /** Mencatat pelaksanaan: semua yang boleh melihat item tersebut (termasuk operator) */
@@ -124,6 +125,25 @@ class Akses
     public static function saranaLogUbah($u, $pembuatId): bool
     {
         return $u->isAdmin() || ($u->isAdminDivisi() && $u->isDivisi('sarana')) || (int) $u->id === (int) $pembuatId;
+    }
+
+    // ───────────────────────── Pengukuran Grounding ─────────────────────────
+    /** Masuk modul Grounding (lihat & mencatat pengukuran): super admin & divisi Sarana */
+    public static function groundingMasuk($u): bool
+    {
+        return self::menuSarana($u);
+    }
+
+    /** Mengelola wilayah & titik grounding: super admin & admin divisi Sarana */
+    public static function groundingKelola($u): bool
+    {
+        return $u->isAdmin() || ($u->isAdminDivisi() && $u->isDivisi('sarana'));
+    }
+
+    /** Menghapus satu pengukuran: pembuat atau pengelola */
+    public static function groundingUkurHapus($u, $pembuatId): bool
+    {
+        return self::groundingKelola($u) || (int) $u->id === (int) $pembuatId;
     }
 
     // ───────────────────────── Genset & operasional pemancar ─────────────────────────

@@ -24,14 +24,17 @@
 </div>
 
 <div class="d-flex gap-2 flex-wrap align-items-center mb-3">
-    @if($lihatPemancar && $lihatGenset)
+    @if(($lihatPemancar ? 1 : 0) + ($lihatGenset ? 1 : 0) + ($lihatGrounding ? 1 : 0) > 1)
     <a href="{{ route('perawatan.index') }}" class="btn btn-sm {{ !request('tipe') ? 'btn-primary-custom' : 'btn-outline-secondary' }}">Semua</a>
     @endif
     @if($lihatPemancar)
     <a href="{{ route('perawatan.index', ['tipe' => 'pemancar']) }}" class="btn btn-sm {{ request('tipe')==='pemancar' ? 'btn-primary-custom' : 'btn-outline-secondary' }}"><i class="bi bi-broadcast-pin me-1"></i>Pemancar</a>
     @endif
+    @if($lihatGrounding)
+    <a href="{{ route('perawatan.index', ['tipe' => 'grounding']) }}" class="btn btn-sm {{ request('tipe')==='grounding' ? 'btn-primary-custom' : 'btn-outline-secondary' }}"><i class="bi bi-lightning-charge me-1"></i>Grounding</a>
+    @endif
     @if($lihatGenset)
-    <a href="{{ route('perawatan.index', ['tipe' => 'genset']) }}" class="btn btn-sm {{ request('tipe')==='genset' || (!$lihatPemancar && !request('tipe')) ? 'btn-primary-custom' : 'btn-outline-secondary' }}"><i class="bi bi-battery-charging me-1"></i>Genset</a>
+    <a href="{{ route('perawatan.index', ['tipe' => 'genset']) }}" class="btn btn-sm {{ request('tipe')==='genset' ? 'btn-primary-custom' : 'btn-outline-secondary' }}"><i class="bi bi-battery-charging me-1"></i>Genset</a>
     @endif
     <a href="{{ request()->fullUrlWithQuery(['semua' => request('semua') ? null : 1]) }}" class="btn btn-sm btn-outline-secondary">{{ request('semua') ? 'Sembunyikan nonaktif' : 'Tampilkan nonaktif' }}</a>
     @if($bisaKelolaPemancar || $bisaKelolaGenset)
@@ -60,7 +63,7 @@
                     <tr style="{{ $i->aktif ? '' : 'opacity:.55' }}">
                         <td class="ps-3">
                             <div class="fw-bold" style="font-size:.85rem">
-                                <i class="bi {{ $i->objek_tipe==='pemancar' ? 'bi-broadcast-pin' : 'bi-battery-charging' }} me-1 text-primary"></i>{{ $i->nama_objek }}
+                                <i class="bi {{ ['pemancar' => 'bi-broadcast-pin', 'grounding' => 'bi-lightning-charge'][$i->objek_tipe] ?? 'bi-battery-charging' }} me-1 text-primary"></i>{{ $i->nama_objek }}
                             </div>
                             @if($i->lokasi_objek)<small class="text-muted">{{ $i->lokasi_objek }}</small>@endif
                         </td>

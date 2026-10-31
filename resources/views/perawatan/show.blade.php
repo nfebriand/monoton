@@ -12,8 +12,9 @@
     <div class="col-12 col-lg-5">
         <div class="card">
             <div class="card-header d-flex align-items-center gap-2">
-                <i class="bi {{ $item->objek_tipe==='pemancar' ? 'bi-broadcast-pin' : 'bi-battery-charging' }} text-primary"></i>
+                <i class="bi {{ ['pemancar' => 'bi-broadcast-pin', 'grounding' => 'bi-lightning-charge'][$item->objek_tipe] ?? 'bi-battery-charging' }} text-primary"></i>
                 <strong style="font-size:.9rem">{{ $item->nama_objek }}</strong>
+                @if($item->objek_tipe === 'grounding' && $item->groundingTitik)<a href="{{ route('grounding.titik.show', $item->groundingTitik) }}" class="small ms-1">buka titik</a>@endif
                 <span class="badge ms-auto" style="background:{{ $warna[$hasil['status']] }}">{{ $label[$hasil['status']] }}</span>
             </div>
             <div class="card-body" style="font-size:.85rem">

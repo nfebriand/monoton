@@ -332,6 +332,9 @@
         @can('menu.sarana')
         <a href="{{ route('sarana.logbook.index') }}" class="nav-link {{ request()->routeIs('sarana.logbook.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-journal-check"></i> Logbook Sarana</a>
         @endcan
+        @can('menu.sarana')
+        <a href="{{ route('grounding.index') }}" class="nav-link {{ request()->routeIs('grounding.*')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-lightning-charge"></i> Pengukuran Grounding</a>
+        @endcan
         {{-- Operasional Genset: Admin + Sarana + Transmisi --}}
         <a href="{{ route('genset.index') }}" class="nav-link {{ request()->routeIs('genset.index')||request()->routeIs('genset.show')||request()->routeIs('genset.create')||request()->routeIs('genset.edit')?'active':'' }}" onclick="closeSidebar()"><i class="bi bi-battery-charging"></i> Operasional Genset</a>
         {{-- Aset & Inventaris: Admin + Sarana saja (bukan Transmisi) --}}

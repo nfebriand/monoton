@@ -11,7 +11,7 @@ class PerawatanRutin extends Model
     protected $table = 'perawatan_rutin';
 
     protected $fillable = [
-        'objek_tipe', 'pemancar_id', 'genset_unit_id', 'nama_tugas', 'basis',
+        'objek_tipe', 'pemancar_id', 'genset_unit_id', 'grounding_titik_id', 'nama_tugas', 'basis',
         'interval_hari', 'interval_hm', 'terakhir_tanggal', 'terakhir_hm',
         'aktif', 'catatan', 'dibuat_oleh',
     ];
@@ -31,6 +31,10 @@ class PerawatanRutin extends Model
             ['nama' => 'Pemeriksaan feeder, konektor & grounding', 'basis' => 'tanggal', 'hari' => 365],
             ['nama' => 'Pengukuran frekuensi & modulasi',          'basis' => 'tanggal', 'hari' => 180],
         ],
+        'grounding' => [
+            ['nama' => 'Pengukuran tahanan grounding', 'basis' => 'tanggal', 'hari' => 180],
+            ['nama' => 'Pemeriksaan fisik kabel & klem grounding', 'basis' => 'tanggal', 'hari' => 90],
+        ],
         'genset' => [
             ['nama' => 'Ganti oli & filter oli',      'basis' => 'keduanya', 'hari' => 180, 'hm' => 250],
             ['nama' => 'Ganti filter solar / udara',  'basis' => 'hm',       'hm' => 500],
@@ -42,10 +46,15 @@ class PerawatanRutin extends Model
 
     public function pemancar()   { return $this->belongsTo(Pemancar::class); }
     public function gensetUnit() { return $this->belongsTo(GensetUnit::class); }
+    public function groundingTitik() { return $this->belongsTo(GroundingTitik::class, 'grounding_titik_id'); }
     public function logs()       { return $this->hasMany(PerawatanRutinLog::class)->orderByDesc('tanggal')->orderByDesc('id'); }
 
     public function getNamaObjekAttribute(): string
     {
+        if ($this->objek_tipe === 'grounding') {
+            $t = $this->groundingTitik;
+            return $t ? $t->kode.' - '.$t->nama : '(titik dihapus)';
+        }
         return $this->objek_tipe === 'pemancar'
             ? ($this->pemancar->nama_stasiun ?? '(pemancar dihapus)')
             : ($this->gensetUnit->nama_unit ?? '(unit dihapus)');
@@ -53,6 +62,7 @@ class PerawatanRutin extends Model
 
     public function getLokasiObjekAttribute(): ?string
     {
+        if ($this->objek_tipe === 'grounding') return $this->groundingTitik->wilayah->nama ?? null;
         return $this->objek_tipe === 'pemancar' ? ($this->pemancar->lokasi ?? null) : ($this->gensetUnit->lokasi ?? null);
     }
 
@@ -98,6 +108,9 @@ class PerawatanRutin extends Model
             if (Akses::gensetMasuk($u)) {
                 $w->orWhere('objek_tipe', 'genset');
             }
+            if (Akses::menuSarana($u)) {
+                $w->orWhere('objek_tipe', 'grounding');
+            }
             if (!Akses::menuTransmisi($u) && !Akses::gensetMasuk($u)) {
                 $w->whereRaw('1 = 0');
             }
@@ -111,7 +124,7 @@ class PerawatanRutin extends Model
     public static function perhatian($u, int $limit = 6)
     {
         try {
-            $items = self::with(['pemancar', 'gensetUnit'])->where('aktif', true)->bolehDilihat($u)->get();
+            $items = self::with(['pemancar', 'gensetUnit', 'groundingTitik.wilayah'])->where('aktif', true)->bolehDilihat($u)->get();
         } catch (\Throwable $e) {
             return collect();   // tabel belum dimigrasi
         }

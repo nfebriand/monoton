@@ -24,24 +24,58 @@ class GroundingUkurController extends Controller
     }
 
 
-    /** Pengukuran baru memajukan acuan jadwal Perawatan Rutin "grounding" untuk titik tsb (hanya maju, tidak mundur). */
+    private function jadwalAda(): bool
+    {
+        return \Illuminate\Support\Facades\Schema::hasColumn('perawatan_rutin', 'grounding_titik_id')
+            && \Illuminate\Support\Facades\Schema::hasColumn('perawatan_rutin_log', 'grounding_ukur_id');
+    }
+
+    /** Acuan jadwal = tanggal log terbaru; bila belum ada log, acuan semula dibiarkan. */
+    private function hitungUlangAcuan(PerawatanRutin $j): void
+    {
+        $maks = PerawatanRutinLog::where('perawatan_rutin_id', $j->id)->max('tanggal');
+        if ($maks) { $j->terakhir_tanggal = substr((string) $maks, 0, 10); $j->save(); }
+    }
+
+    /**
+     * Pengukuran (baru/diubah) otomatis tercatat sebagai pelaksanaan pada jadwal Perawatan Rutin "grounding" titik tsb,
+     * lengkap dengan eviden terkait, sehingga jadwal berikutnya dihitung dari tanggal pengukuran. Idempoten per pengukuran.
+     */
     private function sinkronJadwal(GroundingUkur $u): void
     {
         try {
-            if (!\Illuminate\Support\Facades\Schema::hasColumn('perawatan_rutin', 'grounding_titik_id')) return;
+            if (!$this->jadwalAda()) return;
             $tgl = $u->tanggal->format('Y-m-d');
+            $nilai = rtrim(rtrim(number_format((float) $u->nilai_ohm, 2, ',', ''), '0'), ',');
             foreach (PerawatanRutin::where('objek_tipe', 'grounding')->where('grounding_titik_id', $u->titik_id)->where('aktif', true)->get() as $j) {
-                PerawatanRutinLog::create([
-                    'perawatan_rutin_id' => $j->id, 'user_id' => $u->user_id, 'tanggal' => $tgl,
-                    'catatan' => 'Pengukuran grounding: '.rtrim(rtrim(number_format((float) $u->nilai_ohm, 2, ',', ''), '0'), ',')." \u{03A9} (".GroundingUkur::STATUS_LABEL[$u->status].')',
-                ]);
-                if (!$j->terakhir_tanggal || $tgl >= $j->terakhir_tanggal->format('Y-m-d')) {
-                    $j->terakhir_tanggal = $tgl;
-                    $j->save();
+                // log lama (sebelum kolom penaut ada) diadopsi agar tidak dobel saat pengukuran diubah
+                if (!PerawatanRutinLog::where('grounding_ukur_id', $u->id)->where('perawatan_rutin_id', $j->id)->exists()) {
+                    $lama = PerawatanRutinLog::where('perawatan_rutin_id', $j->id)->whereNull('grounding_ukur_id')
+                        ->where('user_id', $u->user_id)->whereDate('tanggal', $tgl)->where('catatan', 'like', 'Pengukuran grounding:%')->first();
+                    if ($lama) $lama->update(['grounding_ukur_id' => $u->id]);
                 }
+                PerawatanRutinLog::updateOrCreate(
+                    ['perawatan_rutin_id' => $j->id, 'grounding_ukur_id' => $u->id],
+                    ['user_id' => $u->user_id, 'tanggal' => $tgl, 'eviden_id' => $u->eviden_id,
+                     'catatan' => 'Pengukuran grounding: '.$nilai." \u{03A9} (".GroundingUkur::STATUS_LABEL[$u->status].')']
+                );
+                $this->hitungUlangAcuan($j);
             }
         } catch (\Throwable $e) {
             \Log::warning('Sinkron jadwal grounding gagal: '.$e->getMessage());
+        }
+    }
+
+    /** Pengukuran dihapus: catatan pelaksanaannya ikut dicabut dan acuan jadwal dihitung ulang. */
+    private function cabutDariJadwal(GroundingUkur $u): void
+    {
+        try {
+            if (!$this->jadwalAda()) return;
+            $jadwalIds = PerawatanRutinLog::where('grounding_ukur_id', $u->id)->pluck('perawatan_rutin_id')->unique();
+            PerawatanRutinLog::where('grounding_ukur_id', $u->id)->delete();
+            foreach (PerawatanRutin::whereIn('id', $jadwalIds)->get() as $j) $this->hitungUlangAcuan($j);
+        } catch (\Throwable $e) {
+            \Log::warning('Cabut jadwal grounding gagal: '.$e->getMessage());
         }
     }
 
@@ -204,6 +238,7 @@ class GroundingUkurController extends Controller
             'kondisi_tanah' => $v['kondisi_tanah'] ?? null, 'alat' => $v['alat'] ?? null, 'metode' => $v['metode'] ?? null,
             'keterangan' => $v['keterangan'] ?? null,
         ]);
+        $this->sinkronJadwal($groundingUkur->fresh());
         foreach ((array) $request->input('foto_keterangan_lama', []) as $id => $ket) {
             $groundingUkur->fotos()->where('id', (int) $id)->update(['keterangan' => $this->bersihKet($ket)]);
         }
@@ -222,6 +257,7 @@ class GroundingUkurController extends Controller
         $this->masuk();
         if (!Akses::groundingUkurHapus(auth()->user(), $groundingUkur->user_id)) abort(403, 'Anda hanya dapat menghapus pengukuran milik sendiri.');
         $tid = $groundingUkur->titik_id;
+        $this->cabutDariJadwal($groundingUkur);
         foreach ($groundingUkur->fotos as $f) ImageHelper::deleteWithThumbnail($f->path);
         $groundingUkur->delete();
         return redirect()->route('grounding.titik.show', $tid)->with('success', 'Pengukuran dihapus.');

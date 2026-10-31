@@ -141,6 +141,11 @@ class GroundingTitikController extends Controller
         foreach ($groundingTitik->ukurs()->with('fotos')->get() as $u) {
             foreach ($u->fotos as $f) ImageHelper::deleteWithThumbnail($f->path);
         }
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('perawatan_rutin_log', 'grounding_ukur_id')) {
+                \App\Models\PerawatanRutinLog::whereIn('grounding_ukur_id', $groundingTitik->ukurs()->pluck('id'))->delete();
+            }
+        } catch (\Throwable $e) { \Log::warning('Bersihkan log grounding gagal: '.$e->getMessage()); }
         $groundingTitik->delete();
         return redirect()->route('grounding.wilayah.show', $wid)->with('success', 'Titik grounding dihapus beserta riwayat pengukurannya.');
     }

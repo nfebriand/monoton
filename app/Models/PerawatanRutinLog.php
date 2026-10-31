@@ -8,7 +8,7 @@ class PerawatanRutinLog extends Model
 {
     protected $table = 'perawatan_rutin_log';
 
-    protected $fillable = ['perawatan_rutin_id', 'user_id', 'tanggal', 'hm', 'catatan', 'eviden_id'];
+    protected $fillable = ['perawatan_rutin_id', 'user_id', 'tanggal', 'hm', 'catatan', 'eviden_id', 'grounding_ukur_id'];
 
     protected $casts = ['tanggal' => 'date'];
 

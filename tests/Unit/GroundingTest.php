@@ -41,4 +41,12 @@ class GroundingTest extends TestCase
         $this->assertStringContainsString('grounding._eviden-pilih', file_get_contents($root.'/resources/views/grounding/ronde.blade.php'));
         $this->assertStringContainsString('groundingUkurs', file_get_contents($root.'/app/Models/Eviden.php'));
     }
+
+    public function test_pengukuran_masuk_otomatis_ke_jadwal(): void
+    {
+        $c = file_get_contents(dirname(__DIR__, 2).'/app/Http/Controllers/GroundingUkurController.php');
+        $this->assertStringContainsString("'eviden_id' => \$u->eviden_id", $c);
+        $this->assertStringContainsString('cabutDariJadwal', $c);
+        $this->assertSame(3, substr_count($c, '$this->sinkronJadwal('));
+    }
 }

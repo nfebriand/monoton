@@ -69,9 +69,27 @@
                 <i class="bi bi-chevron-right"></i>
             </a>
             @if(auth()->user()->isAdminDivisi())
+            @php
+                $lokasiExport = $operators->pluck('lokasi_dinas')->map(fn($l) => trim((string)$l))->filter()->unique()->sort()->values();
+            @endphp
+            @if($lokasiExport->count() > 1)
+            <div class="dropdown">
+                <button class="btn btn-sm btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Export jadwal bulan ini ke Excel">
+                    <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ route('jadwal.export',['bulan'=>$bulan,'tahun'=>$tahun]) }}"><i class="bi bi-files me-1"></i>Semua Lokasi</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    @foreach($lokasiExport as $lokEx)
+                    <li><a class="dropdown-item" href="{{ route('jadwal.export',['bulan'=>$bulan,'tahun'=>$tahun,'lokasi'=>$lokEx]) }}"><i class="bi bi-geo-alt me-1"></i>{{ $lokEx }}</a></li>
+                    @endforeach
+                </ul>
+            </div>
+            @else
             <a href="{{ route('jadwal.export',['bulan'=>$bulan,'tahun'=>$tahun]) }}" class="btn btn-sm btn-success" title="Export jadwal bulan ini ke Excel">
                 <i class="bi bi-file-earmark-excel me-1"></i>Excel
             </a>
+            @endif
             @else
             <div class="dropdown">
                 <button class="btn btn-sm btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">

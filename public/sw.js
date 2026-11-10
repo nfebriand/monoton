@@ -1,5 +1,5 @@
 // MonOTOn Service Worker — v2 (full page caching for offline)
-const CACHE_VERSION = 'monoton-v15';
+const CACHE_VERSION = 'monoton-v16';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 const ASSET_CACHE   = `${CACHE_VERSION}-assets`;
@@ -107,7 +107,11 @@ self.addEventListener('fetch', event => {
     if (url.origin !== location.origin) return;
 
     // Unduhan dinamis (export/cetak/pdf/download): langsung ke jaringan, tanpa cache HTTP browser maupun SW.
+    // Navigasi (klik tautan/unduh) dibiarkan ditangani peramban: fetch() dari SW memakai Referer = /sw.js,
+    // sehingga redirect back() di server (mis. "belum ada data") malah mengarah ke /sw.js.
+    // Server sudah mengirim Cache-Control: no-store untuk unduhan.
     if (/\/(export|cetak|pdf|download|unduh)(\/|$|\?)|\.(xlsx|xls|pdf|csv|docx)$/i.test(url.pathname)) {
+        if (request.mode === 'navigate') return;
         event.respondWith(fetch(request, { cache: 'no-store' }));
         return;
     }

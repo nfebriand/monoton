@@ -127,7 +127,8 @@ class JadwalController extends Controller
         }
 
         if ($jadwals->isEmpty()) {
-            return back()->withErrors(['export' => 'Belum ada jadwal untuk diexport pada bulan/divisi ini.']);
+            return redirect()->route('jadwal.index', ['bulan' => $bulan, 'tahun' => $tahun])
+                ->withErrors(['export' => 'Belum ada jadwal untuk diexport pada bulan/divisi ini.']);
         }
 
         // Susun per lokasi: [lokasi => [Y-m-d => [shift => [nama,...]]]]

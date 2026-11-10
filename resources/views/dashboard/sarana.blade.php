@@ -18,7 +18,7 @@
     <div class="col-6 col-md-3">
         <div class="card text-center">
             <div class="card-body py-2">
-                <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">BBM Terpakai</div>
+                <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">BBM Diisi</div>
                 <div class="mono fw-bold" style="font-size:1.6rem;color:var(--warning)">{{ number_format($statGenset['total_bbm'],1) }}</div>
                 <div class="text-muted" style="font-size:.65rem">liter bulan ini</div>
             </div>
@@ -75,8 +75,8 @@
                     </div>
                     <div class="text-end">
                         <span class="badge" style="background:#7b1fa2;font-size:.65rem">{{ $log->alasan_label }}</span>
-                        @if($log->pemakaian_bbm!==null)
-                        <div class="mono text-muted" style="font-size:.7rem">{{ number_format($log->pemakaian_bbm,1) }} L</div>
+                        @if($log->bbm_isi)
+                        <div class="mono text-muted" style="font-size:.7rem">+{{ number_format($log->bbm_isi,1) }} L</div>
                         @endif
                     </div>
                     <a href="{{ route('genset.show',$log) }}" class="btn btn-sm btn-outline-primary flex-shrink-0"><i class="bi bi-eye"></i></a>

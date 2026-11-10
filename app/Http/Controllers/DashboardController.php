@@ -110,7 +110,7 @@ class DashboardController extends Controller
 
         $statGenset = [
             'total_operasi'  => \App\Models\GensetLog::whereMonth('tanggal',$bulan)->whereYear('tanggal',$tahun)->count(),
-            'total_bbm'      => \App\Models\GensetLog::whereMonth('tanggal',$bulan)->whereYear('tanggal',$tahun)->get()->sum('pemakaian_bbm'),
+            'total_bbm'      => (float) \App\Models\GensetLog::whereMonth('tanggal',$bulan)->whereYear('tanggal',$tahun)->sum('bbm_isi'),
             'total_jam'      => \App\Models\GensetLog::whereMonth('tanggal',$bulan)->whereYear('tanggal',$tahun)->get()->sum(fn($l)=>$l->jam_operasi_hm ?? $l->durasi_jam ?? 0),
             'gangguan'       => \App\Models\GensetLog::whereMonth('tanggal',$bulan)->whereYear('tanggal',$tahun)->where('kondisi','gangguan')->count(),
         ];

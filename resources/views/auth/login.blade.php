@@ -263,6 +263,9 @@
             </div>
         </div>
 
+        @if(session('status'))
+        <div style="background:#e8f8ef;color:#1e7e4a;border-radius:8px;padding:.5rem .7rem;font-size:.78rem;margin-bottom:.6rem">{{ session('status') }}</div>
+        @endif
         @if($errors->any())
         <div class="alert-box">
             <i class="bi bi-exclamation-triangle me-1"></i>
@@ -292,6 +295,7 @@
         </div>
         <div class="remember-row">
             <label><input type="checkbox" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}> Ingat saya</label>
+            <a href="{{ route('password.forgot') }}" style="color:var(--primary);text-decoration:none;font-weight:600">Lupa password?</a>
         </div>
         <button type="submit" class="btn-login">
             <i class="bi bi-box-arrow-in-right"></i> Masuk ke Sistem

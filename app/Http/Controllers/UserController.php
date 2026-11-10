@@ -58,6 +58,7 @@ class UserController extends Controller
         }
 
         $v['password']  = Hash::make($v['password']);
+        $v['must_change_password'] = true; // password dari admin bersifat sementara
         $v['is_active'] = $request->boolean('is_active', true);
         User::create($v);
 
@@ -109,6 +110,7 @@ class UserController extends Controller
         if ($request->filled('password')) {
             $request->validate(['password'=>'min:8|confirmed']);
             $v['password'] = Hash::make($request->password);
+            $v['must_change_password'] = true; // direset admin -> wajib ganti saat login berikutnya
         }
 
         // Upload TTD baru
@@ -300,9 +302,29 @@ class UserController extends Controller
             return back()->withErrors(['new_password' => 'Password baru harus berbeda dengan password saat ini.'])->withInput();
         }
 
-        $user->update(['password' => Hash::make($request->new_password)]);
+        if (\App\Support\PasswordPolicy::standar($request->new_password)) {
+            return back()->withErrors(['new_password' => 'Password baru tidak boleh sama dengan password standar. Pilih password lain.'])->withInput();
+        }
 
+        $user->forceFill([
+            'password'             => Hash::make($request->new_password),
+            'must_change_password' => false,
+            'password_changed_at'  => now(),
+        ])->save();
+
+        if (!$user->hasTwoFactor()) {
+            return redirect()->route('two-factor.show')
+                ->with('success','Password berhasil diperbarui. Aktifkan 2FA agar Anda dapat memulihkan password sendiri bila lupa.');
+        }
         return redirect()->route('dashboard')
-            ->with('success','Password berhasil diperbarui. Silakan login kembali jika diperlukan.');
+            ->with('success','Password berhasil diperbarui.');
+    }
+
+    // ── Admin: reset 2FA (mis. HP hilang) ──
+    public function reset2fa(User $user)
+    {
+        if (!auth()->user()->isAdmin()) abort(403);
+        $user->forceFill(['two_factor_secret'=>null,'two_factor_confirmed_at'=>null,'two_factor_last_step'=>null])->save();
+        return back()->with('success','2FA untuk '.$user->name.' telah direset.');
     }
 }

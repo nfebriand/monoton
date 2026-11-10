@@ -197,13 +197,9 @@
 function konfirmasiBulkCetak() {
     const total = {{ $logs->total() }};
     if (total === 0) { alert('Tidak ada data logbook untuk dicetak.'); return; }
-    let msg = 'Akan mencetak ' + total + ' logbook dalam 1 file PDF.';
-    if (total > 50) msg += '
-(Maksimal 50 logbook per cetak, sisanya tidak tercetak)';
-    msg += '
-
-Proses ini membutuhkan beberapa detik.
-Lanjutkan?';
+    let msg = 'Akan mencetak ' + Math.min(total, 50) + ' logbook dalam 1 file PDF.';
+    if (total > 50) msg += '\n(Maksimal 50 logbook per cetak, sisanya tidak tercetak)';
+    msg += '\n\nProses ini membutuhkan beberapa detik.\nLanjutkan?';
     if (confirm(msg)) document.getElementById('form-bulk-cetak').submit();
 }
 </script>

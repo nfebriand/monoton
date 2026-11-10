@@ -11,6 +11,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name','alias','nip','email','password','role',
         'lokasi_dinas','divisi','is_active','ttd_path',
+        'must_change_password','password_changed_at','two_factor_secret','two_factor_confirmed_at','two_factor_last_step',
     ];
 
     /** Alias bila diisi, jika kosong memakai nama lengkap. */
@@ -20,11 +21,26 @@ class User extends Authenticatable
         return $a !== '' ? $a : (string) $this->name;
     }
 
-    protected $hidden = ['password','remember_token'];
+    protected $hidden = ['password','remember_token','two_factor_secret'];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'must_change_password' => 'boolean',
+        'password_changed_at' => 'datetime',
+        'two_factor_confirmed_at' => 'datetime',
     ];
+
+    public function hasTwoFactor(): bool
+    {
+        return !empty($this->two_factor_secret) && $this->two_factor_confirmed_at !== null;
+    }
+
+    public function twoFactorSecretPlain(): ?string
+    {
+        if (empty($this->two_factor_secret)) return null;
+        try { return \Illuminate\Support\Facades\Crypt::decryptString($this->two_factor_secret); }
+        catch (\Throwable $e) { return null; }
+    }
 
     // ── Role ──
     public const ROLE_ADMIN        = 'admin';         // Super admin — akses seluruh sistem

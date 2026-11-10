@@ -11,32 +11,15 @@ class GensetController extends Controller
 {
     public const PESAN = [
         'tanggal.before_or_equal' => 'Tanggal tidak boleh di masa depan.',
-        'hm_akhir.gte'            => 'HM akhir tidak boleh lebih kecil dari HM awal.',
     ];
 
-    /** Kewajaran angka satu log genset. Mengembalikan pesan kesalahan atau null. */
+    /** Kewajaran angka satu log genset (kini hanya pengisian BBM). Mengembalikan pesan kesalahan atau null. */
     public static function cekRentang(array $v, $unit): ?string
     {
-        $n = fn($k) => (isset($v[$k]) && $v[$k] !== '' && is_numeric($v[$k])) ? (float) $v[$k] : null;
-        $hmA = $n('hm_awal'); $hmZ = $n('hm_akhir');
-        $bA = $n('bbm_awal'); $bI = $n('bbm_isi'); $bZ = $n('bbm_akhir');
+        $isi = (isset($v['bbm_isi']) && $v['bbm_isi'] !== '' && is_numeric($v['bbm_isi'])) ? (float) $v['bbm_isi'] : null;
         $tangki = $unit && $unit->kapasitas_tangki_liter ? (float) $unit->kapasitas_tangki_liter : null;
-
-        if ($hmA !== null && $hmZ !== null && ($hmZ - $hmA) > 72) {
-            return 'Selisih HM ('.round($hmZ - $hmA, 1).' jam) terlalu besar untuk satu log - periksa HM awal/akhir.';
-        }
-        if ($tangki !== null) {
-            foreach (['BBM awal' => $bA, 'Pengisian BBM' => $bI, 'BBM akhir' => $bZ] as $label => $val) {
-                if ($val !== null && $val > $tangki) {
-                    return "$label ($val L) melebihi kapasitas tangki unit ($tangki L).";
-                }
-            }
-            if ($bA !== null && $bI !== null && ($bA + $bI) > $tangki + 0.5) {
-                return "BBM awal + pengisian (".($bA + $bI)." L) melebihi kapasitas tangki ($tangki L).";
-            }
-        }
-        if ($bA !== null && $bZ !== null && $bZ > $bA + ($bI ?? 0) + 0.5) {
-            return 'BBM akhir lebih besar dari BBM awal + pengisian - kemungkinan salah ketik (isi kolom Pengisian BBM bila ada pengisian).';
+        if ($isi !== null && $tangki !== null && $isi > $tangki + 0.5) {
+            return "Pengisian BBM ($isi L) melebihi kapasitas tangki unit ($tangki L).";
         }
         return null;
     }
@@ -82,7 +65,7 @@ class GensetController extends Controller
         $bulanIni = GensetLog::whereMonth('tanggal',now()->month)->whereYear('tanggal',now()->year);
         $ringkasan = [
             'total_operasi'   => (clone $bulanIni)->count(),
-            'total_bbm'       => (clone $bulanIni)->get()->sum('pemakaian_bbm'),
+            'total_bbm'       => (float) (clone $bulanIni)->sum('bbm_isi'),
             'total_jam'       => (clone $bulanIni)->get()->sum(fn($l)=>$l->jam_operasi_hm ?? $l->durasi_jam ?? 0),
             'gangguan'        => (clone $bulanIni)->where('kondisi','gangguan')->count(),
         ];
@@ -100,12 +83,7 @@ class GensetController extends Controller
                 ->with('error','Belum ada unit genset terdaftar. Hubungi admin untuk menambahkan unit genset terlebih dahulu.');
         }
 
-        // Ambil HM & BBM akhir terakhir per unit, untuk auto-fill "awal" log baru
-        $lastLogs = GensetLog::whereIn('genset_unit_id',$units->pluck('id'))
-            ->orderByDesc('tanggal')->orderByDesc('jam_mulai')
-            ->get()->groupBy('genset_unit_id')->map(fn($g)=>$g->first());
-
-        return view('genset.create', compact('units','lastLogs'));
+        return view('genset.create', compact('units'));
     }
 
     public function store(Request $request)
@@ -118,11 +96,7 @@ class GensetController extends Controller
             'jam_mulai'      => 'required|date_format:H:i',
             'jam_selesai'    => 'nullable|date_format:H:i',
             'alasan'         => 'required|in:pln_mati,maintenance,test_rutin,lainnya',
-            'hm_awal'        => 'nullable|numeric|min:0',
-            'hm_akhir'       => 'nullable|numeric|min:0|gte:hm_awal',
-            'bbm_awal'       => 'nullable|numeric|min:0',
-            'bbm_isi'        => 'nullable|numeric|min:0',
-            'bbm_akhir'      => 'nullable|numeric|min:0',
+            'bbm_isi'        => 'nullable|numeric|min:0|max:100000',
             'kondisi'        => 'required|in:normal,gangguan',
             'keterangan'     => 'nullable|string',
         ], self::PESAN);
@@ -135,6 +109,71 @@ class GensetController extends Controller
         GensetLog::create($v);
 
         return redirect()->route('genset.index')->with('success','Log operasional genset berhasil disimpan.');
+    }
+
+    /** Data rekap pengisian BBM (dipakai halaman & PDF). */
+    private function dataRekapBbm(Request $request): array
+    {
+        $v = $request->validate([
+            'dari' => 'nullable|date', 'sampai' => 'nullable|date|after_or_equal:dari',
+            'genset_unit_id' => 'nullable|integer', 'lokasi' => 'nullable|string|max:100',
+        ]);
+        $dari   = $v['dari']   ?? now()->startOfMonth()->toDateString();
+        $sampai = $v['sampai'] ?? now()->toDateString();
+        $q = GensetLog::with(['gensetUnit', 'user'])->where('bbm_isi', '>', 0)->whereBetween('tanggal', [$dari, $sampai]);
+        if (!empty($v['genset_unit_id'])) $q->where('genset_unit_id', $v['genset_unit_id']);
+        if (!empty($v['lokasi'])) $q->whereHas('gensetUnit', fn($u) => $u->where('lokasi', $v['lokasi']));
+        $logs = $q->orderBy('tanggal')->orderBy('jam_mulai')->limit(2000)->get();
+
+        $perUnit = $logs->groupBy('genset_unit_id')->map(function ($g) {
+            $u = $g->first()->gensetUnit;
+            return ['unit' => $u, 'jumlah' => $g->count(), 'total' => (float) $g->sum('bbm_isi'),
+                'rata' => round((float) $g->avg('bbm_isi'), 1), 'terakhir' => $g->max('tanggal')];
+        })->sortBy(fn($r) => $r['unit']->nama_unit ?? '')->values();
+
+        $perBulan = $logs->groupBy(fn($l) => $l->tanggal->format('Y-m'))->map(fn($g) => (float) $g->sum('bbm_isi'))->sortKeys();
+        return [
+            'dari' => $dari, 'sampai' => $sampai, 'logs' => $logs, 'perUnit' => $perUnit, 'perBulan' => $perBulan,
+            'total' => (float) $logs->sum('bbm_isi'), 'filterUnit' => $v['genset_unit_id'] ?? null, 'filterLokasi' => $v['lokasi'] ?? null,
+        ];
+    }
+
+    public function rekapBbm(Request $request)
+    {
+        $this->checkAccess();
+        $d = $this->dataRekapBbm($request);
+        $d['units'] = GensetUnit::orderBy('nama_unit')->get();
+        $d['lokasis'] = GensetUnit::whereNotNull('lokasi')->distinct()->orderBy('lokasi')->pluck('lokasi');
+        return view('genset.rekap-bbm', $d);
+    }
+
+    public function rekapBbmPdf(Request $request)
+    {
+        $this->checkAccess();
+        $d = $this->dataRekapBbm($request);
+        $d['settings'] = \App\Models\AppSetting::allKeyed();
+        $d['pengelola'] = \App\Models\AppSetting::getKoordinator('sarana', \App\Models\AppSetting::tanggalAcuan($d['sampai']));
+        $d['pembuat'] = auth()->user();
+        $html = view('genset.pdf-rekap-bbm', $d)->render();
+
+        @ini_set('memory_limit', '512M'); @set_time_limit(180);
+        $dirs = [storage_path('app/dompdf/fonts'), storage_path('app/dompdf/font-cache'), storage_path('app/dompdf/tmp')];
+        foreach ($dirs as $dir) { if (!is_dir($dir)) @mkdir($dir, 0775, true); }
+        $opt = new \Dompdf\Options();
+        $opt->setIsRemoteEnabled(false); $opt->setIsHtml5ParserEnabled(true); $opt->setDefaultFont('dejavu sans');
+        $opt->setFontDir($dirs[0]); $opt->setFontCache($dirs[1]); $opt->setTempDir($dirs[2]);
+        $opt->setChroot([base_path(), public_path(), storage_path()]);
+        try {
+            $pdf = new \Dompdf\Dompdf($opt);
+            $pdf->setPaper('A4', 'portrait');
+            $pdf->loadHtml($html, 'UTF-8');
+            $pdf->render();
+            return response($pdf->output(), 200, ['Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="rekap-bbm-genset-'.$d['dari'].'_'.$d['sampai'].'.pdf"']);
+        } catch (\Throwable $e) {
+            \Log::error('Gagal cetak rekap BBM genset: '.$e->getMessage());
+            return back()->withErrors(['pdf' => 'Gagal membuat PDF: '.$e->getMessage()]);
+        }
     }
 
     public function show(GensetLog $genset)
@@ -163,11 +202,7 @@ class GensetController extends Controller
             'jam_mulai'      => 'required|date_format:H:i',
             'jam_selesai'    => 'nullable|date_format:H:i',
             'alasan'         => 'required|in:pln_mati,maintenance,test_rutin,lainnya',
-            'hm_awal'        => 'nullable|numeric|min:0',
-            'hm_akhir'       => 'nullable|numeric|min:0|gte:hm_awal',
-            'bbm_awal'       => 'nullable|numeric|min:0',
-            'bbm_isi'        => 'nullable|numeric|min:0',
-            'bbm_akhir'      => 'nullable|numeric|min:0',
+            'bbm_isi'        => 'nullable|numeric|min:0|max:100000',
             'kondisi'        => 'required|in:normal,gangguan',
             'keterangan'     => 'nullable|string',
         ], self::PESAN);

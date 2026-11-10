@@ -49,31 +49,11 @@
         </div>
     </div>
 
-    <h6 class="section-title mb-3">&#x23F1;&#xFE0F; Hour Meter (HM)</h6>
+    <h6 class="section-title mb-3">&#x26FD; Pengisian BBM</h6>
     <div class="row g-3 mb-4">
-        <div class="col-6">
-            <label class="form-label">HM Awal (jam)</label>
-            <input type="number" step="0.1" name="hm_awal" class="form-control mono" value="{{ old('hm_awal',$genset->hm_awal) }}">
-        </div>
-        <div class="col-6">
-            <label class="form-label">HM Akhir (jam)</label>
-            <input type="number" step="0.1" name="hm_akhir" class="form-control mono" value="{{ old('hm_akhir',$genset->hm_akhir) }}">
-        </div>
-    </div>
-
-    <h6 class="section-title mb-3">&#x26FD; Bahan Bakar (Liter)</h6>
-    <div class="row g-3 mb-4">
-        <div class="col-4">
-            <label class="form-label">BBM Awal</label>
-            <input type="number" step="0.1" name="bbm_awal" class="form-control mono" value="{{ old('bbm_awal',$genset->bbm_awal) }}">
-        </div>
-        <div class="col-4">
-            <label class="form-label">Pengisian BBM</label>
-            <input type="number" step="0.1" name="bbm_isi" class="form-control mono" value="{{ old('bbm_isi',$genset->bbm_isi) }}">
-        </div>
-        <div class="col-4">
-            <label class="form-label">BBM Akhir</label>
-            <input type="number" step="0.1" name="bbm_akhir" class="form-control mono" value="{{ old('bbm_akhir',$genset->bbm_akhir) }}">
+        <div class="col-12 col-md-6">
+            <label class="form-label">Pengisian BBM (Liter)</label>
+            <input type="number" step="0.1" min="0" inputmode="decimal" name="bbm_isi" class="form-control mono" value="{{ old('bbm_isi',$genset->bbm_isi) }}" placeholder="0">
         </div>
     </div>
 

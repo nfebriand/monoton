@@ -54,6 +54,7 @@ class Kernel extends HttpKernel
         'throttle'         => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified'         => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin.only'       => \App\Http\Middleware\AdminOnly::class,
+        'force.password'   => \App\Http\Middleware\ForcePasswordChange::class,
         'shift.login'      => \App\Http\Middleware\ShiftLoginMiddleware::class,
         'sarana.or.admin' => \App\Http\Middleware\SaranaOrAdmin::class,
     ];

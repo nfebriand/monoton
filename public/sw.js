@@ -1,5 +1,5 @@
 // MonOTOn Service Worker — v2 (full page caching for offline)
-const CACHE_VERSION = 'monoton-v14';
+const CACHE_VERSION = 'monoton-v15';
 const STATIC_CACHE  = `${CACHE_VERSION}-static`;
 const PAGES_CACHE   = `${CACHE_VERSION}-pages`;
 const ASSET_CACHE   = `${CACHE_VERSION}-assets`;

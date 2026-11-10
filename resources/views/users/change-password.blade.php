@@ -11,6 +11,12 @@
         <i class="bi bi-key me-2 text-warning"></i>Ganti Password
     </div>
     <div class="card-body">
+        @if(auth()->user()->must_change_password)
+        <div class="alert alert-warning" style="font-size:.82rem">
+            <i class="bi bi-exclamation-triangle me-1"></i><b>Wajib ganti password.</b>
+            Anda masih memakai password standar atau password sementara dari administrator. Ganti dahulu sebelum memakai aplikasi.
+        </div>
+        @endif
         <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded" style="background:#f8fafc;border:1px solid #eee">
             <div style="width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--primary);
                  color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem">
@@ -85,7 +91,9 @@
             <button type="submit" class="btn btn-primary-custom flex-fill">
                 <i class="bi bi-save me-1"></i>Simpan Password Baru
             </button>
+            @unless(auth()->user()->must_change_password)
             <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">Batal</a>
+            @endunless
         </div>
         </form>
     </div>

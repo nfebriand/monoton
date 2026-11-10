@@ -25,9 +25,19 @@ Route::post('/login', [LoginController::class,'login'])
     ->name('login.post');
 Route::post('/logout',[LoginController::class,'logout'])->name('logout');
 
+// Lupa password (verifikasi 2FA / TOTP)
+Route::middleware('guest')->group(function(){
+    Route::get('/lupa-password',        [\App\Http\Controllers\Auth\ForgotPasswordController::class,'email'])->name('password.forgot');
+    Route::post('/lupa-password',       [\App\Http\Controllers\Auth\ForgotPasswordController::class,'emailPost'])->middleware('throttle:5,1')->name('password.forgot.post');
+    Route::get('/lupa-password/kode',   [\App\Http\Controllers\Auth\ForgotPasswordController::class,'kode'])->name('password.forgot.kode');
+    Route::post('/lupa-password/kode',  [\App\Http\Controllers\Auth\ForgotPasswordController::class,'kodePost'])->middleware('throttle:5,1')->name('password.forgot.kode.post');
+    Route::get('/lupa-password/baru',   [\App\Http\Controllers\Auth\ForgotPasswordController::class,'baru'])->name('password.forgot.baru');
+    Route::post('/lupa-password/baru',  [\App\Http\Controllers\Auth\ForgotPasswordController::class,'baruPost'])->middleware('throttle:5,1')->name('password.forgot.baru.post');
+});
+
 Route::get('/offline', fn()=>view('offline'))->name('offline');
 
-Route::middleware(['auth'])->group(function(){
+Route::middleware(['auth','force.password'])->group(function(){
     Route::get('/',          [DashboardController::class,'index'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class,'index']);
 
@@ -80,6 +90,9 @@ Route::middleware(['auth'])->group(function(){
     Route::get('/profile',          [UserController::class,'profile'])->name('users.profile');
     Route::get('/password/change',  [UserController::class,'changePasswordForm'])->name('users.change-password');
     Route::post('/password/change', [UserController::class,'updatePassword'])->name('users.update-password');
+    Route::get('/profile/2fa',            [\App\Http\Controllers\TwoFactorController::class,'show'])->name('two-factor.show');
+    Route::post('/profile/2fa/aktifkan',  [\App\Http\Controllers\TwoFactorController::class,'aktifkan'])->middleware('throttle:10,1')->name('two-factor.aktifkan');
+    Route::post('/profile/2fa/nonaktifkan',[\App\Http\Controllers\TwoFactorController::class,'nonaktifkan'])->middleware('throttle:5,1')->name('two-factor.nonaktifkan');
     
      // TTD sendiri (semua user terautentikasi)
     Route::post('/profile/ttd',   [UserController::class,'updateTtdSelf'])->name('users.update-ttd-self');
@@ -103,6 +116,8 @@ Route::middleware(['auth'])->group(function(){
     Route::get('/genset',               [GensetController::class,'index'])->name('genset.index');
     Route::get('/genset/create',        [GensetController::class,'create'])->name('genset.create');
     Route::post('/genset',              [GensetController::class,'store'])->name('genset.store');
+    Route::get('/genset/rekap-bbm',         [GensetController::class,'rekapBbm'])->name('genset.rekap-bbm');
+    Route::get('/genset/rekap-bbm/cetak',   [GensetController::class,'rekapBbmPdf'])->name('genset.rekap-bbm.cetak');
     Route::get('/genset/{genset}',          [GensetController::class,'show'])->name('genset.show');
     Route::get('/genset/{genset}/edit',     [GensetController::class,'edit'])->name('genset.edit');
     Route::put('/genset/{genset}',          [GensetController::class,'update'])->name('genset.update');
@@ -238,6 +253,7 @@ Route::middleware(['auth'])->group(function(){
         Route::get('/users/{user}/edit', [UserController::class,'edit'])->name('users.edit');
         Route::put('/users/{user}',      [UserController::class,'update'])->name('users.update');
         Route::delete('/users/{user}',   [UserController::class,'destroy'])->name('users.destroy');
+        Route::post('/users/{user}/reset-2fa', [UserController::class,'reset2fa'])->name('users.reset-2fa');
     });
 
     // ── Super Admin Only ──

@@ -14,6 +14,9 @@
     @if(file_exists(public_path('js/foto-compress.js')))
     <script src="/js/foto-compress.js"></script>
     @endif
+    @if(file_exists(public_path('js/foto-auto-compress.js')))
+    <script src="/js/foto-auto-compress.js"></script>
+    @endif
     @if(file_exists(public_path('js/offline-db.js')))
     <script src="/js/offline-db.js"></script>
     <script src="/js/offline-sync.js"></script>

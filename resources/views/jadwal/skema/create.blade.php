@@ -37,6 +37,15 @@
                        pattern="[a-zA-Z0-9_-]+" required>
                 <div class="form-text">Huruf, angka, underscore, strip. Tidak bisa sama.</div>
             </div>
+                        <div class="col-md-6">
+                <label class="form-label">Berlaku untuk Lokasi Dinas</label>
+                <input type="text" name="lokasi" list="dl-lokasi" class="form-control"
+                       value="{{ old('lokasi', '') }}" placeholder="Kosongkan = skema umum divisi">
+                <datalist id="dl-lokasi">
+                    @foreach(\App\Models\Lokasi::namaAktif() as $ln)<option value="{{ $ln }}">@endforeach
+                </datalist>
+                <div class="form-text">Operator dengan lokasi dinas ini otomatis memakai skema ini saat jadwal dibuat (harian/bulanan). Isi persis seperti nama lokasi, mis. <b>Bakauheni</b>.</div>
+            </div>
             <div class="col-12">
                 <div class="form-check form-switch">
                     <input type="checkbox" name="is_active" value="1" class="form-check-input"

@@ -38,6 +38,7 @@
                     <tr>
                         <th class="ps-3">Nama Skema</th>
                         <th>Kode</th>
+                        <th>Lokasi</th>
                         <th>Jumlah Shift</th>
                         <th>Detail Shift</th>
                         <th>Status</th>
@@ -55,6 +56,7 @@
                             @endif
                         </td>
                         <td class="mono" style="font-size:.8rem">{{ $skema->kode }}</td>
+                        <td style="font-size:.8rem">{{ $skema->lokasi ?: '— (umum)' }}</td>
                         <td class="text-center mono fw-bold" style="font-size:.9rem">{{ $skema->items->count() }}</td>
                         <td>
                             <div class="d-flex flex-wrap gap-1">

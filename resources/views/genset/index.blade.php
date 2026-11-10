@@ -17,7 +17,7 @@
     <div class="col-6 col-md-3">
         <div class="card text-center">
             <div class="card-body py-2">
-                <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">Total BBM Terpakai</div>
+                <div style="font-size:.62rem;color:var(--muted);text-transform:uppercase">BBM Diisi Bulan Ini</div>
                 <div class="mono fw-bold" style="font-size:1.6rem;color:var(--warning)">{{ number_format($ringkasan['total_bbm'],1) }} L</div>
             </div>
         </div>
@@ -78,7 +78,8 @@
 </div>
 
 {{-- Tombol Tambah --}}
-<div class="d-flex justify-content-end mb-2">
+<div class="d-flex justify-content-end gap-2 mb-2 flex-wrap">
+    <a href="{{ route('genset.rekap-bbm') }}" class="btn btn-outline-primary"><i class="bi bi-fuel-pump me-1"></i>Rekap Pengisian BBM</a>
     <a href="{{ route('genset.create') }}" class="btn btn-primary-custom">
         <i class="bi bi-plus-circle me-1"></i>Catat Operasional Genset
     </a>
@@ -95,7 +96,7 @@
                         <th>Unit Genset</th>
                         <th>Alasan</th>
                         <th>Jam Operasi</th>
-                        <th>BBM Terpakai</th>
+                        <th>Pengisian BBM</th>
                         <th>Kondisi</th>
                         <th>Operator</th>
                         <th class="text-end pe-3">Aksi</th>
@@ -121,10 +122,7 @@
                             {{ $log->jam_operasi_hm ? number_format($log->jam_operasi_hm,1).' jam (HM)' : ($log->durasi ?? ''."\u{2013}".'') }}
                         </td>
                         <td class="mono" style="font-size:.8rem">
-                            {{ $log->pemakaian_bbm !== null ? number_format($log->pemakaian_bbm,1).' L' : ''."\u{2013}".'' }}
-                            @if($log->rasio_bbm_per_jam)
-                            <div class="text-muted" style="font-size:.65rem">{{ number_format($log->rasio_bbm_per_jam,2) }} L/jam</div>
-                            @endif
+                            {{ $log->bbm_isi ? '+'.number_format($log->bbm_isi,1).' L' : "\u{2013}" }}
                         </td>
                         <td>
                             <span class="badge {{ $log->kondisi=='normal'?'bg-success':'bg-danger' }}" style="font-size:.68rem">

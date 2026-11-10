@@ -66,12 +66,27 @@ class PerawatanRutin extends Model
         return $this->objek_tipe === 'pemancar' ? ($this->pemancar->lokasi ?? null) : ($this->gensetUnit->lokasi ?? null);
     }
 
-    /** HM terbesar per unit genset dari log operasional genset. */
+    /**
+     * HM terbesar per unit genset. Sejak form operasional genset tidak lagi mencatat HM, sumber utamanya adalah
+     * HM yang diisi saat mencatat pelaksanaan perawatan; log operasional lama (hm_akhir) tetap dihitung.
+     */
     public static function hmMap(): array
     {
-        return GensetLog::selectRaw('genset_unit_id, MAX(hm_akhir) AS hm')
+        $map = GensetLog::selectRaw('genset_unit_id, MAX(hm_akhir) AS hm')
             ->whereNotNull('hm_akhir')->groupBy('genset_unit_id')->pluck('hm', 'genset_unit_id')
             ->map(fn($v) => (float) $v)->all();
+        try {
+            $baris = PerawatanRutinLog::join('perawatan_rutin', 'perawatan_rutin.id', '=', 'perawatan_rutin_log.perawatan_rutin_id')
+                ->where('perawatan_rutin.objek_tipe', 'genset')->whereNotNull('perawatan_rutin_log.hm')
+                ->selectRaw('perawatan_rutin.genset_unit_id AS uid, MAX(perawatan_rutin_log.hm) AS hm')
+                ->groupBy('perawatan_rutin.genset_unit_id')->get();
+            foreach ($baris as $r) {
+                if ($r->uid && (!isset($map[$r->uid]) || (float) $r->hm > $map[$r->uid])) $map[$r->uid] = (float) $r->hm;
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('hmMap perawatan gagal: '.$e->getMessage());
+        }
+        return $map;
     }
 
     public function hmSekarang(?array $map = null): ?float

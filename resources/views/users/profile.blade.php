@@ -36,9 +36,14 @@
                     </span>
                 </div>
             </div>
-            <a href="{{ route('users.change-password') }}" class="btn btn-outline-primary flex-shrink-0">
+            <div class="d-flex flex-column gap-2 flex-shrink-0">
+            <a href="{{ route('users.change-password') }}" class="btn btn-outline-primary">
                 <i class="bi bi-key me-1"></i>Ganti Password
             </a>
+            <a href="{{ route('two-factor.show') }}" class="btn btn-outline-success">
+                <i class="bi bi-shield-lock me-1"></i>2FA {{ $user->hasTwoFactor() ? '(Aktif)' : '(Belum aktif)' }}
+            </a>
+            </div>
         </div>
     </div>
 </div>

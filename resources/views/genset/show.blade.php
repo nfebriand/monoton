@@ -71,61 +71,32 @@
             </div>
         </div>
 
-        {{-- HM & BBM --}}
+        {{-- Pengisian BBM (data HM / BBM awal-akhir lama tetap tampil bila ada) --}}
         <div class="row g-3">
             <div class="col-12 col-md-6">
                 <div class="card">
-                    <div class="card-header"><i class="bi bi-speedometer me-2 text-success"></i>Hour Meter</div>
-                    <div class="card-body">
-                        <div class="row g-2 text-center">
-                            <div class="col-4">
-                                <div class="text-muted" style="font-size:.65rem">HM AWAL</div>
-                                <div class="mono fw-bold">{{ $genset->hm_awal !== null ? number_format($genset->hm_awal,1) : ''."\u{2013}".'' }}</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="text-muted" style="font-size:.65rem">HM AKHIR</div>
-                                <div class="mono fw-bold">{{ $genset->hm_akhir !== null ? number_format($genset->hm_akhir,1) : ''."\u{2013}".'' }}</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="text-muted" style="font-size:.65rem">JAM OPERASI</div>
-                                <div class="mono fw-bold" style="color:var(--primary)">
-                                    {{ $genset->jam_operasi_hm !== null ? number_format($genset->jam_operasi_hm,1) : ''."\u{2013}".'' }}
-                                </div>
-                            </div>
-                        </div>
+                    <div class="card-header"><i class="bi bi-fuel-pump me-2 text-warning"></i>Pengisian BBM</div>
+                    <div class="card-body text-center">
+                        <div class="text-muted" style="font-size:.65rem">PENGISIAN</div>
+                        <div class="mono fw-bold" style="font-size:1.3rem;color:var(--success)">{{ $genset->bbm_isi ? '+'.number_format($genset->bbm_isi,1).' L' : "\u{2013}" }}</div>
                     </div>
                 </div>
             </div>
+            @if($genset->hm_awal !== null || $genset->hm_akhir !== null || $genset->bbm_awal !== null || $genset->bbm_akhir !== null)
             <div class="col-12 col-md-6">
                 <div class="card">
-                    <div class="card-header"><i class="bi bi-fuel-pump me-2 text-warning"></i>Bahan Bakar</div>
-                    <div class="card-body">
-                        <div class="row g-2 text-center mb-2">
-                            <div class="col-4">
-                                <div class="text-muted" style="font-size:.65rem">AWAL</div>
-                                <div class="mono fw-bold">{{ $genset->bbm_awal !== null ? number_format($genset->bbm_awal,1).'L' : ''."\u{2013}".'' }}</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="text-muted" style="font-size:.65rem">ISI</div>
-                                <div class="mono fw-bold" style="color:var(--success)">{{ $genset->bbm_isi ? '+'.number_format($genset->bbm_isi,1).'L' : ''."\u{2013}".'' }}</div>
-                            </div>
-                            <div class="col-4">
-                                <div class="text-muted" style="font-size:.65rem">AKHIR</div>
-                                <div class="mono fw-bold">{{ $genset->bbm_akhir !== null ? number_format($genset->bbm_akhir,1).'L' : ''."\u{2013}".'' }}</div>
-                            </div>
-                        </div>
-                        @if($genset->pemakaian_bbm !== null)
-                        <div class="text-center p-2 rounded" style="background:var(--bg)">
-                            <div class="text-muted" style="font-size:.65rem">TOTAL PEMAKAIAN</div>
-                            <div class="mono fw-bold" style="font-size:1.1rem;color:var(--warning)">{{ number_format($genset->pemakaian_bbm,1) }} L</div>
-                            @if($genset->rasio_bbm_per_jam)
-                            <div class="text-muted" style="font-size:.65rem">&#x2248; {{ number_format($genset->rasio_bbm_per_jam,2) }} L/jam</div>
-                            @endif
-                        </div>
+                    <div class="card-header"><i class="bi bi-archive me-2 text-muted"></i>Data Lama (arsip)</div>
+                    <div class="card-body" style="font-size:.78rem">
+                        @if($genset->hm_awal !== null || $genset->hm_akhir !== null)
+                        <div>HM: {{ $genset->hm_awal !== null ? number_format($genset->hm_awal,1) : "\u{2013}" }} &rarr; {{ $genset->hm_akhir !== null ? number_format($genset->hm_akhir,1) : "\u{2013}" }}</div>
+                        @endif
+                        @if($genset->bbm_awal !== null || $genset->bbm_akhir !== null)
+                        <div>BBM: {{ $genset->bbm_awal !== null ? number_format($genset->bbm_awal,1).' L' : "\u{2013}" }} &rarr; {{ $genset->bbm_akhir !== null ? number_format($genset->bbm_akhir,1).' L' : "\u{2013}" }}</div>
                         @endif
                     </div>
                 </div>
             </div>
+            @endif
         </div>
     </div>
 

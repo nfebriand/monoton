@@ -51,6 +51,7 @@ class SkemaShiftController extends Controller
             'nama'              => 'required|string|max:100',
             'divisi'            => 'required|in:transmisi,studio,sarana',
             'kode'              => 'required|string|max:50|alpha_dash|unique:skema_shifts,kode',
+            'lokasi'            => 'nullable|string|max:100',
             'is_active'         => 'nullable|boolean',
             'shift_label'       => 'required|array|min:1',
             'shift_label.*'     => 'required|string|max:50',
@@ -68,6 +69,7 @@ class SkemaShiftController extends Controller
         $skema = SkemaShift::create([
             'nama'       => $v['nama'],
             'divisi'     => $v['divisi'],
+            'lokasi'     => trim((string) ($v['lokasi'] ?? '')) ?: null,
             'kode'       => $v['kode'],
             'is_default' => false,
             'is_active'  => $request->boolean('is_active', true),
@@ -118,6 +120,7 @@ class SkemaShiftController extends Controller
             'nama'            => 'required|string|max:100',
             'divisi'          => 'required|in:transmisi,studio,sarana',
             'kode'            => 'required|string|max:50|alpha_dash|unique:skema_shifts,kode,'.$skemaShift->id,
+            'lokasi'          => 'nullable|string|max:100',
             'is_active'       => 'nullable|boolean',
             'shift_label'     => 'required|array|min:1',
             'shift_label.*'   => 'required|string|max:50',
@@ -134,6 +137,7 @@ class SkemaShiftController extends Controller
         $skemaShift->update([
             'nama'      => $v['nama'],
             'divisi'    => $v['divisi'],
+            'lokasi'    => trim((string) ($v['lokasi'] ?? '')) ?: null,
             'kode'      => $v['kode'],
             'is_active' => $request->boolean('is_active', true),
         ]);

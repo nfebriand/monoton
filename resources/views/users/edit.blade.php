@@ -157,6 +157,22 @@
         <a href="{{ route('users.index') }}" class="btn btn-outline-secondary">Batal</a>
     </div>
     </form>
+    @if(auth()->user()->isAdmin())
+    <hr>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div style="font-size:.82rem">
+            <b>Autentikasi 2 Langkah (2FA):</b>
+            @if($user->hasTwoFactor()) <span class="badge bg-success">Aktif</span> @else <span class="badge bg-secondary">Belum aktif</span> @endif
+            @if($user->must_change_password) <span class="badge bg-warning text-dark ms-1">Wajib ganti password</span> @endif
+        </div>
+        @if($user->hasTwoFactor())
+        <form action="{{ route('users.reset-2fa',$user) }}" method="POST" onsubmit="return confirm('Reset 2FA pengguna ini? Ia harus mengaktifkannya ulang.')">
+            @csrf
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-shield-x me-1"></i>Reset 2FA</button>
+        </form>
+        @endif
+    </div>
+    @endif
     </div>
 </div>
 </div>

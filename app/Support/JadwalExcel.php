@@ -38,18 +38,19 @@ class JadwalExcel
     {
         $x = new SimpleXlsx();
 
-        // urut kolom shift berdasar jam mulai
-        $shifts = $d['shifts'];
-        // MCR selalu di kolom paling kanan; sisanya urut jam mulai (lalu nomor shift)
+        // urut kolom shift berdasar jam mulai (dihitung per sheet: skema bisa berbeda tiap lokasi)
         $isMcr = fn($x) => strtoupper(trim($x['label'] ?? '')) === 'MCR';
-        uksort($shifts, function ($ka, $kb) use ($shifts, $isMcr) {
-            $a = $shifts[$ka]; $b = $shifts[$kb];
-            return [$isMcr($a) ? 1 : 0, $a['mulai'], $ka] <=> [$isMcr($b) ? 1 : 0, $b['mulai'], $kb];
-        });
-        $shiftNos = array_keys($shifts);
-        $nShift   = count($shiftNos);
-        $colOp    = 3 + $nShift;            // kolom legenda operator
-        $lastCol  = $colOp;
+        $hitungShift = function (array $shifts) use ($isMcr) {
+            // MCR selalu di kolom paling kanan; sisanya urut jam mulai (lalu nomor shift)
+            uksort($shifts, function ($ka, $kb) use ($shifts, $isMcr) {
+                $a = $shifts[$ka]; $b = $shifts[$kb];
+                return [$isMcr($a) ? 1 : 0, $a['mulai'], $ka] <=> [$isMcr($b) ? 1 : 0, $b['mulai'], $kb];
+            });
+            $shiftNos = array_keys($shifts);
+            $nShift   = count($shiftNos);
+            $colOp    = 3 + $nShift;            // kolom legenda operator
+            return [$shifts, $shiftNos, $nShift, $colOp, $colOp];
+        };
 
         $st = [
             'org'    => $x->style(['b'=>true,'sz'=>13,'h'=>'left','v'=>'center']),
@@ -75,6 +76,7 @@ class JadwalExcel
         $tglTtd = $hMin1->day.' '.ucfirst(strtolower(self::BULAN[(int) $hMin1->month])).' '.$hMin1->year;
 
         foreach ($d['sheets'] as $sh) {
+            [$shifts, $shiftNos, $nShift, $colOp, $lastCol] = $hitungShift($sh['shifts'] ?? $d['shifts']);
             $s = $x->addSheet($sh['lokasi']);
             $widths = [1 => 11, 2 => 13];
             for ($i = 0; $i < $nShift; $i++) $widths[3 + $i] = 15;

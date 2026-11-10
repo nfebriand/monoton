@@ -271,7 +271,7 @@
                         @foreach($operators as $op)
                         <option value="{{ $op->id }}"
                                 data-lokasi="{{ $op->lokasi_dinas }}"
-                                data-skema="{{ match($op->divisi??'transmisi') { 'studio'=>'studio','sarana'=>'sarana',default=>'transmisi' } }}">
+                                data-skema="{{ $skemaOperator[$op->id] ?? 'transmisi' }}">
                             {{ $op->name }}{{ $op->lokasi_dinas ? ' ('.$op->lokasi_dinas.')' : '' }}@if($op->isAdminDivisi()) (Admin Divisi)@endif
                         </option>
                         @endforeach
@@ -328,7 +328,7 @@
                             @foreach($operators as $op)
                             <option value="{{ $op->id }}"
                                     data-lokasi="{{ $op->lokasi_dinas }}"
-                                    data-skema="{{ match($op->divisi??'transmisi') { 'studio'=>'studio','sarana'=>'sarana',default=>'transmisi' } }}"
+                                    data-skema="{{ $skemaOperator[$op->id] ?? 'transmisi' }}"
                                     data-nama="{{ $op->name }}">
                                 {{ $op->name }}@if($op->isAdminDivisi()) (Admin Divisi)@endif
                             </option>

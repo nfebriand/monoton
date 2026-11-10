@@ -80,6 +80,11 @@ class JadwalController extends Controller
 
         // Baca skema dari DB (fallback ke konstanta jika DB kosong)
         $skemaShift = SkemaShift::getAllForJs();
+        // Skema per operator menurut lokasi dinas: [user_id => kode skema]
+        $skemaOperator = [];
+        foreach ($operators as $op) {
+            $skemaOperator[$op->id] = SkemaShift::kodeUntuk($op->divisi ?? 'transmisi', $op->lokasi_dinas);
+        }
 
         // Cuti / izin / sakit bulan ini (admin divisi hanya divisinya)
         $adaTabelCuti = \Illuminate\Support\Facades\Schema::hasTable('jadwal_cuti'); // aman sebelum migrate
@@ -93,7 +98,7 @@ class JadwalController extends Controller
         $cutiByTgl = $cutiList->groupBy(fn($c) => Carbon::parse($c->tanggal)->toDateString());
 
         return view('jadwal.index', compact(
-            'jadwals', 'operators', 'bulan', 'tahun', 'hariKalender', 'skemaShift', 'cutiList', 'cutiByTgl'
+            'jadwals', 'operators', 'bulan', 'tahun', 'hariKalender', 'skemaShift', 'skemaOperator', 'cutiList', 'cutiByTgl'
         ));
     }
 
@@ -154,7 +159,7 @@ class JadwalController extends Controller
                 sort($list, SORT_NATURAL | SORT_FLAG_CASE);
                 $data[$tgl][$no] = $list;
             }
-            $sheet = ['lokasi' => $lok, 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? [], 'cuti' => $cutiLokasi[$lok] ?? []];
+            $sheet = ['lokasi' => $lok, 'shifts' => SkemaShift::getShiftsForKode(SkemaShift::kodeUntuk($divisi, $lok === 'Umum' ? null : $lok)), 'jadwal' => $data, 'alias' => $aliasLokasi[$lok] ?? [], 'cuti' => $cutiLokasi[$lok] ?? []];
             // Studio Produksi Way Kanan: penandatangan = pencetak (kiri), Koordinator SP Way Kanan (kanan), Kepala Stasiun (mengetahui)
             if ($divisi === 'studio' && strcasecmp(trim((string) $lok), 'Way Kanan') === 0) {
                 $korWk  = AppSetting::getKoordinatorStudio('Way Kanan', $acuan);
@@ -233,7 +238,7 @@ class JadwalController extends Controller
             abort(403, 'Anda hanya dapat mengatur jadwal untuk operator divisi Anda sendiri.');
         }
 
-        $skema     = JadwalShift::getSkemaForDivisi($op->divisi ?? 'transmisi');
+        $skema     = SkemaShift::kodeUntuk($op->divisi ?? 'transmisi', $op->lokasi_dinas);
         $skemaData = SkemaShift::getShiftsForKode($skema);
         $sd = $skemaData[(int)$v['shift']] ?? JadwalShift::getShiftData($skema, (int)$v['shift']);
 
@@ -278,7 +283,7 @@ class JadwalController extends Controller
         $userId = $request->user_id;
         $bulan  = $request->bulan_target;
         $tahun  = $request->tahun_target;
-        $skema     = JadwalShift::getSkemaForDivisi($op->divisi ?? 'transmisi');
+        $skema     = SkemaShift::kodeUntuk($op->divisi ?? 'transmisi', $op->lokasi_dinas);
         $skemaData = SkemaShift::getShiftsForKode($skema);
 
         $dibuat = $lewat = $hapus = 0;

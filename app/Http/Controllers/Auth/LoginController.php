@@ -31,7 +31,17 @@ class LoginController extends Controller
             return back()->withErrors(['email' => 'Akun Anda tidak aktif. Hubungi administrator.'])->withInput();
         }
 
+        // Password standar -> wajib ganti sebelum memakai aplikasi
+        if (!$user->must_change_password && \App\Support\PasswordPolicy::standar($credentials['password'])) {
+            $user->forceFill(['must_change_password' => true])->save();
+        }
+
         $request->session()->regenerate();
+
+        if ($user->must_change_password) {
+            return redirect()->route('users.change-password')
+                ->with('warning', 'Anda masih memakai password standar. Ganti password terlebih dahulu sebelum memakai aplikasi.');
+        }
         return redirect()->intended('/');
     }
 
